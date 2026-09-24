@@ -100,6 +100,6 @@ export async function submitCreatorApplication(payload: CreatorApplicationPayloa
 
   return {
     success: true,
-    message: `Votre candidature pour rejoindre Salacope.online a été transmise avec succès. Notre équipe à Brazzaville vous contactera sous 24h.`,
+    message: `Votre candidature pour rejoindre Salacope.online a été transmise avec succès. Notre équipe vous contactera sous 24h.`,
   };
 }

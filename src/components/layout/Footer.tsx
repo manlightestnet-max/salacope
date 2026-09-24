@@ -35,7 +35,7 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span>Brazzaville &middot; Luanda</span>
+                <span>Luanda, Angola</span>
               </div>
             </div>
           </div>

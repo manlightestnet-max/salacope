@@ -1,4 +1,4 @@
-﻿// Note de conformité : Les prestataires techniques de paiement (PSP / passerelle) ne sont
+// Note de conformité : Les prestataires techniques de paiement (PSP / passerelle) ne sont
 // volontairement pas nommés publiquement dans les textes légaux de la plateforme,
 // conformément aux directives internes et aux accords de distribution.
 import React from 'react';

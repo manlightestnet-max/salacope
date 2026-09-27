@@ -13,9 +13,9 @@ export interface StartCheckoutInput {
  * Nothing is ordered yet: the order is created once LightPay confirms; the money stays
  * held until the buyer validates. Resolves to the page to go to.
  */
-export async function startCheckout(input: StartCheckoutInput): Promise<string> {
-  const { checkoutUrl } = await mutate<{ checkoutUrl: string }>('POST', '/checkout', input);
-  return checkoutUrl;
+export async function startCheckout(input: StartCheckoutInput): Promise<{ checkoutUrl: string; attemptId: string }> {
+  const { checkoutUrl, attempt } = await mutate<{ checkoutUrl: string; attempt: PaymentAttempt }>('POST', '/checkout', input);
+  return { checkoutUrl, attemptId: attempt.id };
 }
 
 /** Asks LightPay where the payment stands (after the return, then while it confirms). */

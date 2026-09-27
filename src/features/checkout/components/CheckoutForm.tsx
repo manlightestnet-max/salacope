@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { Listing } from '@/shared/db';
 import { Button, Card, CardBody, CardHeader, Field, Handoff, Input, Textarea } from '@/shared/ui';
@@ -10,6 +10,7 @@ import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
 import { SignInForm, useSession } from '@/features/session';
 import { ListingThumb } from '@/features/catalog';
 import { startCheckout } from '../api';
+import { loadLightPay } from '../lightpay';
 
 export interface CheckoutFormProps {
   listing: Listing;
@@ -22,6 +23,7 @@ export interface CheckoutFormProps {
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const { user } = useSession();
   const location = useLocation();
+  const navigate = useNavigate();
   const [brief, setBrief] = useState<Record<string, string>>({});
   const [showInvoice, setShowInvoice] = useState(false);
   const [company, setCompany] = useState({ companyName: '', taxId: '' });
@@ -40,8 +42,18 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
     }
     setBusy(true);
     try {
-      const url = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 900);
-      window.location.assign(url);
+      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 900);
+      let lightpay;
+      try {
+        lightpay = await loadLightPay(checkoutUrl);
+      } catch {
+        window.location.assign(checkoutUrl);
+        return;
+      }
+      // LightPay's dialog over the page; the result is confirmed server-side on the return page.
+      setBusy(false);
+      const result = await lightpay.pay(checkoutUrl);
+      if (result.status === 'completed') navigate(`${ROUTES.paymentReturn}?tentative=${encodeURIComponent(attemptId)}`);
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);

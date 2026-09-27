@@ -97,7 +97,7 @@ export const ListRow: React.FC<ListRowProps> = ({ to, onClick, leading, title, s
       className={clsx(
         'group flex items-center transition-colors',
         interactive && 'hover:bg-gray-50',
-        selected && 'bg-gray-50 shadow-[inset_2px_0_0_rgb(var(--accent))]',
+        selected && 'bg-gray-100 shadow-[inset_3px_0_0_rgb(var(--accent))]',
         className
       )}
     >

@@ -67,20 +67,29 @@ const NavEntry: React.FC<NavItem & { collapsed: boolean; onNavigate: () => void 
       clsx(
         'relative flex items-center gap-2.5 h-8 rounded-md text-sm transition-colors',
         collapsed ? 'justify-center w-8 mx-auto' : 'px-2.5',
-        isActive ? 'bg-gray-200/70 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        isActive ? 'bg-accent text-on-accent font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       )
     }
   >
-    <Icon className="w-4 h-4 shrink-0" />
-    {!collapsed && <span className="flex-1 truncate">{label}</span>}
-    {!!badge &&
-      (collapsed ? (
-        <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary-600" />
-      ) : (
-        <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary-600 text-white text-[11px] font-medium flex items-center justify-center tabular-nums">
-          {badge}
-        </span>
-      ))}
+    {({ isActive }) => (
+      <>
+        <Icon className="w-4 h-4 shrink-0" />
+        {!collapsed && <span className="flex-1 truncate">{label}</span>}
+        {!!badge &&
+          (collapsed ? (
+            <span className={clsx('absolute top-1 right-1 w-1.5 h-1.5 rounded-full', isActive ? 'bg-on-accent' : 'bg-accent')} />
+          ) : (
+            <span
+              className={clsx(
+                'min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold flex items-center justify-center tabular-nums',
+                isActive ? 'bg-on-accent/15 text-on-accent' : 'bg-accent text-on-accent'
+              )}
+            >
+              {badge}
+            </span>
+          ))}
+      </>
+    )}
   </NavLink>
 );
 

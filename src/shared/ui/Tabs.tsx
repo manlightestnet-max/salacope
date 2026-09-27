@@ -31,13 +31,13 @@ export function Tabs<V extends string>({ value, items, onChange, bare, className
             className={clsx(
               'h-8 shrink-0 flex items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap transition-colors',
               active
-                ? 'bg-gray-900 border-gray-900 text-canvas'
+                ? 'bg-accent border-accent text-on-accent'
                 : 'bg-surface border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300'
             )}
           >
             {item.label}
             {item.count !== undefined && (
-              <span className={clsx('text-[11px] tabular-nums', active ? 'text-canvas/60' : 'text-gray-500')}>{item.count}</span>
+              <span className={clsx('text-[11px] tabular-nums', active ? 'text-on-accent/70' : 'text-gray-500')}>{item.count}</span>
             )}
           </button>
         );

@@ -284,7 +284,7 @@ export const ReportDialog: React.FC<{
               onClick={() => setReason(r)}
               className={clsx(
                 'h-8 rounded-full border px-3 text-[13px] font-medium transition-colors',
-                reason === r ? 'bg-gray-900 border-gray-900 text-canvas' : 'border-gray-200 text-gray-600 hover:text-gray-900'
+                reason === r ? 'bg-accent border-accent text-on-accent' : 'border-gray-200 text-gray-600 hover:text-gray-900'
               )}
             >
               {r}

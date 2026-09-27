@@ -33,7 +33,7 @@ const OptionChip: React.FC<{ icon: LucideIcon; label: string; active?: boolean; 
     aria-controls={controls}
     className={clsx(
       'h-9 shrink-0 inline-flex items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors',
-      active ? 'bg-gray-900 border-gray-900 text-canvas' : 'bg-surface border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300'
+      active ? 'bg-accent border-accent text-on-accent' : 'bg-surface border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300'
     )}
   >
     <Icon className="w-4 h-4" />

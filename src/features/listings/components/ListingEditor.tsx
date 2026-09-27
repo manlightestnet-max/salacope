@@ -70,7 +70,7 @@ const Stepper: React.FC<{ current: number; reachable: (i: number) => boolean; on
               aria-current={active ? 'step' : undefined}
               className={clsx(
                 'h-8 flex items-center gap-2 rounded-full border pl-1 pr-3 text-[13px] font-medium transition-colors disabled:cursor-default',
-                active ? 'bg-gray-900 border-gray-900 text-canvas' : 'bg-surface border-gray-200 text-gray-600 enabled:hover:text-gray-900'
+                active ? 'bg-accent border-accent text-on-accent' : 'bg-surface border-gray-200 text-gray-600 enabled:hover:text-gray-900'
               )}
             >
               <span
@@ -319,7 +319,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                           aria-pressed={form.category === c.id}
                           className={clsx(
                             'h-8 rounded-full border px-3 text-[13px] font-medium transition-colors',
-                            form.category === c.id ? 'bg-gray-900 border-gray-900 text-canvas' : 'border-gray-200 text-gray-600 hover:text-gray-900'
+                            form.category === c.id ? 'bg-accent border-accent text-on-accent' : 'border-gray-200 text-gray-600 hover:text-gray-900'
                           )}
                         >
                           {c.label}

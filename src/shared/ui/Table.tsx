@@ -46,7 +46,7 @@ export const Tr: React.FC<{ children: React.ReactNode; onClick?: () => void; sel
     className={clsx(
       'transition-colors hover:bg-gray-50',
       onClick && 'cursor-pointer',
-      selected && 'bg-gray-50 shadow-[inset_2px_0_0_rgb(var(--accent))]'
+      selected && 'bg-gray-100 shadow-[inset_3px_0_0_rgb(var(--accent))]'
     )}
   >
     {children}

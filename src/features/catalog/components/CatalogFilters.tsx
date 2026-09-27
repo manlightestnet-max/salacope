@@ -48,13 +48,13 @@ export const CategoryTabs: React.FC<{
             className={clsx(
               'h-9 shrink-0 inline-flex items-center gap-2 rounded-full border px-3.5 text-[13.5px] font-medium whitespace-nowrap transition-colors',
               active
-                ? 'bg-gray-900 border-gray-900 text-canvas'
+                ? 'bg-accent border-accent text-on-accent'
                 : 'bg-surface border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300'
             )}
           >
             <Icon className="w-[15px] h-[15px]" />
             {label}
-            <span className={clsx('text-[11.5px] tabular-nums', active ? 'text-canvas/60' : 'text-gray-500')}>{count}</span>
+            <span className={clsx('text-[11.5px] tabular-nums', active ? 'text-on-accent/70' : 'text-gray-500')}>{count}</span>
           </button>
         );
       })}

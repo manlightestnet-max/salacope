@@ -14,6 +14,7 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - Coque pleine hauteur (`AppLayout`) : **seul le panneau de droite défile**, jamais la page entière.
 - Menu de gauche **épinglable** (état mémorisé), replié en rail sinon ; tiroir sur mobile.
 - En-tête du panneau (bouton retour, titre, actions, barre d'outils) **fixe, il ne défile jamais** : toujours passer par le composant `Page`.
+- Contenu en **blocs cadrés** : `Panel` (titre, compteur, aide ⓘ, filtres `Segmented` à droite, note de pied), chiffres clés en `StatGrid`/`Stat`, lignes via `List`/`ListSection` avec `columns` (en-têtes en petites capitales). Liste + détail côte à côte quand on consulte un élément (ex. Clients).
 - Le catalogue est **incrusté dans le dashboard** (Explorer, aperçu, paiement) : on ne renvoie pas l'utilisateur connecté vers le site public. Les dialogues s'ouvrent dans le panneau.
 
 ## Catégories toujours épinglées

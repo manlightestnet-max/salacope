@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Check, Download, ImagePlus, Link2, Plus, Trash2, Wrench } from 'lucide-react';
 import { BriefQuestion, Category, Listing, ListingKind } from '@/shared/db';
-import { Button, Card, CardBody, Field, Input, Select, Textarea } from '@/shared/ui';
+import { Button, Field, Input, Panel, Select, Textarea } from '@/shared/ui';
 import { createId, cropImageFile, formatXaf } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
 import { CATEGORIES, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, cardBreadcrumb } from '@/features/catalog';
@@ -23,6 +23,14 @@ const KIND_OPTIONS: { kind: ListingKind; title: string; text: string; icon: type
 ];
 
 const STEPS = ['Type', 'Présentation', 'Livraison', 'Couverture et prix', 'Vérification'] as const;
+
+const STEP_HELP: Record<(typeof STEPS)[number], string> = {
+  Type: 'Ce que vous vendez : un fichier livré au paiement, ou un service livré dans un délai.',
+  Présentation: 'Ce que le client voit en premier : titre, résumé, description et points forts.',
+  Livraison: 'Comment le client reçoit ce qu’il achète.',
+  'Couverture et prix': 'L’image du catalogue et le prix payé par le client.',
+  Vérification: 'Relisez avant de publier : l’offre apparaît aussitôt dans le catalogue.',
+};
 
 const fromListing = (l?: Listing): ListingInput => ({
   kind: l?.kind ?? 'digital',
@@ -280,197 +288,201 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
         e.preventDefault();
         onSubmit(input(), true);
       }}
-      className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-8 items-start"
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start"
     >
       <div className="min-w-0">
         <Stepper current={step} reachable={(i) => i <= reached} onSelect={goTo} />
 
-        <Card>
-          <CardBody className="pt-5 space-y-4">
-            {step === 0 && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {KIND_OPTIONS.map(({ kind, title, text, icon: Icon }) => (
-                    <button
-                      key={kind}
-                      type="button"
-                      disabled={!isNew}
-                      onClick={() => chooseKind(kind)}
-                      className={clsx(
-                        'text-left rounded-2xl border p-4 transition-colors disabled:cursor-not-allowed',
-                        form.kind === kind ? 'border-primary-600 ring-1 ring-primary-600 bg-primary-50/40' : 'border-gray-200 hover:border-gray-300',
-                        !isNew && form.kind !== kind && 'opacity-50'
-                      )}
-                    >
-                      <Icon className="w-4 h-4 text-gray-500 mb-2" />
-                      <div className="text-sm font-medium text-gray-900">{title}</div>
-                      <div className="text-sm text-gray-500 mt-0.5">{text}</div>
-                    </button>
-                  ))}
-                </div>
-                <Field label="Catégorie">
-                  {() => (
-                    <div className="flex flex-wrap gap-2">
-                      {categories.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => set('category', c.id)}
-                          aria-pressed={form.category === c.id}
-                          className={clsx(
-                            'h-8 rounded-full border px-3 text-[13px] font-medium transition-colors',
-                            form.category === c.id ? 'bg-accent border-accent text-on-accent' : 'border-gray-200 text-gray-600 hover:text-gray-900'
-                          )}
-                        >
-                          {c.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </Field>
-              </>
-            )}
-
-            {step === 1 && (
-              <>
-                <Field label="Titre">{(id) => <Input id={id} value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus />}</Field>
-                <Field label="Résumé" hint="Une phrase affichée sous le titre.">
-                  {(id) => <Input id={id} maxLength={160} value={form.summary} onChange={(e) => set('summary', e.target.value)} />}
-                </Field>
-                <Field label="Description">
-                  {(id) => <Textarea id={id} rows={6} value={form.description} onChange={(e) => set('description', e.target.value)} />}
-                </Field>
-                <Field label="Ce qui est inclus" optional hint="Un élément par ligne.">
-                  {(id) => <Textarea id={id} rows={4} value={featuresText} onChange={(e) => setFeaturesText(e.target.value)} />}
-                </Field>
-              </>
-            )}
-
-            {step === 2 &&
-              (form.kind === 'service' ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Délai de livraison" hint="À compter de l'acceptation.">
-                      {(id) => (
-                        <Input
-                          id={id}
-                          type="number"
-                          min={1}
-                          max={90}
-                          trailing="jours"
-                          value={form.deliveryDays ?? ''}
-                          onChange={(e) => set('deliveryDays', Number(e.target.value))}
-                        />
-                      )}
-                    </Field>
-                    <Field label="Retouches incluses">
-                      {(id) => (
-                        <Select
-                          id={id}
-                          value={String(form.revisions ?? 0)}
-                          options={REVISION_OPTIONS}
-                          onChange={(v) => set('revisions', Number(v))}
-                          className="w-full"
-                        />
-                      )}
-                    </Field>
+        <Panel
+          title={`${step + 1}. ${STEPS[step]}`}
+          description={STEP_HELP[STEPS[step]]}
+          bodyClassName="space-y-4"
+          bar={
+            <>
+              <Button variant="ghost" onClick={() => goTo(step - 1)} disabled={step === 0} className={clsx(step === 0 && 'invisible')}>
+                Précédent
+              </Button>
+              <div className="flex gap-2">
+                {last && isNew && <Button onClick={() => onSubmit(input(), false)}>Enregistrer en brouillon</Button>}
+                {last ? (
+                  isNew && (
+                    <Button type="submit" variant="primary">
+                      Publier l’offre
+                    </Button>
+                  )
+                ) : (
+                  <Button variant="primary" onClick={() => goTo(step + 1)}>
+                    Suivant
+                  </Button>
+                )}
+              </div>
+            </>
+          }
+        >
+          {step === 0 && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {KIND_OPTIONS.map(({ kind, title, text, icon: Icon }) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    disabled={!isNew}
+                    onClick={() => chooseKind(kind)}
+                    className={clsx(
+                      'text-left rounded-2xl border p-4 transition-colors disabled:cursor-not-allowed',
+                      form.kind === kind ? 'border-primary-600 ring-1 ring-primary-600 bg-primary-50/40' : 'border-gray-200 hover:border-gray-300',
+                      !isNew && form.kind !== kind && 'opacity-50'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 text-gray-500 mb-2" />
+                    <div className="text-sm font-medium text-gray-900">{title}</div>
+                    <div className="text-sm text-gray-500 mt-0.5">{text}</div>
+                  </button>
+                ))}
+              </div>
+              <Field label="Catégorie">
+                {() => (
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => set('category', c.id)}
+                        aria-pressed={form.category === c.id}
+                        className={clsx(
+                          'h-8 rounded-full border px-3 text-[13px] font-medium transition-colors',
+                          form.category === c.id ? 'bg-accent border-accent text-on-accent' : 'border-gray-200 text-gray-600 hover:text-gray-900'
+                        )}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
                   </div>
-                  <Field label="Brief demandé au client" optional hint="Il y répond en payant : vous avez tout pour démarrer, sans aller-retour.">
-                    {() => <BriefQuestionsEditor value={form.briefQuestions ?? []} onChange={(v) => set('briefQuestions', v)} />}
-                  </Field>
-                </>
-              ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  <Field label="Fichier livré" className="col-span-2">
+                )}
+              </Field>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <Field label="Titre">{(id) => <Input id={id} value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus />}</Field>
+              <Field label="Résumé" hint="Une phrase affichée sous le titre.">
+                {(id) => <Input id={id} maxLength={160} value={form.summary} onChange={(e) => set('summary', e.target.value)} />}
+              </Field>
+              <Field label="Description">
+                {(id) => <Textarea id={id} rows={6} value={form.description} onChange={(e) => set('description', e.target.value)} />}
+              </Field>
+              <Field label="Ce qui est inclus" optional hint="Un élément par ligne.">
+                {(id) => <Textarea id={id} rows={4} value={featuresText} onChange={(e) => setFeaturesText(e.target.value)} />}
+              </Field>
+            </>
+          )}
+
+          {step === 2 &&
+            (form.kind === 'service' ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Délai de livraison" hint="À compter de l'acceptation.">
                     {(id) => (
                       <Input
                         id={id}
-                        placeholder="guide.pdf"
-                        value={form.fileName}
-                        onChange={(e) => {
-                          const name = e.target.value;
-                          setForm((f) => ({ ...f, fileName: name, fileFormat: formatFromFileName(name) ?? f.fileFormat }));
-                        }}
+                        type="number"
+                        min={1}
+                        max={90}
+                        trailing="jours"
+                        value={form.deliveryDays ?? ''}
+                        onChange={(e) => set('deliveryDays', Number(e.target.value))}
                       />
                     )}
                   </Field>
-                  <Field label="Format">
-                    {(id) => <Select id={id} value={form.fileFormat ?? 'PDF'} options={FORMATS} onChange={(v) => set('fileFormat', v)} className="w-full" />}
+                  <Field label="Retouches incluses">
+                    {(id) => (
+                      <Select
+                        id={id}
+                        value={String(form.revisions ?? 0)}
+                        options={REVISION_OPTIONS}
+                        onChange={(v) => set('revisions', Number(v))}
+                        className="w-full"
+                      />
+                    )}
                   </Field>
                 </div>
-              ))}
-
-            {step === 3 && (
-              <>
-                <CoverInput value={form.coverImage} category={form.category} onChange={(v) => set('coverImage', v)} />
-                <Field label="Prix" hint={`Minimum ${PLATFORM.minPriceXaf} FCFA.`}>
+                <Field label="Brief demandé au client" optional hint="Il y répond en payant : vous avez tout pour démarrer, sans aller-retour.">
+                  {() => <BriefQuestionsEditor value={form.briefQuestions ?? []} onChange={(v) => set('briefQuestions', v)} />}
+                </Field>
+              </>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Fichier livré" className="col-span-2">
                   {(id) => (
                     <Input
                       id={id}
-                      type="number"
-                      inputMode="numeric"
-                      min={PLATFORM.minPriceXaf}
-                      step={100}
-                      trailing="FCFA"
-                      value={form.priceXaf || ''}
-                      onChange={(e) => set('priceXaf', Number(e.target.value))}
-                      className="max-w-xs"
+                      placeholder="guide.pdf"
+                      value={form.fileName}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setForm((f) => ({ ...f, fileName: name, fileFormat: formatFromFileName(name) ?? f.fileFormat }));
+                      }}
                     />
                   )}
                 </Field>
-              </>
-            )}
-
-            {step === 4 && (
-              <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 items-start">
-                <Preview form={form} sellerName={sellerName} size="lg" />
-                <ul className="space-y-2">
-                  {checklist.map((c) => (
-                    <li key={c.label} className="flex items-center gap-2 text-sm">
-                      <span
-                        className={clsx(
-                          'w-5 h-5 rounded-full flex items-center justify-center',
-                          c.ok ? 'bg-accent text-on-accent' : 'bg-gray-100 text-gray-400'
-                        )}
-                      >
-                        <Check className="w-3 h-3" />
-                      </span>
-                      <span className={c.ok ? 'text-gray-900' : 'text-gray-500'}>{c.label}</span>
-                      {!c.ok && <span className="text-xs text-gray-400">{c.label === 'Couverture' || c.label === 'Description' ? 'conseillé' : 'requis'}</span>}
-                    </li>
-                  ))}
-                </ul>
+                <Field label="Format">
+                  {(id) => <Select id={id} value={form.fileFormat ?? 'PDF'} options={FORMATS} onChange={(v) => set('fileFormat', v)} className="w-full" />}
+                </Field>
               </div>
-            )}
+            ))}
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
-          </CardBody>
-        </Card>
+          {step === 3 && (
+            <>
+              <CoverInput value={form.coverImage} category={form.category} onChange={(v) => set('coverImage', v)} />
+              <Field label="Prix" hint={`Minimum ${PLATFORM.minPriceXaf} FCFA.`}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="number"
+                    inputMode="numeric"
+                    min={PLATFORM.minPriceXaf}
+                    step={100}
+                    trailing="FCFA"
+                    value={form.priceXaf || ''}
+                    onChange={(e) => set('priceXaf', Number(e.target.value))}
+                    className="max-w-xs"
+                  />
+                )}
+              </Field>
+            </>
+          )}
 
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <Button variant="ghost" onClick={() => goTo(step - 1)} disabled={step === 0} className={clsx(step === 0 && 'invisible')}>
-            Précédent
-          </Button>
-          <div className="flex gap-2">
-            {last && isNew && <Button onClick={() => onSubmit(input(), false)}>Enregistrer en brouillon</Button>}
-            {last ? (
-              isNew && (
-                <Button type="submit" variant="primary">
-                  Publier l’offre
-                </Button>
-              )
-            ) : (
-              <Button variant="primary" onClick={() => goTo(step + 1)}>
-                Suivant
-              </Button>
-            )}
-          </div>
-        </div>
+          {step === 4 && (
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 items-start">
+              <Preview form={form} sellerName={sellerName} size="lg" />
+              <ul className="space-y-2">
+                {checklist.map((c) => (
+                  <li key={c.label} className="flex items-center gap-2 text-sm">
+                    <span
+                      className={clsx(
+                        'w-5 h-5 rounded-full flex items-center justify-center',
+                        c.ok ? 'bg-accent text-on-accent' : 'bg-gray-100 text-gray-400'
+                      )}
+                    >
+                      <Check className="w-3 h-3" />
+                    </span>
+                    <span className={c.ok ? 'text-gray-900' : 'text-gray-500'}>{c.label}</span>
+                    {!c.ok && <span className="text-xs text-gray-400">{c.label === 'Couverture' || c.label === 'Description' ? 'conseillé' : 'requis'}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </Panel>
       </div>
 
       <aside className="hidden lg:block lg:sticky lg:top-0">
-        <p className="mb-3 text-xs font-medium text-gray-500">Aperçu dans le catalogue</p>
-        <Preview form={form} sellerName={sellerName} />
+        <Panel title="Aperçu" help="Votre offre telle qu’elle apparaîtra dans le catalogue, mise à jour pendant la saisie.">
+          <Preview form={form} sellerName={sellerName} />
+        </Panel>
       </aside>
     </form>
   );

@@ -31,7 +31,10 @@ export function route(method: string, path: string, handler: Handler) {
       return '/([^/]+)';
     })}$`
   );
-  routes.push({ method, pattern, keys, handler });
+  // Re-registering (a route module reloaded by the dev server) replaces the previous handler.
+  const existing = routes.findIndex((r) => r.method === method && r.pattern.source === pattern.source);
+  if (existing >= 0) routes[existing] = { method, pattern, keys, handler };
+  else routes.push({ method, pattern, keys, handler });
 }
 
 export const notFound = (what = 'Élément introuvable.') => new DomainError(what, 404);

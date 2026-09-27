@@ -19,6 +19,8 @@ export interface PanelProps {
   footer?: React.ReactNode;
   /** The body touches the edges (lists, tables); otherwise it is padded. */
   flush?: boolean;
+  /** Buttons at the bottom of the panel, on a separated bar (forms, steps). */
+  bar?: React.ReactNode;
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
@@ -28,7 +30,7 @@ export interface PanelProps {
  * A framed block of the back-office: header (title, count, help, actions), content, optional
  * footer note. Every screen is built from panels, so pages read as one consistent structure.
  */
-export const Panel: React.FC<PanelProps> = ({ title, count, help, description, actions, footer, flush, className, bodyClassName, children }) => {
+export const Panel: React.FC<PanelProps> = ({ title, count, help, description, actions, footer, flush, bar, className, bodyClassName, children }) => {
   const hasHeader = Boolean(title || actions);
   return (
     <section className={clsx('rounded-2xl border border-gray-200/70 bg-surface', className)}>
@@ -52,6 +54,7 @@ export const Panel: React.FC<PanelProps> = ({ title, count, help, description, a
           {children}
         </div>
       </InPanel.Provider>
+      {bar && <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3.5 border-t border-gray-200/70">{bar}</div>}
       {footer && (
         <footer
           className={clsx(

@@ -10,11 +10,13 @@ import { OrderStatusBadge } from './OrderStatusBadge';
 export interface OrderListProps {
   orders: Order[];
   perspective: Perspective;
-  /** Counterparty name for each order (buyer for sellers, store for buyers). */
-  counterpartyName: (order: Order) => string;
+  /** Counterparty name for each order (buyer for sellers, store for buyers); omitted when obvious. */
+  counterpartyName?: (order: Order) => string;
   hrefFor: (order: Order) => string;
   /** Shows the digital / service badge next to the status. */
   showKind?: boolean;
+  /** Column labels above the rows (default: on). */
+  columns?: boolean;
 }
 
 /** The deadline that matters now, for the seller. */
@@ -34,17 +36,17 @@ const SellerDue: React.FC<{ order: Order }> = ({ order }) => {
 };
 
 /** Orders as rows: cover, title, reference, status and amount. Same layout on every screen size. */
-export const OrderList: React.FC<OrderListProps> = ({ orders, perspective, counterpartyName, hrefFor, showKind = false }) => {
+export const OrderList: React.FC<OrderListProps> = ({ orders, perspective, counterpartyName, hrefFor, showKind = false, columns = true }) => {
   const isSeller = perspective === 'seller';
   return (
-    <List>
+    <List columns={columns ? { main: 'Commande', meta: 'Statut', trailing: isSeller ? 'Net pour vous' : 'Total' } : undefined}>
       {orders.map((o) => (
         <ListRow
           key={o.id}
           to={hrefFor(o)}
           leading={<ListingThumb src={o.item.coverImage} category={o.item.category} size="md" />}
           title={o.item.title}
-          subtitle={`${o.number} · ${counterpartyName(o)} · ${formatDate(o.createdAt)}`}
+          subtitle={[o.number, counterpartyName?.(o), formatDate(o.createdAt)].filter(Boolean).join(' · ')}
           meta={
             <>
               {showKind && <KindBadge kind={o.item.kind} category={o.item.category} />}

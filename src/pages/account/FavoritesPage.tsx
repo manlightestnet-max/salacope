@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, LayoutGrid, Rows3 } from 'lucide-react';
-import { Button, EmptyState, Page, Segmented, Table, TBody, THead, Td, Th, Tr } from '@/shared/ui';
+import { Button, EmptyState, Page, Panel, Segmented, Table, TBody, THead, Td, Th, Tr } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
@@ -59,6 +59,7 @@ export const FavoritesPage: React.FC = () => {
   return (
     <Page
       title="Favoris"
+      help="Les offres que vous avez gardées de côté, en couvertures ou en tableau."
       width="full"
       actions={
         favorites.length > 0 && (
@@ -70,58 +71,65 @@ export const FavoritesPage: React.FC = () => {
       }
     >
       {favorites.length === 0 ? (
-        <EmptyState icon={Heart} title="Aucun favori" action={<Button to={ROUTES.account.explorer}>Explorer le catalogue</Button>} />
+        <EmptyState
+          icon={Heart}
+          title="Aucun favori"
+          action={<Button to={ROUTES.account.explorer}>Explorer le catalogue</Button>}
+          className="rounded-2xl border border-gray-200/70 bg-surface"
+        />
       ) : rows.length === 0 ? (
-        <EmptyState title="Aucun favori de ce type" />
+        <EmptyState title="Aucun favori de ce type" className="rounded-2xl border border-gray-200/70 bg-surface" />
       ) : view === 'grid' ? (
         <ListingSections views={rows} mode="grids" />
       ) : (
-        <Table>
-          <THead>
-            <Th>Offre</Th>
-            <Th className="hidden md:table-cell">Type</Th>
-            <Th align="right" className="hidden sm:table-cell">
-              Prix
-            </Th>
-            <Th className="hidden xl:table-cell">Ajouté le</Th>
-            <Th align="right">
-              <span className="sr-only">Actions</span>
-            </Th>
-          </THead>
-          <TBody>
-            {rows.map(({ listing, seller, savedAt }) => (
-              <Tr key={listing.id}>
-                <Td className="w-full max-w-0">
-                  <Link to={ROUTES.account.offer(listing.id)} className="flex items-center gap-3 min-w-0 group">
-                    <ListingThumb src={listing.coverImage} category={listing.category} />
-                    <div className="min-w-0">
-                      <div className="text-gray-900 truncate group-hover:underline underline-offset-2">{listing.title}</div>
-                      <div className="text-xs text-gray-500 truncate">
-                        <span className="sm:hidden font-medium text-gray-900 tabular-nums">{formatXaf(listing.priceXaf)} · </span>
-                        {displayName(seller)}
+        <Panel title="Vos favoris" count={rows.length} flush>
+          <Table>
+            <THead>
+              <Th>Offre</Th>
+              <Th className="hidden md:table-cell">Type</Th>
+              <Th align="right" className="hidden sm:table-cell">
+                Prix
+              </Th>
+              <Th className="hidden xl:table-cell">Ajouté le</Th>
+              <Th align="right">
+                <span className="sr-only">Actions</span>
+              </Th>
+            </THead>
+            <TBody>
+              {rows.map(({ listing, seller, savedAt }) => (
+                <Tr key={listing.id}>
+                  <Td className="w-full max-w-0">
+                    <Link to={ROUTES.account.offer(listing.id)} className="flex items-center gap-3 min-w-0 group">
+                      <ListingThumb src={listing.coverImage} category={listing.category} />
+                      <div className="min-w-0">
+                        <div className="text-gray-900 truncate group-hover:underline underline-offset-2">{listing.title}</div>
+                        <div className="text-xs text-gray-500 truncate">
+                          <span className="sm:hidden font-medium text-gray-900 tabular-nums">{formatXaf(listing.priceXaf)} · </span>
+                          {displayName(seller)}
+                        </div>
                       </div>
+                    </Link>
+                  </Td>
+                  <Td className="hidden md:table-cell">
+                    <KindBadge kind={listing.kind} category={listing.category} />
+                  </Td>
+                  <Td align="right" className="hidden sm:table-cell font-medium text-gray-900 whitespace-nowrap">
+                    {formatXaf(listing.priceXaf)}
+                  </Td>
+                  <Td className="hidden xl:table-cell whitespace-nowrap text-gray-500">{formatDate(savedAt)}</Td>
+                  <Td align="right" className="pl-0 sm:pl-4">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button size="sm" variant="primary" to={ROUTES.account.checkout(listing.id)}>
+                        {listing.kind === 'service' ? 'Commander' : 'Acheter'}
+                      </Button>
+                      <FavoriteButton listingId={listing.id} className="shadow-none" />
                     </div>
-                  </Link>
-                </Td>
-                <Td className="hidden md:table-cell">
-                  <KindBadge kind={listing.kind} category={listing.category} />
-                </Td>
-                <Td align="right" className="hidden sm:table-cell font-medium text-gray-900 whitespace-nowrap">
-                  {formatXaf(listing.priceXaf)}
-                </Td>
-                <Td className="hidden xl:table-cell whitespace-nowrap text-gray-500">{formatDate(savedAt)}</Td>
-                <Td align="right" className="pl-0 sm:pl-4">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <Button size="sm" variant="primary" to={ROUTES.account.checkout(listing.id)}>
-                      {listing.kind === 'service' ? 'Commander' : 'Acheter'}
-                    </Button>
-                    <FavoriteButton listingId={listing.id} className="shadow-none" />
-                  </div>
-                </Td>
-              </Tr>
-            ))}
-          </TBody>
-        </Table>
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </Panel>
       )}
     </Page>
   );

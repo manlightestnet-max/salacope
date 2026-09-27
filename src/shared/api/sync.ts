@@ -12,9 +12,10 @@ export type BootStatus = 'loading' | 'ready' | 'offline';
 let status: BootStatus = 'loading';
 let lastSync: string | null = null;
 const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
 const setStatus = (s: BootStatus) => {
   status = s;
-  listeners.forEach((l) => l());
+  notify();
 };
 
 interface BootstrapResponse {
@@ -53,19 +54,23 @@ export async function syncNow(): Promise<void> {
     const res = await request<{ serverTime: string; patch: any }>('GET', `/sync?since=${encodeURIComponent(lastSync)}`);
     db.apply(res.patch);
     lastSync = res.serverTime;
+    notify();
   } catch {
     // next tick
   }
 }
 
-export const useBootStatus = () =>
-  useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => status
-  );
+export const useBootStatus = () => useSyncExternalStore(subscribe, () => status);
+
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+};
+
+/** When the data was last refreshed from the server (ISO), for "Données à jour à …". */
+export const useLastSync = () => useSyncExternalStore(subscribe, () => lastSync);
 
 /** Keeps data fresh while mounted; `fast` for live screens (order chat). */
 export function useLiveSync(fast = false) {

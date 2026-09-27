@@ -15,7 +15,7 @@ export interface CardHeaderProps {
 export const CardHeader: React.FC<CardHeaderProps> = ({ title, description, action, className }) => (
   <div className={clsx('flex items-start justify-between gap-4 px-5 pt-4 pb-3', className)}>
     <div className="min-w-0">
-      <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+      <h2 className="text-[15px] font-semibold text-gray-900">{title}</h2>
       {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
     </div>
     {action && <div className="shrink-0">{action}</div>}

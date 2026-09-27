@@ -18,3 +18,6 @@ export * from './Reveal';
 export * from './List';
 export * from './Segmented';
 export * from './Handoff';
+export * from './HelpTip';
+export * from './Panel';
+export * from './UpdatedAt';

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck, ChevronDown, UserRound } from 'lucide-react';
-import { EmptyState, Page, SearchField } from '@/shared/ui';
+import { EmptyState, Page, Panel, SearchField } from '@/shared/ui';
 import { Listing, User, useDb } from '@/shared/db';
 import { formatRelative, formatXaf, getInitials } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
@@ -169,16 +169,24 @@ export const FollowingPage: React.FC = () => {
   return (
     <Page
       title="Abonnements"
-      meta={<span className="ml-2 text-sm text-gray-400 tabular-nums">{followed.length}</span>}
+      help="Les boutiques que vous suivez. Leurs nouvelles offres sont signalées ici et dans vos notifications."
       actions={followed.length > 0 && <SearchField value={search} onChange={setSearch} placeholder="Rechercher" className="w-36 sm:w-56" />}
     >
       {followed.length === 0 ? (
-        <EmptyState icon={UserRound} title="Aucun abonnement" description="Suivez une boutique depuis la fiche d'une de ses offres : vous serez prévenu de ses nouvelles publications." />
+        <EmptyState
+          icon={UserRound}
+          title="Aucun abonnement"
+          description="Suivez une boutique depuis la fiche d'une de ses offres : vous serez prévenu de ses nouvelles publications."
+          className="rounded-2xl border border-gray-200/70 bg-surface"
+        />
       ) : rows.length === 0 ? (
-        <EmptyState title="Aucune boutique ne correspond" />
+        <EmptyState title="Aucune boutique ne correspond" className="rounded-2xl border border-gray-200/70 bg-surface" />
       ) : (
-        <div className="rounded-2xl border border-gray-200/70 bg-surface">
-          <div className={clsx('hidden px-4 h-10 border-b border-gray-200/70 text-xs font-medium text-gray-500', GRID)} aria-hidden>
+        <Panel title="Boutiques suivies" count={rows.length} flush>
+          <div
+            className={clsx('hidden px-4 h-9 border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wider text-gray-500', GRID)}
+            aria-hidden
+          >
             <span>Boutique</span>
             <span>Offres</span>
             <span>Ventes</span>
@@ -196,7 +204,7 @@ export const FollowingPage: React.FC = () => {
               />
             ))}
           </ul>
-        </div>
+        </Panel>
       )}
     </Page>
   );

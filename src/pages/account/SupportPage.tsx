@@ -17,14 +17,15 @@ export const SupportPage: React.FC = () => {
   return (
     <Page
       title="Support"
+      help="Vos demandes au support et vos derniers paiements, avec leur code."
       width="narrow"
       actions={
-        <Button to={ROUTES.account.newTicket} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+        <Button to={ROUTES.account.newTicket} variant="primary" icon={<Plus className="w-4 h-4" />}>
           Nouveau ticket
         </Button>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <ListSection title="Mes tickets" count={tickets.length}>
           {tickets.length ? (
             <TicketList tickets={tickets} />
@@ -38,10 +39,11 @@ export const SupportPage: React.FC = () => {
         </ListSection>
 
         {attempts.length > 0 && (
-          <ListSection title="Paiements récents" count={attempts.length}>
-            <p className="px-1 -mt-1 mb-3 text-xs text-gray-500">
-              Chaque tentative a un code unique. Débité sans commande ? Signalez la tentative : le support la retrouve tout de suite.
-            </p>
+          <ListSection
+            title="Paiements récents"
+            count={attempts.length}
+            help="Chaque tentative a un code unique. Débité sans commande ? Signalez la tentative : le support la retrouve tout de suite."
+          >
             <PaymentAttemptList attempts={attempts} titles={titles} />
           </ListSection>
         )}

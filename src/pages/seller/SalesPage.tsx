@@ -3,6 +3,7 @@ import { CheckCircle2, ReceiptText } from 'lucide-react';
 import { EmptyState, ListSection, Page, SearchField, Tabs } from '@/shared/ui';
 import { Order } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
+import { PLATFORM } from '@/shared/config/platform';
 import { useCurrentUser } from '@/features/session';
 import { OrderList, SELLER_LANES, SellerLane, sellerLane, useSellerOrders } from '@/features/orders';
 
@@ -13,6 +14,15 @@ const VIEW_LANES: Record<Exclude<View, 'all'>, SellerLane[]> = {
   waiting: ['waiting_buyer'],
   completed: ['completed'],
   cancelled: ['cancelled'],
+};
+
+/** What each lane of the queue means (ⓘ). */
+const LANE_HELP: Partial<Record<SellerLane, string>> = {
+  disputed: 'Le client a signalé un problème : l’argent est gelé par LightPay jusqu’à la décision.',
+  late: 'La date de livraison est passée : livrez ou demandez un délai au client.',
+  to_accept: 'Payées par le client, en attente de votre acceptation.',
+  revision: `Le client a demandé une retouche : vous avez ${PLATFORM.revisionDays} jours pour relivrer.`,
+  to_deliver: 'Acceptées, à livrer avant la date prévue.',
 };
 
 /** Oldest deadline first inside a lane. */
@@ -48,32 +58,47 @@ export const SalesPage: React.FC = () => {
     <OrderList orders={items} perspective="seller" counterpartyName={(o) => o.buyer.name} hrefFor={(o) => ROUTES.seller.sale(o.id)} />
   );
 
+  const empty = (title: string) => <EmptyState icon={CheckCircle2} title={title} className="rounded-2xl border border-gray-200/70 bg-surface" />;
+
   let content: React.ReactNode;
   if (orders.length === 0) {
-    content = <EmptyState icon={ReceiptText} title="Aucune vente pour le moment" />;
+    content = (
+      <EmptyState
+        icon={ReceiptText}
+        title="Aucune vente pour le moment"
+        description="Vos commandes apparaîtront ici dès le premier paiement."
+        className="rounded-2xl border border-gray-200/70 bg-surface"
+      />
+    );
   } else if (view === 'todo') {
     const lanes = SELLER_LANES.filter((l) => l.todo)
       .map((l) => ({ ...l, items: matching.filter((o) => sellerLane(o) === l.lane).sort(byDeadline) }))
       .filter((l) => l.items.length > 0);
     content = lanes.length ? (
-      <div className="space-y-8">
+      <div className="space-y-6">
         {lanes.map((l) => (
-          <ListSection key={l.lane} title={l.label} count={l.items.length}>
+          <ListSection key={l.lane} title={l.label} count={l.items.length} help={LANE_HELP[l.lane]}>
             {list(l.items)}
           </ListSection>
         ))}
       </div>
     ) : (
-      <EmptyState icon={CheckCircle2} title={search ? 'Aucune commande ne correspond' : 'Tout est à jour'} />
+      empty(search ? 'Aucune commande ne correspond' : 'Tout est à jour')
     );
   } else {
     const items = view === 'all' ? matching : matching.filter((o) => VIEW_LANES[view].includes(sellerLane(o)));
-    content = items.length ? list(items) : <EmptyState title="Aucune commande dans cette vue" />;
+    const tab = tabs.find((t) => t.value === view)!;
+    content = (
+      <ListSection title={tab.label} count={items.length}>
+        {items.length ? list(items) : <EmptyState title="Aucune commande dans cette vue" />}
+      </ListSection>
+    );
   }
 
   return (
     <Page
       title="Ventes"
+      help="Vos commandes rangées par prochaine action, la plus urgente en premier."
       actions={orders.length > 0 && <SearchField value={search} onChange={setSearch} placeholder="N°, client, offre…" className="w-40 sm:w-64" />}
       toolbar={orders.length > 0 && <Tabs bare value={view} items={tabs} onChange={setView} />}
     >

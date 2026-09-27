@@ -20,7 +20,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { Logo, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
+import { Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { shortcutLabel, useFocusShortcut, useTrackHistory } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
@@ -140,6 +140,17 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
       </div>
     </div>
   );
+};
+
+/** Menu section of a path, shown as the first step of the page breadcrumb. */
+const trailOf = (pathname: string, storeName?: string): string | null => {
+  if (pathname.startsWith('/dashboard') || pathname.startsWith(ROUTES.lightpayCallback)) return storeName ?? 'Boutique';
+  if (pathname.startsWith(ROUTES.account.explorer)) return 'Catalogue';
+  if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/compte/checkout'].some((p) => pathname.startsWith(p))) {
+    return 'Achats';
+  }
+  if ([ROUTES.account.support, ROUTES.account.settings, ROUTES.account.openStore].some((p) => pathname.startsWith(p))) return 'Compte';
+  return null;
 };
 
 /** Catalogue search, always reachable: results open in Explorer inside the shell. */
@@ -273,9 +284,11 @@ export const AppLayout: React.FC = () => {
         )}
 
         <PaneContext.Provider value={pane}>
-          <section ref={setPane} className="relative flex-1 min-w-0 flex flex-col overflow-hidden bg-canvas">
-            <Outlet />
-          </section>
+          <PageTrailContext.Provider value={trailOf(pathname, user.merchant?.storeName)}>
+            <section ref={setPane} className="relative flex-1 min-w-0 flex flex-col overflow-hidden bg-canvas">
+              <Outlet />
+            </section>
+          </PageTrailContext.Provider>
         </PaneContext.Provider>
       </div>
     </div>

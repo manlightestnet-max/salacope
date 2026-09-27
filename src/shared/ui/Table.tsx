@@ -1,12 +1,16 @@
 import React from 'react';
 import clsx from 'clsx';
+import { useInPanel } from './Panel';
 
-/** Data table in a rounded card; scrolls sideways on narrow screens. */
-export const Table: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('rounded-2xl border border-gray-200/70 bg-surface overflow-x-auto', className)}>
-    <table className="w-full text-sm text-left border-collapse">{children}</table>
-  </div>
-);
+/** Data table; unframed inside a `Panel`, a rounded card otherwise. Scrolls sideways on narrow screens. */
+export const Table: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+  const inPanel = useInPanel();
+  return (
+    <div className={clsx('overflow-x-auto', !inPanel && 'rounded-2xl border border-gray-200/70 bg-surface', className)}>
+      <table className="w-full text-sm text-left border-collapse">{children}</table>
+    </div>
+  );
+};
 
 export const THead: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <thead>
@@ -14,12 +18,19 @@ export const THead: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </thead>
 );
 
+/** Column label: small capitals, like every list header of the back-office. */
 export const Th: React.FC<{ children?: React.ReactNode; align?: 'left' | 'right'; className?: string }> = ({
   children,
   align = 'left',
   className,
 }) => (
-  <th className={clsx('h-10 px-4 text-xs font-medium text-gray-500 whitespace-nowrap', align === 'right' && 'text-right', className)}>
+  <th
+    className={clsx(
+      'h-9 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap',
+      align === 'right' && 'text-right',
+      className
+    )}
+  >
     {children}
   </th>
 );
@@ -28,8 +39,16 @@ export const TBody: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <tbody className="divide-y divide-gray-100">{children}</tbody>
 );
 
-export const Tr: React.FC<{ children: React.ReactNode; onClick?: () => void }> = ({ children, onClick }) => (
-  <tr onClick={onClick} className={clsx('transition-colors hover:bg-gray-50', onClick && 'cursor-pointer')}>
+export const Tr: React.FC<{ children: React.ReactNode; onClick?: () => void; selected?: boolean }> = ({ children, onClick, selected }) => (
+  <tr
+    onClick={onClick}
+    aria-selected={selected || undefined}
+    className={clsx(
+      'transition-colors hover:bg-gray-50',
+      onClick && 'cursor-pointer',
+      selected && 'bg-gray-50 shadow-[inset_2px_0_0_rgb(var(--accent))]'
+    )}
+  >
     {children}
   </tr>
 );

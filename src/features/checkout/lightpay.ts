@@ -1,6 +1,7 @@
 /** LightPay's own script (lightpay.js): opens the payment in a dialog owned by LightPay. */
 interface LightPayGlobal {
-  pay: (checkoutUrl: string) => Promise<{ status: 'completed' | 'closed'; session: string }>;
+  /** `idToken`: the buyer's current sign-in (same LightPay identity), so the wallet needs no second sign-in. */
+  pay: (checkoutUrl: string, options?: { idToken?: string }) => Promise<{ status: 'completed' | 'closed'; session: string }>;
 }
 
 let loading: Promise<LightPayGlobal> | null = null;

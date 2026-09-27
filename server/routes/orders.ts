@@ -8,7 +8,7 @@ import { priceOrder } from '../../src/shared/domain/pricing.js';
 import { Query, json, query, tx } from '../db.js';
 import { Context, route } from '../http.js';
 import { newId, paymentCode } from '../ids.js';
-import { lightpay } from '../lightpay.js';
+import { connectionGone, lightpay } from '../lightpay.js';
 import { loadAttempts, loadOrder, loadTickets } from '../load.js';
 import { notify } from '../notify.js';
 import {
@@ -103,6 +103,14 @@ route('POST', '/checkout', async (ctx) => {
     return { attempt: attemptView(row), checkoutUrl: session.checkout_url, patch: { paymentAttempts: [attemptView(row), ...(await loadAttempts(buyerId, 'id = ANY($2)', [stale.map((s) => s.id)]))] } };
   } catch (err) {
     await query("UPDATE payment_attempts SET status = 'failed', failure = 'declined', updated_at = NOW() WHERE id = $1", [attemptId]);
+    if (connectionGone(err)) {
+      // The seller withdrew Salacope's access on LightPay: they must reconnect to sell again.
+      await query('UPDATE merchants SET lightpay_connection_id = NULL WHERE user_id = $1 AND lightpay_connection_id = $2', [
+        listing.seller_id,
+        listing.lightpay_connection_id,
+      ]);
+      throw new DomainError('Ce vendeur ne peut pas recevoir de paiement pour le moment. Réessayez plus tard.', 409);
+    }
     throw err;
   }
 });

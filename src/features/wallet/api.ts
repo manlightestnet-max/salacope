@@ -1,7 +1,9 @@
-import { request } from '@/shared/api';
+import { mutate } from '@/shared/api';
 
 export interface LightPayWallet {
   connected: boolean;
+  /** Access was withdrawn from LightPay: the seller has to reconnect. */
+  revoked?: boolean;
   /** `sandbox`: test money (Salacope not in production). */
   environment: 'sandbox' | 'production';
   available?: number;
@@ -13,4 +15,4 @@ export interface LightPayWallet {
 }
 
 /** The seller's LightPay wallet, read live (the money never sits on Salacope). */
-export const fetchLightPayWallet = () => request<LightPayWallet>('GET', '/lightpay/balance');
+export const fetchLightPayWallet = () => mutate<LightPayWallet>('GET', '/lightpay/balance');

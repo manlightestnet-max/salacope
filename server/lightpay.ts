@@ -142,6 +142,10 @@ export const lightpay = {
   dispute: (holdId: string, reason: string) => call('POST', `/holds/${encodeURIComponent(holdId)}/dispute`, { reason: reason.slice(0, 300) }),
 };
 
+/** The seller's LightPay connection no longer works (revoked on LightPay, or unknown). */
+export const connectionGone = (err: unknown) =>
+  err instanceof LightPayError && ['CONNECTION_REVOKED', 'CONNECTION_NOT_FOUND', 'SCOPE_NOT_GRANTED'].includes(err.code);
+
 /** PKCE S256 pair. */
 export const pkce = () => {
   const verifier = crypto.randomBytes(32).toString('base64url');

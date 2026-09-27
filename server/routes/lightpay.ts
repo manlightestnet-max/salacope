@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { query } from '../db.js';
 import { route } from '../http.js';
-import { lightpay, lightpayEnv, pkce, verifyWebhook } from '../lightpay.js';
+import { connectionGone, lightpay, lightpayEnv, pkce, verifyWebhook } from '../lightpay.js';
 import { settleAttempt, settleDueOrders } from '../orders.js';
 import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
@@ -51,7 +51,16 @@ route('GET', '/lightpay/balance', async (ctx) => {
   const userId = await ctx.userId();
   const [m] = await query('SELECT lightpay_connection_id FROM merchants WHERE user_id = $1', [userId]);
   if (!m?.lightpay_connection_id) return { connected: false, environment: lightpayEnv(), accountUrl: lightpay.accountUrl() };
-  const { balance } = await lightpay.connectionBalance(m.lightpay_connection_id);
+  let balance;
+  try {
+    ({ balance } = await lightpay.connectionBalance(m.lightpay_connection_id));
+  } catch (err) {
+    if (!connectionGone(err)) throw err;
+    // Access withdrawn from LightPay: forget it, the seller reconnects.
+    await query('UPDATE merchants SET lightpay_connection_id = NULL WHERE user_id = $1 AND lightpay_connection_id = $2', [userId, m.lightpay_connection_id]);
+    const [row] = await query(`SELECT ${USER_COLUMNS} FROM ${USER_FROM} WHERE u.id = $1`, [userId]);
+    return { connected: false, revoked: true, environment: lightpayEnv(), accountUrl: lightpay.accountUrl(), patch: { users: [userView(row, true)] } };
+  }
   return {
     connected: true,
     environment: lightpayEnv(),

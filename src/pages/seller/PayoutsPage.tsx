@@ -38,7 +38,7 @@ export const PayoutsPage: React.FC = () => {
       <div className="space-y-6">
         {!connected && (
           <Panel>
-            <LightPayConnect />
+            <LightPayConnect revoked={wallet?.revoked} />
           </Panel>
         )}
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import { ArrowDownLeft, ArrowRight, ExternalLink, Wallet } from 'lucide-react';
-import { Button, Card, CardBody, EmptyState, List, ListRow, Page, Tabs } from '@/shared/ui';
+import { Badge, Button, Card, CardBody, EmptyState, List, ListRow, Page, Tabs } from '@/shared/ui';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { LightPayConnect, useCurrentUser } from '@/features/session';
@@ -39,7 +39,10 @@ const LightPayWalletCard: React.FC = () => {
     <Card className="mb-8">
       <CardBody className="pt-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-gray-500">Solde LightPay disponible</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            Solde LightPay disponible
+            {wallet?.environment === 'sandbox' && <Badge tone="warning">Mode test</Badge>}
+          </div>
           <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
             {wallet ? formatXaf(wallet.available ?? 0) : error ? '—' : '…'}
           </div>

@@ -2,6 +2,8 @@ import { request } from '@/shared/api';
 
 export interface LightPayWallet {
   connected: boolean;
+  /** `sandbox`: test money (Salacope not in production). */
+  environment: 'sandbox' | 'production';
   available?: number;
   locked?: number;
   /** LightPay account page (history). */

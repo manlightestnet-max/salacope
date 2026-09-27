@@ -93,7 +93,7 @@ export const lightpay = {
     call<{ connection: { id: string; scopes: string[] } }>('POST', '/connect/token', { code, redirect_uri: redirectUri, code_verifier: codeVerifier }),
 
   connectionBalance: (connectionId: string) =>
-    call<{ balance: { available: string; locked: string; currency: string } }>('GET', `/connections/${encodeURIComponent(connectionId)}/balance`),
+    call<{ balance: { available_balance: string; locked_balance: string; currency: string } }>('GET', `/connections/${encodeURIComponent(connectionId)}/balance`),
 
   /** Payment to a connected seller, held in escrow until the order is validated. */
   createSession: (p: {

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { query } from '../db.js';
 import { route } from '../http.js';
-import { lightpay, pkce, verifyWebhook } from '../lightpay.js';
+import { lightpay, lightpayEnv, pkce, verifyWebhook } from '../lightpay.js';
 import { settleAttempt, settleDueOrders } from '../orders.js';
 import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
@@ -50,12 +50,13 @@ route('POST', '/lightpay/callback', async (ctx) => {
 route('GET', '/lightpay/balance', async (ctx) => {
   const userId = await ctx.userId();
   const [m] = await query('SELECT lightpay_connection_id FROM merchants WHERE user_id = $1', [userId]);
-  if (!m?.lightpay_connection_id) return { connected: false, accountUrl: lightpay.accountUrl() };
+  if (!m?.lightpay_connection_id) return { connected: false, environment: lightpayEnv(), accountUrl: lightpay.accountUrl() };
   const { balance } = await lightpay.connectionBalance(m.lightpay_connection_id);
   return {
     connected: true,
-    available: Number(balance.available),
-    locked: Number(balance.locked),
+    environment: lightpayEnv(),
+    available: Number(balance.available_balance ?? 0),
+    locked: Number(balance.locked_balance ?? 0),
     accountUrl: lightpay.accountUrl(),
     withdrawUrl: lightpay.accountUrl('withdraw'),
   };

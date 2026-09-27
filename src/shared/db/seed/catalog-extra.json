@@ -1,0 +1,2802 @@
+[
+  {
+    "id": "prod-011",
+    "title": "Guide pratique de la fiscalité des PME en République du Congo",
+    "shortDesc": "Un condensé complet pour comprendre le barème fiscal congolais et déclarer vos impôts sans risque de pénalité.",
+    "description": "Ce manuel détaille l'impôt sur les sociétés, la taxe sur la valeur ajoutée et les retenues à la source selon la loi de finances en vigueur. Il propose des cas pratiques de calculs fiscaux pour les très petites et moyennes entreprises de Brazzaville et Pointe-Noire. Les démarches de déclaration auprès de la Direction Générale des Impôts y sont explicitées étape par étape.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 7500,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-011/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Document PDF de 86 pages",
+      "Modèles de fiches de calcul fiscal",
+      "Tableau récapitulatif des échéances",
+      "Mise à jour loi de finances"
+    ]
+  },
+  {
+    "id": "prod-012",
+    "title": "Maîtriser le plan comptable OHADA révisé pour entreprises congolaises",
+    "shortDesc": "Apprenez les écritures courantes et de fin d'exercice conformes aux normes OHADA applicables au Congo.",
+    "description": "Cet ouvrage aborde l'organisation comptable, le plan de comptes et les écritures d'inventaire courantes. Il permet aux comptables et gestionnaires d'éviter les erreurs récurrentes lors de l'établissement du bilan et du compte de résultat. Des exercices corrigés facilitent la mise en pratique immédiate dans votre logiciel de gestion.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 8500,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-012/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Livre numérique de 114 pages",
+      "Guide des écritures courantes",
+      "Plan de comptes annoté",
+      "Exercices corrigés inclus"
+    ]
+  },
+  {
+    "id": "prod-013",
+    "title": "Clôture des comptes annuels et liasse fiscale selon le système OHADA",
+    "shortDesc": "Formation vidéo pas à pas pour réussir l'arrêté des comptes et monter votre liasse fiscale sans stress.",
+    "description": "À travers des modules vidéo détaillés, vous apprenez à effectuer les travaux d'inventaire et les régularisations de fin d'année. Vous découvrirez comment renseigner correctement les tableaux de la liasse fiscale exigée par l'administration fiscale congolaise. Un atelier pratique sur un cas réel d'entreprise commerciale est inclus pour valider vos compétences.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 45000,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-013/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "6 heures de vidéos explicatives",
+      "Fichier Excel support de liasse",
+      "Accès illimité pendant 12 mois",
+      "Support par messagerie dédiée"
+    ]
+  },
+  {
+    "id": "prod-014",
+    "title": "Audit fiscal préventif et revue de conformité pour entreprise locale",
+    "shortDesc": "Vérification rigoureuse de vos déclarations fiscales pour identifier et corriger les anomalies avant contrôle.",
+    "description": "Cette prestation comprend l'examen de vos livres comptables, de vos déclarations mensuelles de TVA et de vos acomptes d'impôt. Nous identifions les zones de risques de redressement fiscal et proposons des régularisations précises. Vous recevez un rapport d'audit détaillé assorti d'un plan d'actions concrètes.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 150000,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-014/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 7 jours ouvrés",
+    "features": [
+      "Rapport d'audit commenté",
+      "Revue des 12 derniers mois",
+      "Tableau des risques identifiés",
+      "Séance de restitution de 60 min"
+    ]
+  },
+  {
+    "id": "prod-015",
+    "title": "Modèle Excel automatisé de paie congolaise avec CNSS et IRPP",
+    "shortDesc": "Calculez automatiquement les salaires nets, les cotisations CNSS et l'IRPP grâce à ce tableur préconfiguré.",
+    "description": "Ce classeur intègre les barèmes officiels de retenue fiscale et sociale de la République du Congo. Il génère automatiquement les bulletins de paie individuels et le livre de paie récapitulatif mensuel. Les formules sont entièrement déverrouillées pour vous permettre d'adapter le fichier à votre politique salariale.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 12500,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-015/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Classeur Excel automatisé",
+      "Modèle de bulletin imprimable",
+      "Barèmes fiscaux 2026 intégrés",
+      "Guide de prise en main PDF"
+    ]
+  },
+  {
+    "id": "prod-016",
+    "title": "Session individuelle de cadrage fiscal et optimisation comptable",
+    "shortDesc": "Un entretien individuel d'une heure pour analyser la fiscalité de votre entreprise et optimiser vos charges.",
+    "description": "Au cours de cet échange privé en visioconférence, nous passons en revue la structure juridique et fiscale de votre activité. Je réponds à vos questions spécifiques sur la gestion de la TVA, l'impôt sur le revenu ou les taxes locales. Vous repartez avec des recommandations écrites adaptées à votre trésorerie.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Arsène Mabiala",
+      "avatar": "",
+      "role": "Expert-comptable & Fiscaliste agréé",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-016/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 3 jours",
+    "features": [
+      "Entretien en visio de 60 minutes",
+      "Compte-rendu écrit de synthèse",
+      "Recommandations personnalisées",
+      "Suivi par email pendant 7 jours"
+    ]
+  },
+  {
+    "id": "prod-017",
+    "title": "Vendre sur Facebook et TikTok à Brazzaville sans budget publicitaire",
+    "shortDesc": "Stratégies concrètes pour attirer des clients locaux et encaisser par Mobile Money sans sponsoriser de posts.",
+    "description": "Ce guide s'adresse aux petits commerçants et prestataires de services souhaitant développer leur visibilité à Brazzaville et Pointe-Noire. Il explique comment créer des vidéos courtes qui convertissent et comment animer des groupes WhatsApp de vente privée. Vous apprendrez à gérer les commandes et à rassurer les acheteurs réticents au paiement avant livraison.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-017/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide PDF de 72 pages",
+      "10 scripts de publication prêts",
+      "Méthode de vente par WhatsApp",
+      "Checklist de closing client"
+    ]
+  },
+  {
+    "id": "prod-018",
+    "title": "Campagnes Meta Ads ciblées sur Brazzaville et Pointe-Noire",
+    "shortDesc": "Maîtrisez la publicité Facebook et Instagram pour générer des prospects qualifiés pour vos offres locales.",
+    "description": "Apprenez à paramétrer le Gestionnaire de publicités Meta avec des ciblages géographiques fins sur les quartiers de Brazzaville et Pointe-Noire. Le cours couvre le choix des objectifs, la rédaction des accroches et l'optimisation du coût par message WhatsApp. Des démonstrations réelles montrent comment convertir les conversations en ventes fermes.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-018/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4 heures de cours en vidéo",
+      "Modèles d'accroches publicitaires",
+      "Guide de paramétrage de budget",
+      "Accès à vie aux mises à jour"
+    ]
+  },
+  {
+    "id": "prod-019",
+    "title": "Création de contenu vidéo vertical pour marques locales sur TikTok",
+    "shortDesc": "Apprenez à filmer et monter des vidéos dynamiques sur smartphone pour valoriser vos produits sur TikTok.",
+    "description": "Cette formation pratique vous montre comment structurer une vidéo de vente dès les trois premières secondes pour retenir l'attention. Vous apprendrez à utiliser l'application CapCut pour insérer des sous-titres, des transitions et une musique tendance. Un plan de tournage hebdomadaire est fourni pour produire du contenu régulier sans y passer des heures.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 25000,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-019/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3h30 de tutoriels pratiques",
+      "Templates de montage CapCut",
+      "Banque de 50 idées de vidéos",
+      "Fiche de paramétrage audio"
+    ]
+  },
+  {
+    "id": "prod-020",
+    "title": "Configuration complète de compte publicitaire et tunnel de vente",
+    "shortDesc": "Mise en place professionnelle de votre Business Manager Meta et de votre tunnel WhatsApp pour vos ventes.",
+    "description": "Je configure votre compte publicitaire Meta, installe les pixels nécessaires et lie votre page professionnelle à votre compte WhatsApp Business. Je crée ensuite votre première campagne ciblée sur le Congo avec deux visuels et des textes travaillés. Vous disposez d'un système opérationnel pour recevoir des messages de clients potentiels.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 60000,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-020/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 5 jours ouvrés",
+    "features": [
+      "Paramétrage Business Manager",
+      "Liaison WhatsApp Business",
+      "Création de 2 annonces complètes",
+      "Session de prise en main de 30 min"
+    ]
+  },
+  {
+    "id": "prod-021",
+    "title": "Calendrier éditorial trimestriel pour commerçants sur réseaux sociaux",
+    "shortDesc": "Un tableau Notion et Excel comprenant 90 idées de publications adaptées aux temps forts commerciaux du Congo.",
+    "description": "Ce modèle structure vos publications quotidiennes sur Facebook, Instagram et TikTok sur trois mois complets. Il intègre les fêtes nationales, les périodes de paie et les événements locaux propices aux promotions. Chaque date propose un objectif précis, un type de format et un modèle de texte à adapter.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 6500,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-021/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Version Notion et Excel",
+      "90 idées de publications détaillées",
+      "Planification des fêtes locales",
+      "Guide de personnalisation"
+    ]
+  },
+  {
+    "id": "prod-022",
+    "title": "Audit et stratégie d'acquisition digitale pour commerce en ligne",
+    "shortDesc": "Séance individuelle pour passer au crible vos canaux de vente en ligne et doubler vos prises de contact.",
+    "description": "Nous étudions ensemble votre présence sur les réseaux sociaux, vos visuels et vos messages de réponse aux clients. J'identifie les blocages qui freinent les commandes et vous propose des ajustements immédiats sur vos offres. Vous recevez une feuille de route hebdomadaire pour structurer vos actions commerciales.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 25000,
+    "author": {
+      "name": "Grace Moukassa",
+      "avatar": "",
+      "role": "Consultante en Stratégie Digitale & Ads",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-022/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Appel visio privé de 60 minutes",
+      "Audit préalable de vos profils",
+      "Plan d'action sur 30 jours",
+      "Synthèse écrite envoyée par PDF"
+    ]
+  },
+  {
+    "id": "prod-023",
+    "title": "Manuel pratique d'élevage porcin en climat équatorial congolais",
+    "shortDesc": "Toutes les étapes pour installer une porcherie rentable, de la construction des loges au suivi sanitaire.",
+    "description": "Ce manuel traite du choix des reproducteurs adaptés au climat du Congo, de l'alimentation à base d'ingrédients locaux et des soins vétérinaires préventifs. Il aborde la conduite de la reproduction, la gestion des mises bas et le sevrage des porcelets. Un compte d'exploitation prévisionnel chiffré accompagne les explications techniques.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 6000,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-023/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Manuel PDF illustré de 92 pages",
+      "Plans types de porcherie",
+      "Calendrier vaccinal et vermifuges",
+      "Fiche de calcul de rentabilité"
+    ]
+  },
+  {
+    "id": "prod-024",
+    "title": "Guide de pisciculture hors-sol en bacs pour débutants au Congo",
+    "shortDesc": "Comment produire du poisson-chat et du tilapia en milieu urbain ou périurbain avec des bacs hors-sol.",
+    "description": "Ce document explique le montage des bacs bâchés, la gestion de la qualité de l'eau et le choix des alevins de silure. Vous découvrirez comment maîtriser les taux de rationnement alimentaire pour réduire les pertes et raccourcir le cycle d'élevage. Les aspects liés à la vente sur les marchés locaux de Dolisie, Pointe-Noire et Brazzaville sont détaillés.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 5500,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-024/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "E-book technique de 68 pages",
+      "Schémas de plomberie et vidange",
+      "Tableau de rationnement par taille",
+      "Guide des pathologies courantes"
+    ]
+  },
+  {
+    "id": "prod-025",
+    "title": "Rentabiliser une exploitation maraîchère de tomates et piments",
+    "shortDesc": "Itinéraire technique complet pour produire et commercialiser des légumes frais en toute saison au Congo.",
+    "description": "La formation couvre la préparation du sol, la confection des pépinières, l'irrigation goutte-à-goutte et le traitement des ravageurs. Vous découvrirez les variétés à haut rendement adaptées aux sols de la vallée du Niari et du Pool. Des modules spécifiques enseignent la négociation avec les grossistes pour sécuriser des prix stables.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 30000,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-025/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "5 heures de vidéos sur le terrain",
+      "Fiches techniques de culture",
+      "Programme de fertilisation bio",
+      "Accès au groupe d'entraide"
+    ]
+  },
+  {
+    "id": "prod-026",
+    "title": "Formulation d'aliments complets pour volailles et porcs à bas coût",
+    "shortDesc": "Apprenez à fabriquer vos propres aliments équilibrés à base de manioc, son de maïs et tourteau de palmiste.",
+    "description": "Ce cours enseigne le calcul des rations alimentaires selon le stade physiologique des animaux pour limiter les dépenses en provende importée. Vous apprendrez à doser les sources d'énergie, de protéines et de minéraux disponibles localement. Une méthode de contrôle visuel et olfactif des matières premières complète les enseignements.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 40000,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-026/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4h30 de cours structuré",
+      "Tableur de calcul des rations",
+      "Annuaire des fournisseurs locaux",
+      "Guide d'hygiène de stockage"
+    ]
+  },
+  {
+    "id": "prod-027",
+    "title": "Élaboration de plan d'aménagement agropastoral et étude de faisabilité",
+    "shortDesc": "Une étude technique et financière complète pour dimensionner et budgétiser votre future ferme au Congo.",
+    "description": "Nous concevons l'agencement de vos parcelles, bâtiments d'élevage, points d'eau et voies d'accès à partir des données de votre terrain. La prestation inclut un budget prévisionnel d'investissement et d'exploitation sur trois années d'activité. Ce dossier technique peut être présenté à des partenaires financiers ou servir de feuille de route opérationnelle.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 120000,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-027/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 10 jours ouvrés",
+    "features": [
+      "Dossier technique de 25 pages",
+      "Plan d'implantation 2D",
+      "Compte d'exploitation sur 3 ans",
+      "Session d'explication de 45 min"
+    ]
+  },
+  {
+    "id": "prod-028",
+    "title": "Accompagnement technique au lancement d'une ferme agroécologique",
+    "shortDesc": "Un coaching personnalisé pour valider vos choix d'élevage ou de culture avant d'engager vos premiers fonds.",
+    "description": "Au cours de cet échange direct, nous analysons votre terrain, votre budget initial et vos compétences pratiques pour orienter votre projet. Je vous alerte sur les erreurs coûteuses à éviter lors des trois premiers mois d'exploitation. Vous recevez une liste d'étapes prioritaires pour démarrer sans gaspiller vos ressources.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 30000,
+    "author": {
+      "name": "Dieudonné Ngoma",
+      "avatar": "",
+      "role": "Ingénieur Agronome & Formateur Agropastoral",
+      "location": "Dolisie, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-028/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 3 jours",
+    "features": [
+      "Entretien visio ou vocal de 75 min",
+      "Audit de votre projet initial",
+      "Plan de démarrage par étapes",
+      "Recommandations d'approvisionnement"
+    ]
+  },
+  {
+    "id": "prod-029",
+    "title": "Les principes du design graphique pour non-designers sous Canva",
+    "shortDesc": "Maîtrisez les contrastes, la typographie et la composition visuelle pour créer des affiches professionnelles.",
+    "description": "Ce livre explique de façon simple comment harmoniser les couleurs, aligner les éléments et hiérarchiser les textes sur un visuel. Il détaille les erreurs courantes qui donnent un aspect amateur aux publications commerciales et montre comment les corriger. Des exemples concrets d'affiches créées pour le contexte ponténégrin illustrent chaque notion.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 3500,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-029/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Livre PDF de 64 pages",
+      "Guide des accords de couleurs",
+      "20 règles d'or de mise en page",
+      "Lexique visuel simplifié"
+    ]
+  },
+  {
+    "id": "prod-030",
+    "title": "Concevoir des visuels commerciaux percutants avec Canva Pro",
+    "shortDesc": "Formation complète pour concevoir rapidement des bannières, logos simples et flyers promotionnels percutants.",
+    "description": "Vous apprendrez à exploiter les fonctionnalités avancées de Canva pour créer des identités visuelles cohérentes pour vos projets. La formation montre comment détourer des photos de produits, appliquer des filtres professionnels et animer des stories. Des exercices pratiques permettent de créer une semaine complète de publications pour une marque.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 18000,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-030/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3 heures de cours en vidéo",
+      "Ressources graphiques incluses",
+      "Exercices pratiques guidés",
+      "Attestation de fin de parcours"
+    ]
+  },
+  {
+    "id": "prod-031",
+    "title": "Création d'identité visuelle complète avec logo et charte graphique",
+    "shortDesc": "Conception sur mesure de votre logo vectoriel, de votre palette de couleurs et de vos cartes de visite.",
+    "description": "Je développe une identité graphique moderne et mémorable adaptée aux valeurs de votre entreprise congolaise. La prestation comprend trois propositions initiales de logo, suivies de phases de retouches pour aboutir au résultat souhaité. Vous recevez un pack de fichiers sources pour l'impression ainsi que des déclinaisons pour les réseaux sociaux.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 95000,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-031/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 7 jours ouvrés",
+    "features": [
+      "3 propositions de logo originales",
+      "Charte graphique au format PDF",
+      "Fichiers vectoriels et PNG",
+      "Maquette de carte de visite"
+    ]
+  },
+  {
+    "id": "prod-032",
+    "title": "Pack de 50 modèles Canva prêts à l'emploi pour boutiques de mode",
+    "shortDesc": "Des visuels élégants et modifiables en quelques clics pour présenter vos vêtements et accessoires sur Instagram.",
+    "description": "Ce kit réunit des modèles de publications et de stories spécifiquement conçus pour les créateurs de mode et friperies locales. Les textes, images et couleurs sont entièrement modifiables depuis un compte Canva gratuit. Les dimensions sont optimisées pour un affichage net sur smartphone.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 8500,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-032/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "30 modèles de posts carrés",
+      "20 modèles de stories animées",
+      "Compatibilité Canva gratuit",
+      "Tutoriel vidéo d'utilisation"
+    ]
+  },
+  {
+    "id": "prod-033",
+    "title": "Kit de templates de factures et devis professionnels personnalisables",
+    "shortDesc": "Modèles Word et Canva sobres et soignés pour émettre des documents commerciaux conformes et crédibles.",
+    "description": "Ces modèles de devis, factures d'acompte et reçus de paiement renforcent le sérieux de votre activité auprès de vos clients. Ils intègrent les mentions indispensables comme le numéro de compte bancaire, le numéro MoMo commercial et les délais de règlement. Les fichiers sont faciles à adapter avec votre propre logo et vos coordonnées.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 5000,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-033/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Modèles Word, Excel et Canva",
+      "Format A4 prêt pour impression",
+      "Champs d'informations prévus",
+      "Fiche de conseils juridiques"
+    ]
+  },
+  {
+    "id": "prod-034",
+    "title": "Revue critique de portfolio design et positionnement freelance",
+    "shortDesc": "Une séance individuelle pour auditer vos créations graphiques et fixer une grille tarifaire rentable.",
+    "description": "Pendant une heure, nous passons en revue vos projets visuels pour identifier vos points forts et les aspects techniques à perfectionner. Nous analysons ensuite votre manière de prospecter des clients au Congo et réajustons vos tarifs pour valoriser votre travail. Vous repartez avec des objectifs clairs pour développer votre activité indépendante.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 20000,
+    "author": {
+      "name": "Cynthia Makosso",
+      "avatar": "",
+      "role": "Directrice Artistique & Designer Graphique",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-034/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Session visio de 60 minutes",
+      "Audit détaillé de 5 créations",
+      "Grille tarifaire recommandée",
+      "Conseils de prospection locale"
+    ]
+  },
+  {
+    "id": "prod-035",
+    "title": "Les fondamentaux de l'intégration de l'API MTN MoMo et Airtel Money",
+    "shortDesc": "Guide technique pour développeurs souhaitant connecter des paiements mobiles automatisés sur leurs sites.",
+    "description": "Ce manuel détaille le fonctionnement des API de paiement mobile disponibles en zone CEMAC et en République du Congo. Il fournit des exemples de code clairs pour initier une demande de paiement, gérer les webhooks de notification et sécuriser les échanges. Des recommandations sont fournies pour gérer les échecs de transaction et rassurer l'utilisateur final.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 8000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-035/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide technique de 78 pages",
+      "Snippets de code en PHP et Node.js",
+      "Diagramme des flux d'encaissement",
+      "Exemples de traitement de webhooks"
+    ]
+  },
+  {
+    "id": "prod-036",
+    "title": "Développer un site e-commerce WordPress adapté aux réalités locales",
+    "shortDesc": "Apprenez à installer, configurer et administrer une boutique WooCommerce prête pour le marché congolais.",
+    "description": "Cette formation vous guide de la réservation du nom de domaine jusqu'à la mise en ligne complète de votre catalogue. Vous découvrirez comment paramétrer les zones de livraison sur Brazzaville et Pointe-Noire ainsi que les options de retrait en point relais. Le cours aborde également l'optimisation de la vitesse d'affichage pour les connexions mobiles 3G et 4G.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 45000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-036/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "7 heures de cours en vidéo",
+      "Accès à des extensions premium",
+      "Guide d'optimisation mobile",
+      "Forum d'entraide entre apprenants"
+    ]
+  },
+  {
+    "id": "prod-037",
+    "title": "Apprendre le développement web moderne avec HTML, CSS et JavaScript",
+    "shortDesc": "Formation complète pour débutants souhaitant acquérir des compétences pratiques en programmation web.",
+    "description": "Le programme démarre par les structures de pages en HTML5 et la mise en forme responsive avec les dernières fonctionnalités de CSS3. Vous apprendrez ensuite à rendre vos pages interactives grâce aux fondamentaux de JavaScript moderne. Plusieurs projets concrets, dont une page d'accueil d'entreprise et un formulaire de contact, sont développés pas à pas.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-037/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "10 heures de formation vidéo",
+      "Fichiers sources des projets",
+      "Exercices pratiques avec corrigés",
+      "Accès illimité à vie"
+    ]
+  },
+  {
+    "id": "prod-038",
+    "title": "Intégration de passerelle de paiement Mobile Money sur votre site",
+    "shortDesc": "Intégration clé en main des paiements automatisés MTN MoMo et Airtel Money sur votre plateforme web.",
+    "description": "Je prends en charge la liaison technique entre votre boutique e-commerce et les opérateurs de paiement mobile locaux. Le service comprend la création des scripts de validation, la gestion des callbacks en temps réel et les tests de bon fonctionnement. Vos clients pourront ainsi régler leurs commandes instantanément et recevoir une confirmation automatique.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 85000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-038/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 6 jours ouvrés",
+    "features": [
+      "Intégration complète sur mesure",
+      "Tests sandbox et environnement réel",
+      "Documentation technique fournie",
+      "Assistance garantie de 14 jours"
+    ]
+  },
+  {
+    "id": "prod-039",
+    "title": "Thème WordPress e-commerce léger configuré pour le marché africain",
+    "shortDesc": "Un site prêt à l'emploi conçu pour charger rapidement sur smartphone et convertir facilement vos visiteurs.",
+    "description": "Ce template épuré supprime les scripts superflus pour garantir un affichage fluide même sur des connexions Internet modestes. Il intègre un panier simplifié, un bouton de commande directe via WhatsApp et des bannières promotionnelles percutantes. L'installation se fait en quelques minutes grâce au fichier de démonstration inclus.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 15000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-039/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Thème enfant WordPress et fichiers",
+      "Bouton de commande WhatsApp inclus",
+      "Données de démo prêtes à importer",
+      "Guide d'installation pas à pas"
+    ]
+  },
+  {
+    "id": "prod-040",
+    "title": "Coaching technique individuel en architecture logicielle et API",
+    "shortDesc": "Séance personnalisée pour résoudre vos blocages techniques, concevoir votre base de données ou auditer du code.",
+    "description": "Nous examinons ensemble le code de votre application web ou mobile pour détecter les vulnérabilités et les lenteurs d'exécution. Je vous conseille sur les meilleures pratiques de modélisation de base de données relationnelle et de gestion d'API REST. Vous gagnez un temps précieux en évitant les erreurs de conception structurelle.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 40000,
+    "author": {
+      "name": "Brice Loubaki",
+      "avatar": "",
+      "role": "Développeur Full-Stack & Architecte Cloud",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-040/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "1h15 de session individuelle en visio",
+      "Revue de code en direct",
+      "Schéma d'architecture suggéré",
+      "Suivi écrit des points abordés"
+    ]
+  },
+  {
+    "id": "prod-041",
+    "title": "Créer et immatriculer légalement sa SARL en République du Congo",
+    "shortDesc": "Guide étape par étape pour franchir les formalités administratives et fiscales sans intermédiaire coûteux.",
+    "description": "Cet e-book décrit l'ensemble du parcours au Guichet Unique de Création d'Entreprise, du dépôt des statuts à l'obtention du RCCM et du NIU. Il détaille les coûts administratifs réels et les pièces justificatives à fournir pour chaque formalité. Des conseils pratiques aident à choisir judicieusement le capital social et la gérance.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 6500,
+    "author": {
+      "name": "Séverine Ntsiba",
+      "avatar": "",
+      "role": "Juriste d'Entreprise & Consultante RH",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-041/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Livre numérique de 70 pages",
+      "Liste des pièces justificatives",
+      "Barème officiel des frais administratifs",
+      "Chronogramme des démarches"
+    ]
+  },
+  {
+    "id": "prod-042",
+    "title": "Guide du droit du travail congolais : contrats, congés et licenciements",
+    "shortDesc": "Connaître vos obligations et droits d'employeur selon le Code du travail en vigueur au Congo.",
+    "description": "Ce document résume de manière claire les dispositions légales relatives aux contrats à durée déterminée et indéterminée. Il aborde la durée légale du travail, le calcul des heures supplémentaires et les règles encadrant les ruptures conventionnelles ou disciplinaires. Des modèles de clauses contractuelles protectrices y sont inclus.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 7000,
+    "author": {
+      "name": "Séverine Ntsiba",
+      "avatar": "",
+      "role": "Juriste d'Entreprise & Consultante RH",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-042/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Document de référence de 84 pages",
+      "Fiches récapitulatives thématiques",
+      "Modèles de courriers légaux",
+      "Synthèse de jurisprudence locale"
+    ]
+  },
+  {
+    "id": "prod-043",
+    "title": "Rédaction personnalisée de contrat de travail et règlement intérieur",
+    "shortDesc": "Élaboration de documents RH conformes à la réglementation du travail pour sécuriser vos embauches.",
+    "description": "Je rédige sur mesure vos contrats de travail, qu'il s'agisse de contrats cadres, employés ou prestataires indépendants. La mission comprend également l'élaboration ou la mise en conformité de votre règlement intérieur d'établissement. Vous protégez ainsi votre entreprise contre d'éventuels contentieux devant l'inspection du travail.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 55000,
+    "author": {
+      "name": "Séverine Ntsiba",
+      "avatar": "",
+      "role": "Juriste d'Entreprise & Consultante RH",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-043/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 4 jours ouvrés",
+    "features": [
+      "Contrat de travail individualisé",
+      "Règlement intérieur d'entreprise",
+      "Conformité Code du travail congolais",
+      "Ajustements inclus pendant 7 jours"
+    ]
+  },
+  {
+    "id": "prod-044",
+    "title": "Modèles de statuts juridiques de SARL et PV d'assemblée générale",
+    "shortDesc": "Kit de documents juridiques types prêts à remplir pour constituer et administrer votre société au Congo.",
+    "description": "Ce pack comprend des statuts complets de SARL pluripersonnelle et unipersonnelle adaptés aux exigences de l'OHADA et de la législation locale. Vous y trouverez aussi des modèles de procès-verbaux d'assemblée générale ordinaire et extraordinaire ainsi que des lettres de nomination de gérant. Les zones à personnaliser sont surlignées pour vous guider.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 12000,
+    "author": {
+      "name": "Séverine Ntsiba",
+      "avatar": "",
+      "role": "Juriste d'Entreprise & Consultante RH",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-044/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichiers Word éditables",
+      "Statuts types SARL et SARLU",
+      "Modèles de PV d'assemblée",
+      "Guide d'utilisation simplifié"
+    ]
+  },
+  {
+    "id": "prod-045",
+    "title": "Conseil juridique personnalisé pour formalisation d'entreprise",
+    "shortDesc": "Séance privée pour choisir la bonne forme juridique et sécuriser les relations entre associés fondateurs.",
+    "description": "Durant cet entretien, nous étudions votre projet pour déterminer la structure juridique la plus adaptée à vos ambitions et à vos moyens. Nous discutons de la répartition du capital, des pouvoirs du gérant et des clauses de sortie entre associés. Vous obtenez des réponses précises à vos interrogations juridiques pour démarrer sereinement.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 30000,
+    "author": {
+      "name": "Séverine Ntsiba",
+      "avatar": "",
+      "role": "Juriste d'Entreprise & Consultante RH",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-045/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Consultation en visio de 60 minutes",
+      "Analyse de vos statuts ou pacte",
+      "Recommandations juridiques écrites",
+      "Disponibilité pour questions par email"
+    ]
+  },
+  {
+    "id": "prod-046",
+    "title": "Estimer le coût d'un chantier de construction résidentielle au Congo",
+    "shortDesc": "Méthode éprouvée pour calculer le coût des matériaux et de la main-d'œuvre sans exploser son budget.",
+    "description": "Ce guide détaille les postes clés d'une construction de villa à Pointe-Noire ou Brazzaville, des fondations aux finitions. Il recense les prix moyens des agrégats, du ciment, du fer à béton et des tôles sur les principaux marchés congolais. Des conseils de négociation avec les tâcherons et les fournisseurs vous évitent les surcoûts fréquents.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 9000,
+    "author": {
+      "name": "Yannick Okemba",
+      "avatar": "",
+      "role": "Ingénieur BTP & Économiste de la Construction",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-046/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "E-book technique de 96 pages",
+      "Barème des prix des matériaux 2026",
+      "Ratios de calcul par mètre carré",
+      "Checklist de contrôle de chantier"
+    ]
+  },
+  {
+    "id": "prod-047",
+    "title": "Lecture et interprétation des plans d'architecture et de coffrage",
+    "shortDesc": "Apprenez à décrypter les plans de masse, coupes et schémas de ferraillage pour suivre vos chantiers.",
+    "description": "Cette formation vidéo vous initie aux symboles normalisés utilisés sur les plans de bâtiment par les architectes et bureaux d'études. Vous apprendrez à vérifier la concordance entre les dimensions sur plan et la réalisation effective sur le terrain. La formation aborde les repères critiques de ferraillage pour éviter les malfaçons structurelles.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 28000,
+    "author": {
+      "name": "Yannick Okemba",
+      "avatar": "",
+      "role": "Ingénieur BTP & Économiste de la Construction",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-047/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4 heures de cours en vidéo HD",
+      "Fichiers PDF de plans d'exemples",
+      "Guide des symboles de construction",
+      "Quiz d'auto-évaluation inclus"
+    ]
+  },
+  {
+    "id": "prod-048",
+    "title": "Établissement de devis quantitatif et estimatif détaillé pour bâtiment",
+    "shortDesc": "Chiffrage précis de tous les lots de votre projet de construction ou de rénovation immobilière.",
+    "description": "À partir de vos plans de masse et de distribution, je réalise le métré rigoureux de votre ouvrage par corps d'état. Le devis quantitatif et estimatif détaille les volumes de terrassement, de maçonnerie, de toiture et de carrelage avec des prix réalistes. Ce document constitue la base indispensable pour consulter des entreprises de construction en toute transparence.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 110000,
+    "author": {
+      "name": "Yannick Okemba",
+      "avatar": "",
+      "role": "Ingénieur BTP & Économiste de la Construction",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-048/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 8 jours ouvrés",
+    "features": [
+      "Devis quantitatif et estimatif complet",
+      "Fichier Excel modifiable et PDF",
+      "Décomposition lot par lot",
+      "Entretien téléphonique de cadrage"
+    ]
+  },
+  {
+    "id": "prod-049",
+    "title": "Bordereau de prix unitaires et feuille de calcul métré BTP sur Excel",
+    "shortDesc": "Un outil Excel automatisé pour chiffrer rapidement vos travaux de maçonnerie, toiture et plomberie.",
+    "description": "Ce classeur préformaté applique automatiquement les formules de calcul de volumes, surfaces et ratios de matériaux selon vos saisies. Il intègre une bibliothèque de plus de deux cents prix unitaires usuels observés sur les chantiers congolais. Vous pouvez ajuster facilement les marges et imprimer des devis clairs pour vos clients ou bailleurs de fonds.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 14000,
+    "author": {
+      "name": "Yannick Okemba",
+      "avatar": "",
+      "role": "Ingénieur BTP & Économiste de la Construction",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-049/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Classeur Excel complet sans mot de passe",
+      "Base de 200 prix unitaires intégrée",
+      "Calcul automatique des totaux par lot",
+      "Notice d'utilisation détaillée"
+    ]
+  },
+  {
+    "id": "prod-050",
+    "title": "Diagnostic technique et optimisation budgétaire d'un projet BTP",
+    "shortDesc": "Une consultation d'expert pour revoir vos devis, détecter les anomalies de prix et fiabiliser vos travaux.",
+    "description": "Au cours de cet échange individuel, nous analysons les devis proposés par vos entrepreneurs pour traquer les omissions ou les surfacturations. Je vous conseille sur les alternatives de matériaux permettant de baisser les coûts sans nuire à la solidité du bâtiment. Vous disposez ainsi d'arguments techniques solides pour négocier sereinement.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 45000,
+    "author": {
+      "name": "Yannick Okemba",
+      "avatar": "",
+      "role": "Ingénieur BTP & Économiste de la Construction",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-050/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 3 jours",
+    "features": [
+      "Session de conseil de 75 minutes",
+      "Revue critique de vos devis BTP",
+      "Suggestions d'économies réalistes",
+      "Synthèse écrite des recommandations"
+    ]
+  },
+  {
+    "id": "prod-051",
+    "title": "Le lingala des affaires : vocabulaire et expressions pour négocier",
+    "shortDesc": "Apprenez les expressions idiomatiques et le lexique commercial en lingala pour faciliter vos transactions.",
+    "description": "Cet ouvrage pratique s'adresse aux professionnels et commerçants désireux de créer une relation de confiance immédiate avec leurs clients et partenaires. Il compile des dialogues réalistes portant sur la fixation des prix, les conditions de paiement et la fidélisation. Chaque expression est traduite avec des explications sur les contextes d'usage culturel.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 3500,
+    "author": {
+      "name": "Prudence Kimbembe",
+      "avatar": "",
+      "role": "Linguiste & Formatrice en Langues Appliquées",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-051/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide numérique de 58 pages",
+      "Fichiers audio de prononciation MP3",
+      "Lexique bilingue de 300 termes",
+      "Exemples de dialogues commerciaux"
+    ]
+  },
+  {
+    "id": "prod-052",
+    "title": "Préparer efficacement les épreuves de français aux concours administratifs",
+    "shortDesc": "Méthodologie détaillée pour réussir la dissertation, la note de synthèse et le résumé de texte.",
+    "description": "Ce manuel d'entraînement prépare les candidats aux exigences académiques des concours de la fonction publique congolaise. Il propose des plans détaillés, des règles de grammaire essentielles et des exemples de copies commentées par une enseignante expérimentée. Des exercices ciblés vous aident à structurer vos idées sous contrainte de temps.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Prudence Kimbembe",
+      "avatar": "",
+      "role": "Linguiste & Formatrice en Langues Appliquées",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-052/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Manuel d'entraînement de 88 pages",
+      "10 sujets types corrigés",
+      "Fiches mémo d'orthographe et style",
+      "Conseils pour le jour de l'épreuve"
+    ]
+  },
+  {
+    "id": "prod-053",
+    "title": "Anglais professionnel pour le personnel hôtelier et commercial",
+    "shortDesc": "Perfectionnez votre anglais oral pour accueillir la clientèle internationale avec aisance et courtoisie.",
+    "description": "Cette formation audio-visuelle met l'accent sur les situations concrètes du secteur des services : prise de réservation, accueil, règlement de réclamations. Des modules interactifs vous entraînent à acquérir une prononciation claire et à maîtriser les formules de politesse adaptées. Vous gagnez en assurance dès vos premiers échanges professionnels en anglais.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 22000,
+    "author": {
+      "name": "Prudence Kimbembe",
+      "avatar": "",
+      "role": "Linguiste & Formatrice en Langues Appliquées",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-053/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3h30 de cours audio et vidéo",
+      "Fiches récapitulatives en PDF",
+      "Exercices d'écoute et de prononciation",
+      "Certificat d'assiduité téléchargeable"
+    ]
+  },
+  {
+    "id": "prod-054",
+    "title": "Traduction professionnelle anglais-français de documents d'entreprise",
+    "shortDesc": "Traduction soignée et fidèle de vos présentations, contrats commerciaux, rapports ou courriers formels.",
+    "description": "Je traduis avec rigueur vos documents administratifs et techniques de l'anglais vers le français ou inversement. Le respect de la terminologie sectorielle et la fluidité de lecture sont garantis pour valoriser votre image d'entreprise. Chaque texte fait l'objet d'une double relecture approfondie avant sa livraison définitive.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 25000,
+    "author": {
+      "name": "Prudence Kimbembe",
+      "avatar": "",
+      "role": "Linguiste & Formatrice en Langues Appliquées",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-054/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 3 jours ouvrés",
+    "features": [
+      "Traduction jusqu'à 2000 mots",
+      "Respect de la terminologie métier",
+      "Mise en page d'origine conservée",
+      "Une révision gratuite incluse"
+    ]
+  },
+  {
+    "id": "prod-055",
+    "title": "Préparation intensive à l'entretien oral d'embauche en entreprise",
+    "shortDesc": "Simulation d'entretien individuel avec retours personnalisés sur votre communication verbale et posture.",
+    "description": "Nous organisons une mise en situation réaliste pour vous entraîner à répondre avec clarté aux questions pièges des recruteurs. Je vous aide à valoriser vos réussites professionnelles et à gérer votre élocution pour faire une forte impression positive. Vous repartez avec des pistes de progrès immédiates pour décrocher le poste ciblé.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 15000,
+    "author": {
+      "name": "Prudence Kimbembe",
+      "avatar": "",
+      "role": "Linguiste & Formatrice en Langues Appliquées",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-055/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Entretien simulé de 50 minutes",
+      "Débriefing détaillé point par point",
+      "Fiche mémo des questions clés",
+      "Guide de communication corporelle"
+    ]
+  },
+  {
+    "id": "prod-056",
+    "title": "Formulation artisanale de savons et beurres corporels naturels",
+    "shortDesc": "Recettes éprouvées et techniques de saponification à froid adaptées aux huiles disponibles au Congo.",
+    "description": "Ce guide pratique vous dévoile les secrets de la fabrication de savons doux à l'huile de palme rouge, beurre de karité et coco. Il explique les calculs de soude, les mesures de sécurité essentielles et l'ajout d'arômes ou poudres végétales locales. Des astuces d'emballage économique vous permettent de commercialiser rapidement vos créations.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 5000,
+    "author": {
+      "name": "Audrey Bazolo",
+      "avatar": "",
+      "role": "Artisane Cosmétique & Formatrice Beauté",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-056/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide illustré de 64 pages",
+      "12 recettes de savons et baumes",
+      "Table de calcul de saponification",
+      "Conseils d'emballage et stockage"
+    ]
+  },
+  {
+    "id": "prod-057",
+    "title": "Fabrication de cosmétiques capillaires naturels pour cheveux crépus",
+    "shortDesc": "Apprenez à concevoir des shampoings doux, masques démêlants et laits hydratants sans parabènes ni sulfates.",
+    "description": "À travers des démonstrations vidéo pas à pas, vous découvrirez les principes actifs pour nourrir et hydrater les cheveux crépus et frisés. La formation détaille la sélection des conservateurs naturels et le contrôle de l'acidité des préparations pour garantir leur innocuité. Un volet sur le packaging valorisant vous aide à vous démarquer sur le marché.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 26000,
+    "author": {
+      "name": "Audrey Bazolo",
+      "avatar": "",
+      "role": "Artisane Cosmétique & Formatrice Beauté",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-057/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3h45 de tutoriels vidéo HD",
+      "Cahier de 15 formules cosmétiques",
+      "Liste des fournisseurs de flacons",
+      "Support pédagogique téléchargeable"
+    ]
+  },
+  {
+    "id": "prod-058",
+    "title": "Élaboration de gamme de soins personnalisée pour marque cosmétique",
+    "shortDesc": "Création de trois formules cosmétiques originales prêtes pour une production artisanale ou semi-industrielle.",
+    "description": "Je développe pour votre marque trois formulations uniques adaptées à votre cible et aux ingrédients locaux que vous souhaitez valoriser. Chaque formule est accompagnée de son mode opératoire de fabrication, de sa liste d'ingrédients et de ses consignes de stabilité. Vous disposez d'une base technique solide pour lancer sereinement votre gamme beauté.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 80000,
+    "author": {
+      "name": "Audrey Bazolo",
+      "avatar": "",
+      "role": "Artisane Cosmétique & Formatrice Beauté",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-058/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 10 jours ouvrés",
+    "features": [
+      "3 formules cosmétiques complètes",
+      "Protocoles de fabrication détaillés",
+      "Fiches techniques de sécurité",
+      "Échange téléphonique de cadrage"
+    ]
+  },
+  {
+    "id": "prod-059",
+    "title": "Fiches techniques de production cosmétique et étiquetage normatif",
+    "shortDesc": "Modèles prêts à l'emploi pour documenter vos lots de fabrication et concevoir des étiquettes conformes.",
+    "description": "Ce kit comprend des fiches de traçabilité de lot, des modèles de calcul de coût de revient unitaire et des gabarits d'étiquettes sur Canva. Il vous aide à respecter les bonnes pratiques de fabrication et à afficher des mentions légales impeccables sur vos pots et bouteilles. Ces outils professionnalisent immédiatement votre atelier de production.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 7500,
+    "author": {
+      "name": "Audrey Bazolo",
+      "avatar": "",
+      "role": "Artisane Cosmétique & Formatrice Beauté",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-059/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fiches de traçabilité Word et Excel",
+      "Gabarits d'étiquettes Canva modifiables",
+      "Modèle de calcul de prix de revient",
+      "Guide des mentions obligatoires"
+    ]
+  },
+  {
+    "id": "prod-060",
+    "title": "Accompagnement à la création d'une marque de cosmétique artisanale",
+    "shortDesc": "Coaching privé pour valider votre positionnement, affiner vos formules et structurer votre premier lancement.",
+    "description": "Durant cette session d'une heure, nous examinons vos échantillons ou votre catalogue d'ingrédients pour définir une offre commerciale cohérente. Je vous conseille sur la tarification, le choix du flaconnage et les canaux de vente les plus rentables à Brazzaville. Vous gagnez du temps et évitez les erreurs d'approvisionnement initiales.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 25000,
+    "author": {
+      "name": "Audrey Bazolo",
+      "avatar": "",
+      "role": "Artisane Cosmétique & Formatrice Beauté",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-060/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Session individuelle de 60 minutes",
+      "Audit de votre gamme de produits",
+      "Recommandations de tarification",
+      "Liste de contacts fournisseurs"
+    ]
+  },
+  {
+    "id": "prod-061",
+    "title": "Techniques de mixage audio sur home studio pour musiques urbaines",
+    "shortDesc": "Guide pratique pour obtenir des voix nettes et des basses puissantes même dans une pièce non traitée.",
+    "description": "Ce livre électronique s'adresse aux beatmakers et techniciens souhaitant améliorer la clarté de leurs productions urbaines comme le coupé-décalé ou l'afrobeat. Il aborde l'égalisation corrective, la compression dynamique, la gestion des réverbérations et le placement stéréo des instruments. De nombreux conseils d'optimisation acoustique à petit budget complètent le guide.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4000,
+    "author": {
+      "name": "Christian Malonga",
+      "avatar": "",
+      "role": "Ingénieur du Son & Producteur Musical",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-061/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide technique de 74 pages",
+      "Fiches mémo d'égalisation par instrument",
+      "Conseils d'acoustique économique",
+      "Schémas de chaînes d'effets"
+    ]
+  },
+  {
+    "id": "prod-062",
+    "title": "Production musicale complète sur FL Studio : du beatmaking au master",
+    "shortDesc": "Maîtrisez FL Studio pour composer, arranger et finaliser des instrumentales professionnelles de A à Z.",
+    "description": "La formation démarre par la prise en main de l'interface et la programmation de rythmiques percutantes avec des banques de sons adaptées. Vous apprendrez à structurer une chanson, à enregistrer des pistes de voix propres et à préparer votre session pour le mixage final. Vous réalisez deux projets complets pas à pas au fil des modules.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 32000,
+    "author": {
+      "name": "Christian Malonga",
+      "avatar": "",
+      "role": "Ingénieur du Son & Producteur Musical",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-062/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "5 heures de formation vidéo",
+      "2 sessions FL Studio d'exemple incluses",
+      "Pack de samples de batterie exclusif",
+      "Accès continu sans limite de durée"
+    ]
+  },
+  {
+    "id": "prod-063",
+    "title": "Mixage et mastering professionnel d'un titre musical selon les normes",
+    "shortDesc": "Traitement audio professionnel de votre chanson pour une diffusion optimale sur les plateformes de streaming.",
+    "description": "Envoyez-moi vos pistes séparées pour un mixage minutieux assurant l'équilibre fréquentiel et la clarté de la voix principale. Le mastering final garantit un volume sonore compétitif conforme aux standards de Spotify, Apple Music et YouTube sans distorsion. Deux séries de retouches sont prévues pour satisfaire vos attentes artistiques.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 45000,
+    "author": {
+      "name": "Christian Malonga",
+      "avatar": "",
+      "role": "Ingénieur du Son & Producteur Musical",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-063/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 5 jours ouvrés",
+    "features": [
+      "Mixage jusqu'à 24 pistes",
+      "Mastering final WAV 24 bits et MP3",
+      "Version instrumentale masterisée",
+      "Deux tours de révisions inclus"
+    ]
+  },
+  {
+    "id": "prod-064",
+    "title": "Pack de presets vocaux pour logiciels de mixage Waves et FabFilter",
+    "shortDesc": "Chaînes d'effets vocaux prêtes à charger pour traiter rapidement les voix d'afropop et de rap.",
+    "description": "Ce pack rassemble des réglages préconçus pour obtenir des voix brillantes, compressées et nettoyées des bruits parasites en un clic. Chaque preset est documenté avec des conseils simples pour ajuster le seuil de compression selon le niveau de votre micro. Les configurations fonctionnent sur FL Studio, Cubase, Pro Tools et Logic Pro.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 9000,
+    "author": {
+      "name": "Christian Malonga",
+      "avatar": "",
+      "role": "Ingénieur du Son & Producteur Musical",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-064/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "15 presets vocaux polyvalents",
+      "Compatibilité Waves et FabFilter",
+      "Session modèle d'enregistrement",
+      "Guide PDF d'installation"
+    ]
+  },
+  {
+    "id": "prod-065",
+    "title": "Modèle de contrat d'édition et de cession de droits pour artistes",
+    "shortDesc": "Contrat juridique type pour sécuriser la cession d'une instrumentale ou une collaboration entre artistes.",
+    "description": "Ce modèle de contrat d'édition protège les droits moraux et patrimoniaux des créateurs musicaux au Congo et dans l'espace OAPI. Il prévoit le partage des redevances, les conditions d'exploitation commerciale et les mentions obligatoires de crédit. Les clauses sont facilement éditables pour convenir à une vente exclusive ou non exclusive.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 8000,
+    "author": {
+      "name": "Christian Malonga",
+      "avatar": "",
+      "role": "Ingénieur du Son & Producteur Musical",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-065/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Word éditable et PDF",
+      "Clauses de répartition des royalties",
+      "Notice explicative des droits d'auteur",
+      "Formule de cession non-exclusive"
+    ]
+  },
+  {
+    "id": "prod-066",
+    "title": "Recettes de la gastronomie congolaise revisitées pour traiteurs",
+    "shortDesc": "Sublimez le saka-saka, le bouillon de poisson et le maboké avec des techniques modernes de présentation.",
+    "description": "Ce recueil culinaire propose des méthodes innovantes pour préparer et dresser les grands classiques de la cuisine congolaise lors de réceptions privées. Il détaille les temps de cuisson précis, l'équilibre des épices locales et les astuces de conservation pour garder toute la saveur des plats. Chaque recette est chiffrée pour vous aider à fixer vos prix de prestation.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Estelle Samba",
+      "avatar": "",
+      "role": "Cheffe Cuisinière & Formatrice Culinaire",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-066/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Livre culinaire illustré de 80 pages",
+      "25 recettes détaillées pas à pas",
+      "Fiches de calcul des portions",
+      "Guide de dressage contemporain"
+    ]
+  },
+  {
+    "id": "prod-067",
+    "title": "Coaching culinaire personnalisé pour lancement d'activité traiteur",
+    "shortDesc": "Session individuelle pour construire votre carte, calculer vos ratios d'ingrédients et organiser votre cuisine.",
+    "description": "Durant cet échange, nous étudions votre projet de service traiteur pour élaborer des menus adaptés aux budgets des clients de Pointe-Noire. Je vous transmets mes méthodes d'achat groupé auprès des grossistes pour maximiser vos marges bénéficiaires. Vous repartez avec des conseils d'organisation concrets pour servir vos premiers buffets sans imprévu.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 25000,
+    "author": {
+      "name": "Estelle Samba",
+      "avatar": "",
+      "role": "Cheffe Cuisinière & Formatrice Culinaire",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-067/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 3 jours",
+    "features": [
+      "Entretien visio de 60 minutes",
+      "Audit de votre proposition de menu",
+      "Méthode de calcul des marges",
+      "Conseils d'achats auprès des grossistes"
+    ]
+  },
+  {
+    "id": "prod-068",
+    "title": "Techniques de pâtisserie moderne et pièces montées de célébration",
+    "shortDesc": "Apprenez à réaliser des gâteaux d'anniversaire et wedding cakes stables sous climat chaud et humide.",
+    "description": "Ce cours en ligne complet aborde les génoises moelleuses, le travail des ganaches de couverture résistantes à la chaleur et le lissage parfait. Vous apprendrez à monter des gâteaux à étages avec des structures internes fiables pour le transport sur les routes locales. Des vidéos détaillées vous montrent les techniques de décoration florale et d'effets marbrés.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Estelle Samba",
+      "avatar": "",
+      "role": "Cheffe Cuisinière & Formatrice Culinaire",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-068/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4 heures de cours en vidéo HD",
+      "Fiches recettes de ganaches stables",
+      "Guide du montage de pièces à étages",
+      "Accès à vie aux tutoriels"
+    ]
+  },
+  {
+    "id": "prod-069",
+    "title": "Élaboration de menu traiteur sur mesure et fiche technique d'événements",
+    "shortDesc": "Conception complète de vos menus de réception avec liste des courses et planning de préparation minuté.",
+    "description": "Pour vos mariages, banquets ou réceptions d'entreprise, je conçois une formule culinaire équilibrée respectant vos contraintes budgétaires. La prestation fournit les fiches techniques avec les grammages exacts par convive et le calendrier des étapes de préparation en cuisine. Vous évitez ainsi tout gaspillage alimentaire et assurez un service fluide le jour J.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Estelle Samba",
+      "avatar": "",
+      "role": "Cheffe Cuisinière & Formatrice Culinaire",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-069/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 4 jours ouvrés",
+    "features": [
+      "Menu personnalisé complet",
+      "Fiches techniques avec grammages",
+      "Liste d'achats pour grossistes",
+      "Planning chronologique de cuisine"
+    ]
+  },
+  {
+    "id": "prod-070",
+    "title": "Tableur de gestion des coûts matière et des fiches techniques culinaires",
+    "shortDesc": "Calculez automatiquement le coût par portion et la marge commerciale de chaque plat avec ce fichier Excel.",
+    "description": "Ce classeur Excel intuitif répertorie vos ingrédients et recalcule instantanément le coût de vos recettes dès que les prix du marché changent. Il vous aide à déterminer vos prix de vente de façon rationnelle pour préserver la rentabilité de votre restaurant ou service traiteur. Le modèle est prêt à l'emploi et très simple à prendre en main.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 7000,
+    "author": {
+      "name": "Estelle Samba",
+      "avatar": "",
+      "role": "Cheffe Cuisinière & Formatrice Culinaire",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-070/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Excel dynamique et déverrouillé",
+      "Base de 80 ingrédients courants",
+      "Calcul automatique du coût de portion",
+      "Tutoriel vidéo de démarrage rapide"
+    ]
+  },
+  {
+    "id": "prod-071",
+    "title": "Réussir ses photographies de produits commerciaux avec son smartphone",
+    "shortDesc": "Guide pratique pour capturer des images nettes et vendeuses de vos articles sans appareil photo onéreux.",
+    "description": "Ce manuel apprend aux vendeurs en ligne comment exploiter la lumière naturelle et fabriquer des diffuseurs maison pour éliminer les reflets gênants. Il détaille les angles de prise de vue qui mettent en valeur les vêtements, cosmétiques ou plats cuisinés. Des méthodes simples d'étalonnage des couleurs garantissent des photos fidèles à la réalité.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4000,
+    "author": {
+      "name": "Rodrigue Boukaka",
+      "avatar": "",
+      "role": "Photographe Commercial & Formateur Vidéo",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-071/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide PDF pratique de 60 pages",
+      "Schémas d'éclairage économique",
+      "Liste des réglages caméra recommandés",
+      "Comparatif avant et après retouche"
+    ]
+  },
+  {
+    "id": "prod-072",
+    "title": "Maîtrise de la lumière et de la retouche photo sous Adobe Lightroom",
+    "shortDesc": "Apprenez à sublimer vos portraits et reportages événementiels grâce aux outils puissants de Lightroom.",
+    "description": "Cette formation vous apprend à organiser votre catalogue photo, corriger l'exposition et maîtriser la colorimétrie des peaux foncées. Vous découvrirez comment gommer les imperfections tout en conservant la texture naturelle de la peau lors de retouches de portraits. Un module complet est dédié à l'exportation optimisée pour le web et les réseaux sociaux.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 28000,
+    "author": {
+      "name": "Rodrigue Boukaka",
+      "avatar": "",
+      "role": "Photographe Commercial & Formateur Vidéo",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-072/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4h15 de cours vidéo détaillés",
+      "10 fichiers RAW d'exercice fournis",
+      "Presets exclusifs de démonstration",
+      "Accès continu sans date limite"
+    ]
+  },
+  {
+    "id": "prod-073",
+    "title": "Séance photo de catalogue produit en studio pour commerce local",
+    "shortDesc": "Shooting photo professionnel pour mettre en valeur votre collection de produits avec fond neutre ou stylisé.",
+    "description": "Je réalise les prises de vue de vos articles en studio professionnel à Pointe-Noire avec un éclairage soigné et uniforme. Chaque photographie fait l'objet d'un détourage précis et d'une retouche chromatique pour correspondre aux normes du commerce en ligne. Vous recevez des visuels prêts à être publiés sur votre site ou vos réseaux sociaux.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 65000,
+    "author": {
+      "name": "Rodrigue Boukaka",
+      "avatar": "",
+      "role": "Photographe Commercial & Formateur Vidéo",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-073/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 5 jours ouvrés",
+    "features": [
+      "Shooting jusqu'à 15 articles",
+      "30 photos retouchées haute définition",
+      "Formats optimisés web et impression",
+      "Détourage sur fond blanc ou transparent"
+    ]
+  },
+  {
+    "id": "prod-074",
+    "title": "Pack de 15 presets Lightroom calibrés pour les peaux noires et métissées",
+    "shortDesc": "Sublimez vos portraits en un clic avec des réglages spécialement créés pour respecter les carnations afro.",
+    "description": "Ces presets ont été créés pour révéler l'éclat des peaux ébène, caramel et métissées sans virer à l'orange ou au grisâtre. Compatibles avec Lightroom Classic, Lightroom Mobile et Photoshop Camera Raw, ils s'appliquent en un clic sur vos photos. Des tutoriels simples expliquent comment affiner l'exposition pour un rendu naturel irréprochable.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 6000,
+    "author": {
+      "name": "Rodrigue Boukaka",
+      "avatar": "",
+      "role": "Photographe Commercial & Formateur Vidéo",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-074/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "15 presets format XMP et DNG",
+      "Compatibilité mobile et ordinateur",
+      "Rendu optimisé des teintes de peau",
+      "Guide d'installation pas à pas"
+    ]
+  },
+  {
+    "id": "prod-075",
+    "title": "Perfectionnement technique en prise de vue et gestion de studio photo",
+    "shortDesc": "Session privée pour auditer vos éclairages, choisir votre matériel photo et rentabiliser votre activité.",
+    "description": "Au cours de cet échange en direct, nous analysons la configuration de votre espace de travail et vos sources lumineuses pour améliorer vos clichés. Je vous oriente vers le matériel photo et les accessoires les plus pertinents selon votre budget d'investissement. Nous abordons également la tarification de vos prestations pour attirer une clientèle solvable.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 30000,
+    "author": {
+      "name": "Rodrigue Boukaka",
+      "avatar": "",
+      "role": "Photographe Commercial & Formateur Vidéo",
+      "location": "Pointe-Noire, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-075/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Entretien visio de 60 minutes",
+      "Critique constructive de votre portfolio",
+      "Conseils d'achats d'éclairage",
+      "Grille tarifaire recommandée"
+    ]
+  },
+  {
+    "id": "prod-076",
+    "title": "Importer des marchandises de Chine vers Pointe-Noire sans intermédiaires",
+    "shortDesc": "Méthodologie pas à pas pour commander auprès des usines chinoises, vérifier la qualité et acheminer vos colis.",
+    "description": "Ce manuel pratique explique comment négocier directement avec les fabricants sur Alibaba ou 1688 sans subir de frais d'agents superflus. Il traite des moyens de paiement sécurisés, du contrôle des échantillons et du choix entre fret maritime ou aérien. Vous y trouverez des contacts vérifiés de transitaires fiables basés au Congo et en Chine.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 8500,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-076/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide complet de 98 pages",
+      "Annuaire de 10 transitaires vérifiés",
+      "Modèles de messages pour fournisseurs",
+      "Fiche de calcul du fret au kilo"
+    ]
+  },
+  {
+    "id": "prod-077",
+    "title": "Maîtriser le dédouanement et le transit maritime en République du Congo",
+    "shortDesc": "Comprendre les taxes douanières, les frais de terminal portuaire et les procédures légales à Pointe-Noire.",
+    "description": "Ce guide démystifie les mécanismes du dédouanement au port autonome de Pointe-Noire et à l'aéroport Maya-Maya de Brazzaville. Il détaille le calcul des droits de douane selon la nomenclature tarifaire, les frais de manutention et les délais de franchise. Des recommandations concrètes vous évitent les pénalités de surestaries coûteuses.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 9500,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-077/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Ouvrage numérique de 82 pages",
+      "Tableau des droits et taxes douanières",
+      "Explication pas à pas du guichet unique",
+      "Glossaire des termes maritimes"
+    ]
+  },
+  {
+    "id": "prod-078",
+    "title": "Sourcing de fournisseurs fiables sur les plateformes B2B asiatiques",
+    "shortDesc": "Apprenez à sélectionner des usines compétentes, vérifier leurs certifications et négocier vos prix de gros.",
+    "description": "Cette formation vous apprend à filtrer les intermédiaires pour traiter directement avec de véritables sites industriels en Asie. Vous découvrirez comment demander des devis personnalisés, faire fabriquer des emballages sous votre marque et tester la conformité. Le cours partage des astuces de négociation pour obtenir des minima de commande réduits.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 38000,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-078/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4h30 de cours vidéo pratiques",
+      "Modèles d'accords de confidentialité",
+      "Scripts types de négociation bilingues",
+      "Accès au groupe privé des importateurs"
+    ]
+  },
+  {
+    "id": "prod-079",
+    "title": "Audit de commande fournisseur et négociation tarifaire à l'import",
+    "shortDesc": "Examen de vos devis fournisseurs pour négocier de meilleures conditions et vérifier la conformité d'achat.",
+    "description": "Avant d'envoyer votre règlement à l'étranger, je vérifie la solidité juridique et commerciale de votre facture proforma. Je m'assure de l'adéquation des Incoterms choisis et négocie directement avec le vendeur pour réduire le coût unitaire de vos articles. Vous sécurisez votre investissement et évitez les mauvaises surprises à la réception.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 70000,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-079/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 4 jours ouvrés",
+    "features": [
+      "Revue de 2 factures proforma",
+      "Vérification des Incoterms",
+      "Courrier de négociation sur mesure",
+      "Bilan écrit des points de vigilance"
+    ]
+  },
+  {
+    "id": "prod-080",
+    "title": "Fichier de calcul de coût de revient unitaire et frais de débarquement",
+    "shortDesc": "Calculez précisément votre prix de revient global intégrant l'achat, le fret, la douane et le transport local.",
+    "description": "Ce tableur automatisé ventile l'ensemble des frais d'approche sur chaque référence de votre cargaison pour fixer vos prix de vente. Il prend en compte le taux de change, les assurances, le dédouanement et le camionnage entre Pointe-Noire et Brazzaville. Vous connaissez ainsi la rentabilité nette de chaque produit avant même son expédition.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 11000,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-080/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Excel prêt à l'emploi",
+      "Calcul automatique des marges nettes",
+      "Formules de ventilation au poids/volume",
+      "Exemple concret pré-rempli"
+    ]
+  },
+  {
+    "id": "prod-081",
+    "title": "Session stratégique de structuration d'une activité d'import-export",
+    "shortDesc": "Un accompagnement privé pour valider votre sélection de produits et votre plan logistique avant importation.",
+    "description": "Pendant cette consultation personnalisée, nous validons la viabilité économique de votre projet d'importation au Congo. Nous analysons la demande locale, la concurrence sur les marchés de Brazzaville et Pointe-Noire et les marges envisageables. Vous repartez avec un calendrier précis et une sélection de partenaires logistiques de confiance.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Nathalie Massamba",
+      "avatar": "",
+      "role": "Consultante Commerce International & Sourcing",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-081/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 3 jours",
+    "features": [
+      "Consultation visio de 60 minutes",
+      "Validation de vos références produits",
+      "Recommandation d'itinéraires logistiques",
+      "Plan d'action opérationnel sur 60 jours"
+    ]
+  },
+  {
+    "id": "prod-082",
+    "title": "Acheter un terrain coutumier sans litige en périphérie de Brazzaville",
+    "shortDesc": "Les règles juridiques et coutumières indispensables pour sécuriser l'acquisition de parcelles foncières.",
+    "description": "Cet ouvrage met en garde contre les pièges classiques des ventes multiples de terrains dans les zones de Kintélé, Madibou ou Ignié. Il détaille les étapes d'investigation auprès de la chefferie, de la mairie et du cadastre avant tout versement d'argent. Un modèle d'acte de vente et de procès-verbal de bornage contradictoire accompagne les conseils.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 7500,
+    "author": {
+      "name": "Guy-Serge Bikoumou",
+      "avatar": "",
+      "role": "Gestionnaire de Patrimoine Immobilier",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-082/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide juridique et pratique de 76 pages",
+      "Modèle d'acte de cession coutumière",
+      "Checklist de vérification foncière",
+      "Liste des pièces pour titre foncier"
+    ]
+  },
+  {
+    "id": "prod-083",
+    "title": "Les bases de l'investissement locatif et de la gestion de parcelles",
+    "shortDesc": "Apprenez à sélectionner des biens rentables et à gérer vos locataires en minimisant les risques d'impayés.",
+    "description": "Cette formation présente les principes clés pour bâtir et rentabiliser un patrimoine immobilier locatif en République du Congo. Vous découvrirez comment estimer le rendement locatif réel après déduction des charges d'entretien et des impôts fonciers. Des cas concrets illustrent la gestion des litiges locatifs et les procédures légales de recouvrement.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 32000,
+    "author": {
+      "name": "Guy-Serge Bikoumou",
+      "avatar": "",
+      "role": "Gestionnaire de Patrimoine Immobilier",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-083/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4 heures de modules vidéo",
+      "Calculateur de rendement locatif",
+      "Modèles de courriers de relance",
+      "Accès permanent à l'espace de cours"
+    ]
+  },
+  {
+    "id": "prod-084",
+    "title": "Rédaction et sécurisation de contrat de bail d'habitation et commercial",
+    "shortDesc": "Rédaction sur mesure d'un contrat de location solide pour protéger vos revenus locatifs et votre patrimoine.",
+    "description": "Je prépare un contrat de bail complet et conforme aux dispositions légales locales pour sécuriser la location de votre bien immobilier. Le document encadre précisément le versement de la caution, les conditions de révision du loyer et la prise en charge des réparations locatives. Vos intérêts de propriétaire sont rigoureusement préservés.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 40000,
+    "author": {
+      "name": "Guy-Serge Bikoumou",
+      "avatar": "",
+      "role": "Gestionnaire de Patrimoine Immobilier",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-084/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 3 jours ouvrés",
+    "features": [
+      "Contrat de bail rédigé sur mesure",
+      "Modèle d'état des lieux d'entrée",
+      "Reçu de caution et modèle de quittance",
+      "Deux retouches gratuites sous 7 jours"
+    ]
+  },
+  {
+    "id": "prod-085",
+    "title": "Modèle de contrat de bail conforme aux usages et quittances locatives",
+    "shortDesc": "Kit prêt à l'emploi comprenant contrat de location, quittances mensuelles et fiches d'état des lieux.",
+    "description": "Ce pack prêt à imprimer regroupe les pièces nécessaires à la gestion sereine d'un logement ou local commercial à Brazzaville. Il contient un modèle de bail adaptable, une fiche d'inventaire contradictoire et un carnet de quittances de loyer sur Excel. Les clauses types protègent le bailleur tout en instaurant des règles transparentes avec le locataire.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 6000,
+    "author": {
+      "name": "Guy-Serge Bikoumou",
+      "avatar": "",
+      "role": "Gestionnaire de Patrimoine Immobilier",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-085/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichiers Word et Excel modifiables",
+      "Modèle d'état des lieux contradictoire",
+      "Générateur automatique de quittances",
+      "Notice d'accompagnement juridique"
+    ]
+  },
+  {
+    "id": "prod-086",
+    "title": "Évaluation et stratégie d'achat d'un bien immobilier résidentiel",
+    "shortDesc": "Conseil indépendant pour estimer la valeur d'une parcelle et éviter les pièges avant de signer un achat.",
+    "description": "Lors de cette consultation d'une heure, nous examinons ensemble les documents de propriété et la localisation du bien que vous envisagez d'acquérir. Je vous donne mon avis d'expert sur le juste prix du marché dans le secteur concerné et sur les formalités notariales à exiger. Vous prenez votre décision d'investissement en toute lucidité.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Guy-Serge Bikoumou",
+      "avatar": "",
+      "role": "Gestionnaire de Patrimoine Immobilier",
+      "location": "Brazzaville, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-086/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Entretien personnalisé de 60 minutes",
+      "Analyse documentaire de vos titres",
+      "Avis sur la valorisation du bien",
+      "Feuille de route pour formaliser l'acte"
+    ]
+  },
+  {
+    "id": "prod-087",
+    "title": "Réussir son dossier Campus France depuis le Congo étape par étape",
+    "shortDesc": "Le guide méthodique pour choisir ses formations, rédiger son projet d'études et réussir son entretien.",
+    "description": "Ce manuel détaille le calendrier officiel de Campus France Congo, les critères de sélection des universités et les démarches consulaires. Il propose des méthodes d'argumentation pour expliquer son parcours sans incohérence et valoriser ses compétences académiques. Des exemples de réponses aux questions fréquentes des conseillers vous préparent efficacement.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 5000,
+    "author": {
+      "name": "Vanessa Tsaty",
+      "avatar": "",
+      "role": "Conseillère d'Orientation Académique",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-087/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide de candidature de 78 pages",
+      "Exemples de projets d'études réels",
+      "Fiches des questions types d'entretien",
+      "Calendrier des échéances consulaires"
+    ]
+  },
+  {
+    "id": "prod-088",
+    "title": "Construire un dossier de bourse internationale solide et compétitif",
+    "shortDesc": "Méthode complète pour repérer les bourses d'excellence, monter son dossier et séduire les jurys étrangers.",
+    "description": "Cette formation vous apprend à identifier les opportunités de financement d'études en Europe, en Amérique du Nord et en Asie. Vous découvrirez comment structurer un projet de recherche convaincant et solliciter des lettres d'appui auprès de vos professeurs. Des études de dossiers lauréats vous montrent exactement les critères qui font la différence.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 20000,
+    "author": {
+      "name": "Vanessa Tsaty",
+      "avatar": "",
+      "role": "Conseillère d'Orientation Académique",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-088/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3 heures de cours en vidéo",
+      "Base de données de 40 programmes",
+      "Modèles de dossiers de candidature",
+      "Accès permanent aux contenus"
+    ]
+  },
+  {
+    "id": "prod-089",
+    "title": "Correction approfondie de lettre de motivation et CV au format européen",
+    "shortDesc": "Relecture experte de vos candidatures académiques pour éliminer les maladresses et maximiser vos chances.",
+    "description": "Je retravaille minutieusement votre curriculum vitae et vos lettres de motivation pour les adapter aux exigences des jurys universitaires internationaux. La révision porte sur la structure des arguments, la précision du style rédactionnel et l'élimination des fautes d'orthographe. Vous disposez de documents impeccables prêts pour vos soumissions en ligne.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 20000,
+    "author": {
+      "name": "Vanessa Tsaty",
+      "avatar": "",
+      "role": "Conseillère d'Orientation Académique",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-089/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 3 jours ouvrés",
+    "features": [
+      "Revue complète d'un CV et 2 lettres",
+      "Restructuration stylistique et syntaxe",
+      "Conseils d'ajustement au profil visé",
+      "Deuxième lecture après vos retouches"
+    ]
+  },
+  {
+    "id": "prod-090",
+    "title": "Modèles de lettres de recommandation et projets d'études académiques",
+    "shortDesc": "Trames rédigées et éprouvées pour structurer vos démarches de candidature auprès des universités étrangères.",
+    "description": "Ce pack rassemble des modèles de lettres de motivation, de projets de recherche et de lettres de recommandation académique prêts à être complétés. Chaque trame présente une articulation logique qui guide la valorisation de votre parcours étudiant et professionnel. Les documents sont fournis aux formats Word et PDF pour une modification rapide.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 5500,
+    "author": {
+      "name": "Vanessa Tsaty",
+      "avatar": "",
+      "role": "Conseillère d'Orientation Académique",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-090/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "5 modèles de lettres de motivation",
+      "3 trames de projets d'études détaillés",
+      "2 modèles de recommandation pour profs",
+      "Conseils de personnalisation inclus"
+    ]
+  },
+  {
+    "id": "prod-091",
+    "title": "Entretien individuel de simulation pour le passage consulaire",
+    "shortDesc": "Entraînement intensif à l'entretien Campus France ou visa d'études avec débriefing approfondi de vos réponses.",
+    "description": "Nous réalisons un entretien à blanc d'une durée de quarante-cinq minutes dans les conditions exactes du rendez-vous consulaire officiel. Nous identifions ensemble les points de fragilité de votre argumentation et reformulons vos explications sur votre projet professionnel. Vous abordez l'entretien réel avec confiance et sérénité.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 18000,
+    "author": {
+      "name": "Vanessa Tsaty",
+      "avatar": "",
+      "role": "Conseillère d'Orientation Académique",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-091/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Simulation d'entretien de 45 minutes",
+      "15 minutes de débriefing personnalisé",
+      "Fiche de synthèse de vos axes de progrès",
+      "Revue finale de vos pièces justificatives"
+    ]
+  },
+  {
+    "id": "prod-092",
+    "title": "Sécuriser les flux financiers Mobile Money dans son point de vente",
+    "shortDesc": "Techniques de prévention contre les fraudes, arnaques par faux SMS et erreurs de caisse courantes au Congo.",
+    "description": "Ce guide s'adresse aux gérants de kiosques et boutiques pour blinder leur gestion quotidienne des dépôts et retraits d'argent mobile. Il recense les scénarios d'escroquerie les plus fréquents et détaille les protocoles stricts de vérification des soldes réels. Des règles de clôture de caisse quotidienne évitent les déficits inexpliqués en fin de mois.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Fabrice Mpassi",
+      "avatar": "",
+      "role": "Consultant Systèmes de Paiement & Fintech",
+      "location": "Pointe-Noire, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-092/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Manuel de sécurité de 54 pages",
+      "Protocole anti-fraude prêt à afficher",
+      "Fiche mémo des vérifications obligatoires",
+      "Guide de dépôt de plainte formelle"
+    ]
+  },
+  {
+    "id": "prod-093",
+    "title": "Gestion et rapprochement des transactions MoMo et Airtel pour commerces",
+    "shortDesc": "Maîtrisez la réconciliation entre vos ventes en magasin et les encaissements reçus sur vos comptes marchands.",
+    "description": "Cette formation montre comment extraire et analyser les historiques de transactions des comptes marchands MTN MoMo et Airtel Money. Vous apprendrez à automatiser le rapprochement avec vos tickets de caisse pour repérer immédiatement les écarts ou commissions prélevées. La méthode simplifie grandement la transmission des données financières à votre comptable.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 24000,
+    "author": {
+      "name": "Fabrice Mpassi",
+      "avatar": "",
+      "role": "Consultant Systèmes de Paiement & Fintech",
+      "location": "Pointe-Noire, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-093/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3 heures de cours en vidéo",
+      "Fichier Excel de réconciliation inclus",
+      "Tutoriels d'export des données marchandes",
+      "Support par messagerie dédié"
+    ]
+  },
+  {
+    "id": "prod-094",
+    "title": "Configuration d'un système de caisse connecté aux encaissements mobiles",
+    "shortDesc": "Installation et paramétrage d'une solution de point de vente adaptée aux règlements par téléphone portable.",
+    "description": "Je configure votre logiciel de point de vente sur tablette ou ordinateur pour enregistrer rapidement les encaissements en espèces et Mobile Money. Le système sépare distinctement les modes de règlement et édite des reçus professionnels pour vos clients. Vous gagnez en clarté sur vos recettes quotidiennes et réduisez les risques d'erreurs de caisse.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 50000,
+    "author": {
+      "name": "Fabrice Mpassi",
+      "avatar": "",
+      "role": "Consultant Systèmes de Paiement & Fintech",
+      "location": "Pointe-Noire, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-094/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 4 jours ouvrés",
+    "features": [
+      "Installation complète du logiciel",
+      "Configuration des moyens de paiement",
+      "Formation de votre caissier de 45 min",
+      "Assistance technique pendant 10 jours"
+    ]
+  },
+  {
+    "id": "prod-095",
+    "title": "Feuille de caisse journalière automatisée pour kiosque Mobile Money",
+    "shortDesc": "Tableur Excel prêt à l'emploi pour suivre vos soldes d'UV, liquidités physiques et commissions chaque jour.",
+    "description": "Ce fichier permet aux exploitants de points Mobile Money de renseigner leurs entrées et sorties en quelques clics le matin et le soir. Il calcule automatiquement le solde théorique de monnaie électronique et le montant d'espèces devant figurer dans le tiroir-caisse. Les écarts éventuels sont mis en évidence immédiatement pour faciliter les contrôles.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 7000,
+    "author": {
+      "name": "Fabrice Mpassi",
+      "avatar": "",
+      "role": "Consultant Systèmes de Paiement & Fintech",
+      "location": "Pointe-Noire, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-095/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Excel déverrouillé et fluide",
+      "Calcul automatique des commissions",
+      "Rapprochement UV et espèces",
+      "Guide d'utilisation en PDF"
+    ]
+  },
+  {
+    "id": "prod-096",
+    "title": "Guide pratique de l'organisation administrative et du classement numérique",
+    "shortDesc": "Méthodes simples pour classer, nommer et archiver vos documents d'entreprise sans perdre de temps.",
+    "description": "Ce guide propose un système de classement cohérent adapté aux secrétariats et directions de PME congolaises. Il explique comment organiser les dossiers numériques sur ordinateur et mettre en place des sauvegardes sécurisées sur le cloud. Vous mettez fin aux recherches interminables de factures ou contrats égarés au bureau.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 3500,
+    "author": {
+      "name": "Clarisse Ondaye",
+      "avatar": "",
+      "role": "Formatrice Bureautique & Organisation Administrative",
+      "location": "Owando, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-096/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "E-book méthodologique de 62 pages",
+      "Arborescence type de dossiers informatiques",
+      "Charte de nommage des fichiers",
+      "Checklist d'archivage annuel"
+    ]
+  },
+  {
+    "id": "prod-097",
+    "title": "Maîtriser les fonctions avancées d'Excel pour la gestion administrative",
+    "shortDesc": "Gagnez en efficacité au travail en apprenant les formules RECHERCHEV, SI et les tableaux croisés dynamiques.",
+    "description": "Ce cours pragmatique s'adresse aux employés de bureau souhaitant automatiser leurs tâches récurrentes de gestion et de reporting. Vous apprendrez à nettoyer de grandes bases de données, croiser des informations entre tableaux et créer des graphiques de synthèse clairs. Chaque notion est illustrée par des situations administratives courantes en entreprise.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 22000,
+    "author": {
+      "name": "Clarisse Ondaye",
+      "avatar": "",
+      "role": "Formatrice Bureautique & Organisation Administrative",
+      "location": "Owando, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-097/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "4 heures de cours progressifs en vidéo",
+      "Fichiers d'exercices Excel inclus",
+      "Aide-mémoire des raccourcis clavier",
+      "Certificat d'achèvement de formation"
+    ]
+  },
+  {
+    "id": "prod-098",
+    "title": "Conception de masques de saisie et tableaux de bord de gestion bureautique",
+    "shortDesc": "Création sur mesure d'outils Excel personnalisés pour centraliser vos données d'activité sans complexité.",
+    "description": "Je développe pour votre entreprise un classeur Excel sur mesure avec des formulaires de saisie protégés et des alertes automatiques. Le tableau de bord affiche vos indicateurs clés de performance sous forme de graphiques faciles à interpréter par votre direction. Vos collaborateurs saisissent les données quotidiennes rapidement et sans risque d'effacer les formules.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 35000,
+    "author": {
+      "name": "Clarisse Ondaye",
+      "avatar": "",
+      "role": "Formatrice Bureautique & Organisation Administrative",
+      "location": "Owando, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-098/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 5 jours ouvrés",
+    "features": [
+      "Classeur Excel sur mesure automatisé",
+      "Protection des cellules de calcul",
+      "Tableau de bord dynamique de synthèse",
+      "Session d'explication de 30 minutes"
+    ]
+  },
+  {
+    "id": "prod-099",
+    "title": "Kit complet de courriers administratifs types pour secrétariat de PME",
+    "shortDesc": "Modèles Word prêts à l'emploi de lettres officielles, convocations, attestations et notes de service.",
+    "description": "Ce pack regroupe plus de quarante modèles de lettres formelles adaptées aux relations avec l'administration, les banques et les clients au Congo. Chaque modèle respecte les règles de correspondance officielle et intègre les formules de politesse adaptées au rang du destinataire. Les fichiers s'éditent en quelques secondes avec vos mentions d'entreprise.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 5000,
+    "author": {
+      "name": "Clarisse Ondaye",
+      "avatar": "",
+      "role": "Formatrice Bureautique & Organisation Administrative",
+      "location": "Owando, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-099/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "45 modèles de courriers au format Word",
+      "Mise en page normalisée prête à imprimer",
+      "Formules de politesse protocolaires",
+      "Index alphabétique de recherche rapide"
+    ]
+  },
+  {
+    "id": "prod-100",
+    "title": "Conduite d'un élevage rentable de poulets de chair au sud du Congo",
+    "shortDesc": "Maîtrisez la gestion thermique, l'alimentation et la prophylaxie pour réussir vos bandes de poulets de chair.",
+    "description": "Ce manuel technique partage les clés pour amener des poussins d'un jour au poids d'abattage de deux kilos en quarante-cinq jours. Il aborde la ventilation des poulaillers face à la chaleur, la transition alimentaire et la gestion rigoureuse de la litière. Des repères économiques précis vous aident à calculer votre marge nette par sujet vendu.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 5500,
+    "author": {
+      "name": "Gervais Goma",
+      "avatar": "",
+      "role": "Technicien Éleveur & Conseil Avicole",
+      "location": "Nkayi, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-100/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Livre numérique de 76 pages",
+      "Courbes de croissance et de consommation",
+      "Programme sanitaire complet et vaccins",
+      "Fiche de calcul du coût de revient"
+    ]
+  },
+  {
+    "id": "prod-101",
+    "title": "Maîtrise du cycle de ponte et gestion sanitaire des poules pondeuses",
+    "shortDesc": "Optimisez le taux de ponte de votre cheptel et préservez la qualité des coquilles tout au long du cycle.",
+    "description": "Cette formation vidéo vous enseigne le suivi de la courbe de ponte, la gestion de l'éclairage artificiel et l'apport en calcium. Vous apprendrez à détecter précocement les maladies infectieuses et à appliquer les mesures de biosécurité indispensables dans votre élevage. Des solutions concrètes sont apportées pour valoriser au mieux les fientes et les œufs fêlés.",
+    "category": "formation",
+    "categoryLabel": "Formation en ligne",
+    "priceXaf": 29000,
+    "author": {
+      "name": "Gervais Goma",
+      "avatar": "",
+      "role": "Technicien Éleveur & Conseil Avicole",
+      "location": "Nkayi, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-101/1280/720",
+    "deliveryType": "online_access",
+    "deliveryTime": "Accès immédiat à la plateforme",
+    "features": [
+      "3h45 de vidéos explicatives",
+      "Guide des pathologies aviaires en PDF",
+      "Tableau de suivi des taux de ponte",
+      "Accès continu sans date limite"
+    ]
+  },
+  {
+    "id": "prod-102",
+    "title": "Établissement du plan prophylactique et suivi vétérinaire d'élevage",
+    "shortDesc": "Conception d'un programme sanitaire sur mesure pour prévenir les épidémies et sécuriser votre élevage avicole.",
+    "description": "J'analyse les conditions d'élevage de votre exploitation pour rédiger un calendrier de vaccination et de déparasitage adapté à votre région. La prestation comprend des préconisations d'hygiène stricte pour vos bâtiments, abreuvoirs et sas de désinfection. Vous réduisez drastiquement la mortalité de vos volailles et protégez vos investissements.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 45000,
+    "author": {
+      "name": "Gervais Goma",
+      "avatar": "",
+      "role": "Technicien Éleveur & Conseil Avicole",
+      "location": "Nkayi, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-102/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 3 jours ouvrés",
+    "features": [
+      "Plan prophylactique complet individualisé",
+      "Guide d'administration des produits",
+      "Audit des points de biosécurité",
+      "Assistance téléphonique pendant 15 jours"
+    ]
+  },
+  {
+    "id": "prod-103",
+    "title": "Fiche de suivi quotidien des consommations d'aliment et taux de ponte",
+    "shortDesc": "Classeur Excel conçu pour enregistrer la mortalité, l'alimentation et la production d'œufs de chaque bande.",
+    "description": "Ce modèle permet aux éleveurs avicoles de consigner chaque jour les données techniques de leurs bâtiments d'élevage. Le tableur trace automatiquement la courbe de ponte réelle et la compare à la courbe théorique de la souche de volailles. Vous identifiez immédiatement toute baisse anormale de production pour intervenir sans tarder.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Gervais Goma",
+      "avatar": "",
+      "role": "Technicien Éleveur & Conseil Avicole",
+      "location": "Nkayi, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-103/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Classeur Excel automatisé et imprimable",
+      "Graphiques de suivi de performance",
+      "Calculateur d'indice de consommation",
+      "Notice explicative pour les soigneurs"
+    ]
+  },
+  {
+    "id": "prod-104",
+    "title": "Organiser un mariage civil et coutumier réussi à Brazzaville",
+    "shortDesc": "Guide pratique pour coordonner les cérémonies traditionnelles et modernes sans stress ni dépassement de budget.",
+    "description": "Cet ouvrage rassemble les conseils indispensables pour planifier les étapes du mariage coutumier et de la célébration civile au Congo. Il propose un rétroplanning sur six mois, des repères de coût pour chaque poste de dépense et des recommandations d'étiquette. Vous apprendrez à gérer les attentes des familles tout en gardant la maîtrise de vos finances.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 4500,
+    "author": {
+      "name": "Patricia Matingou",
+      "avatar": "",
+      "role": "Décoratrice d'Événements & Wedding Planner",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-104/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Guide complet de 84 pages",
+      "Rétroplanning détaillé sur 6 mois",
+      "Liste type des présents coutumiers",
+      "Conseils pour négocier les salles"
+    ]
+  },
+  {
+    "id": "prod-105",
+    "title": "Conception du scénario décoratif et de la planche d'ambiance d'événement",
+    "shortDesc": "Création d'une identité visuelle complète et de moodboards pour vos mariages, anniversaires ou galas à Brazzaville.",
+    "description": "À partir de vos envies et des caractéristiques de votre lieu de réception, je conçois l'univers décoratif complet de votre fête. La prestation fournit des planches de tendances détaillant les teintes, les compositions florales, l'art de la table et l'éclairage scénique. Vous transmettez ce dossier à vos prestataires pour une harmonie visuelle parfaite.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 50000,
+    "author": {
+      "name": "Patricia Matingou",
+      "avatar": "",
+      "role": "Décoratrice d'Événements & Wedding Planner",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-105/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 6 jours ouvrés",
+    "features": [
+      "Planche d'ambiance complète en PDF",
+      "Palette chromatique et matières",
+      "Plan de disposition de salle 2D",
+      "Entretien visio de présentation"
+    ]
+  },
+  {
+    "id": "prod-106",
+    "title": "Rétroplanning et budget prévisionnel détaillé pour événement privé",
+    "shortDesc": "Outil complet sur Excel pour suivre chaque dépense, contrat de prestataire et calendrier préparatoire.",
+    "description": "Ce classeur Excel structure l'organisation de vos réceptions de famille ou d'entreprise en centralisant tous les aspects logistiques. Il calcule automatiquement les totaux engagés par rapport à votre enveloppe initiale et rappelle les échéances d'acompte dues aux prestataires. Vous gardez un œil précis sur vos dépenses du début des préparatifs jusqu'au jour J.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 6500,
+    "author": {
+      "name": "Patricia Matingou",
+      "avatar": "",
+      "role": "Décoratrice d'Événements & Wedding Planner",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-106/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Excel dynamique et déverrouillé",
+      "Échéancier de paiements préconfiguré",
+      "Checklist chronologique des préparatifs",
+      "Guide d'utilisation en PDF"
+    ]
+  },
+  {
+    "id": "prod-107",
+    "title": "Séance de cadrage logistique pour futur organisateur d'événements",
+    "shortDesc": "Conseils personnalisés pour concevoir la logistique de votre réception et éviter les imprévus le jour J.",
+    "description": "Pendant cette session en tête-à-tête, nous étudions le déroulé de votre événement pour repérer les points de friction temporels ou matériels. Je vous guide sur la coordination des traiteurs, photographes et animateurs afin de garantir une synchronisation sans faille. Vous gagnez en assurance et profitez pleinement de votre journée d'exception.",
+    "category": "mentorat",
+    "categoryLabel": "Coaching 1:1",
+    "priceXaf": 20000,
+    "author": {
+      "name": "Patricia Matingou",
+      "avatar": "",
+      "role": "Décoratrice d'Événements & Wedding Planner",
+      "location": "Brazzaville, Congo",
+      "verified": true
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-107/1080/1080",
+    "deliveryType": "booking",
+    "deliveryTime": "Rendez-vous sous 2 jours",
+    "features": [
+      "Session visio de 60 minutes",
+      "Audit de votre conducteur d'événement",
+      "Conseils de coordination prestataires",
+      "Fiche de synthèse personnalisée"
+    ]
+  },
+  {
+    "id": "prod-108",
+    "title": "Manuel pratique de gestion des stocks et inventaires en milieu commercial",
+    "shortDesc": "Méthodes rigoureuses pour organiser vos magasins de stockage, réduire la casse et contrôler vos inventaires.",
+    "description": "Ce manuel traite de l'organisation physique des zones d'entreposage, de l'étiquetage des rayonnages et du calcul du stock d'alerte. Il détaille la conduite d'un inventaire tournant et les techniques de valorisation des sorties selon les normes comptables. Des fiches pratiques aident les magasiniers à fiabiliser la tenue de leurs registres au quotidien.",
+    "category": "ebook",
+    "categoryLabel": "E-book Digital",
+    "priceXaf": 5000,
+    "author": {
+      "name": "Serge Mbemba",
+      "avatar": "",
+      "role": "Coordinateur Logistique Fluviale & Gestionnaire de Stock",
+      "location": "Ouesso, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-108/900/1200",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement PDF immédiat",
+    "features": [
+      "Manuel technique de 70 pages",
+      "Méthodologie d'inventaire physique",
+      "Fiches types de magasinage",
+      "Règles de sécurité en entrepôt"
+    ]
+  },
+  {
+    "id": "prod-109",
+    "title": "Audit d'entrepôt et réorganisation des flux de stockage de marchandises",
+    "shortDesc": "Diagnostic complet de votre magasin de stockage pour optimiser les volumes disponibles et sécuriser les produits.",
+    "description": "J'évalue l'agencement actuel de vos stocks, vos processus d'entrée-sortie et les conditions de conservation des marchandises. Mon rapport préconise une réorganisation spatiale rationnelle pour faciliter la préparation des commandes et limiter les pertes. Vos équipes gagnent en productivité et votre niveau de service client s'améliore nettement.",
+    "category": "service",
+    "categoryLabel": "Service freelance",
+    "priceXaf": 85000,
+    "author": {
+      "name": "Serge Mbemba",
+      "avatar": "",
+      "role": "Coordinateur Logistique Fluviale & Gestionnaire de Stock",
+      "location": "Ouesso, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-109/1200/900",
+    "deliveryType": "service_delivery",
+    "deliveryTime": "Livraison en 7 jours ouvrés",
+    "features": [
+      "Rapport d'audit commenté",
+      "Plan de réorganisation spatiale",
+      "Procédure d'inventaire recommandée",
+      "Session de restitution de 45 minutes"
+    ]
+  },
+  {
+    "id": "prod-110",
+    "title": "Registre Excel de gestion des entrées, sorties et alertes de stock",
+    "shortDesc": "Tableur automatisé avec alertes visuelles de rupture de stock pour gérer efficacement votre magasin.",
+    "description": "Ce classeur Excel intuitif met à jour le stock disponible dès l'enregistrement d'une vente ou d'une livraison fournisseur. Des alertes en couleur signalent les produits atteignant le seuil de commande pour éviter les ruptures préjudiciables à votre commerce. Un tableau récapitulatif mensuel présente la valeur marchande totale immobilisée dans votre magasin.",
+    "category": "template",
+    "categoryLabel": "Template",
+    "priceXaf": 8000,
+    "author": {
+      "name": "Serge Mbemba",
+      "avatar": "",
+      "role": "Coordinateur Logistique Fluviale & Gestionnaire de Stock",
+      "location": "Ouesso, Congo",
+      "verified": false
+    },
+    "rating": 0,
+    "reviewsCount": 0,
+    "salesCount": 0,
+    "coverImage": "https://picsum.photos/seed/prod-110/1080/1080",
+    "deliveryType": "instant_download",
+    "deliveryTime": "Téléchargement direct immédiat",
+    "features": [
+      "Fichier Excel sans macro complexe",
+      "Alertes automatiques de réapprovisionnement",
+      "Valorisation instantanée du stock",
+      "Mode d'emploi vidéo de 10 minutes"
+    ]
+  }
+]

@@ -1,4 +1,4 @@
-import { PaymentChannel } from '../config/payment';
+import { PaymentChannel } from '../config/payment.js';
 
 /** Row types of the marketplace database. Features add behaviour on top of these. */
 
@@ -11,10 +11,10 @@ export interface Merchant {
   storeName: string;
   headline: string;
   city: string;
-  payoutChannel: PaymentChannel;
-  payoutPhone: string;
   verified: boolean;
   activatedAt: string;
+  /** Own store only: the LightPay wallet that receives the sales is connected. */
+  lightpayConnected?: boolean;
 }
 
 export interface User {
@@ -131,8 +131,11 @@ export interface Order {
   buyerId: string;
   buyer: { name: string; email: string; phone: string };
   invoice?: { companyName: string; taxId: string };
-  /** `code` is the payment attempt that paid the order (quoted in support tickets). */
-  payment: { channel: PaymentChannel; phone: string; reference: string; code?: string };
+  /**
+   * `code` is the payment attempt that paid the order (quoted in support tickets), `reference` the
+   * LightPay payment. `via`: LightPay wallet or Mobile Money (the payer picks on LightPay).
+   */
+  payment: { channel?: PaymentChannel; phone?: string; reference: string; code?: string; via?: 'wallet' | 'mobile_money' };
   /** Buyer's answers to the listing's brief questions. */
   brief?: { question: string; answer: string }[];
   amounts: { subtotal: number; discount: number; total: number; fee: number; net: number };
@@ -183,6 +186,8 @@ export interface PaymentAttempt {
   failure?: PaymentFailure;
   /** Set when the payment went through. */
   orderId?: string;
+  /** LightPay payment page while the attempt is pending. */
+  checkoutUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -226,17 +231,6 @@ export interface Notification {
   createdAt: string;
 }
 
-export interface Withdrawal {
-  id: string;
-  sellerId: string;
-  amountXaf: number;
-  channel: PaymentChannel;
-  phone: string;
-  status: 'pending' | 'paid' | 'rejected';
-  reference: string;
-  createdAt: string;
-}
-
 export interface Favorite {
   userId: string;
   listingId: string;
@@ -262,15 +256,24 @@ export interface Review {
   rating: number;
   comment?: string;
   createdAt: string;
+  /** "Aline M." — buyers are shown by first name and initial. */
+  authorName?: string;
+  itemTitle?: string;
+}
+
+/** Public figures computed by the server (the app only holds its own orders). */
+export interface Stats {
+  /** Sales per listing (cancelled orders excluded). */
+  listings: Record<string, number>;
+  sellers: Record<string, { completedSales: number; followers: number; reviews: number; rating: number }>;
 }
 
 export interface Database {
-  version: 4;
   sessionUserId: string | null;
+  stats: Stats;
   users: User[];
   listings: Listing[];
   orders: Order[];
-  withdrawals: Withdrawal[];
   favorites: Favorite[];
   follows: Follow[];
   reviews: Review[];

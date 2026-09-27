@@ -77,19 +77,24 @@ export const TicketForm: React.FC<{
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
 
   const suggestions = [...references.attempts.map((a) => a.code), ...references.orders.map((o) => o.number)];
 
   return (
     <form
       className="space-y-4"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (busy) return;
         setError(undefined);
+        setBusy(true);
         try {
-          onOpened(openTicket({ userId, topic, subject, body, reference }));
+          onOpened(await openTicket({ topic, subject, body, reference }));
         } catch (err) {
           setError((err as Error).message);
+        } finally {
+          setBusy(false);
         }
       }}
     >
@@ -135,7 +140,7 @@ export const TicketForm: React.FC<{
       </Field>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" variant="primary">
+        <Button type="submit" variant="primary" loading={busy}>
           Envoyer au support
         </Button>
       </div>
@@ -188,7 +193,7 @@ export const TicketThread: React.FC<{ ticket: Ticket; user: User }> = ({ ticket,
           />
           <div className="flex flex-wrap justify-between gap-2">
             {ticket.status !== 'resolved' ? (
-              <Button variant="ghost" onClick={() => run(() => resolveTicket(ticket.id, user.id), 'Ticket marqué comme résolu')}>
+              <Button variant="ghost" onClick={() => run(() => resolveTicket(ticket.id), 'Ticket marqué comme résolu')}>
                 Mon problème est résolu
               </Button>
             ) : (
@@ -198,7 +203,7 @@ export const TicketThread: React.FC<{ ticket: Ticket; user: User }> = ({ ticket,
               variant="primary"
               icon={<Send className="w-3.5 h-3.5" />}
               disabled={!reply.trim()}
-              onClick={() => run(() => replyToTicket(ticket.id, user.id, reply)) && setReply('')}
+              onClick={async () => (await run(() => replyToTicket(ticket.id, reply))) && setReply('')}
             >
               Envoyer
             </Button>

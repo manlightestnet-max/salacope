@@ -60,7 +60,7 @@ export const ListingEditorPage: React.FC = () => {
             <Button
               size="sm"
               onClick={() =>
-                run(() => setListingStatus(listing!.id, user.id, published ? 'draft' : 'published'), published ? 'Offre dépubliée' : 'Offre publiée')
+                run(() => setListingStatus(listing!.id, published ? 'draft' : 'published'), published ? 'Offre dépubliée' : 'Offre publiée')
               }
             >
               {published ? 'Dépublier' : 'Publier'}
@@ -76,15 +76,15 @@ export const ListingEditorPage: React.FC = () => {
         key={listing?.id ?? 'new'}
         listing={listing}
         sellerName={displayName(user)}
-        onSubmit={(input, publish) => {
+        onSubmit={async (input, publish) => {
           if (isNew) {
             let createdId = '';
-            const ok = run(() => {
-              createdId = createListing(user.id, input, publish).id;
+            const ok = await run(async () => {
+              createdId = (await createListing(input, publish)).id;
             }, publish ? 'Offre publiée' : 'Brouillon enregistré');
             if (ok) navigate(ROUTES.seller.listing(createdId), { replace: true });
           } else {
-            run(() => updateListing(listing!.id, user.id, input), 'Modifications enregistrées');
+            await run(() => updateListing(listing!.id, input), 'Modifications enregistrées');
           }
         }}
       />

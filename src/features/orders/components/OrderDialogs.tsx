@@ -31,7 +31,7 @@ export const AttachmentList: React.FC<{ files: { id: string; name: string; size:
 export const DeliverDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSubmit: (note: string, files: ReturnType<typeof useAttachments>['files']) => boolean;
+  onSubmit: (note: string, files: ReturnType<typeof useAttachments>['files']) => Promise<boolean>;
 }> = ({ open, onClose, onSubmit }) => {
   const [note, setNote] = useState('');
   const attachments = useAttachments();
@@ -53,7 +53,7 @@ export const DeliverDialog: React.FC<{
       footer={
         <>
           <Button onClick={onClose}>Annuler</Button>
-          <Button variant="primary" onClick={() => onSubmit(note, attachments.files) && onClose()}>
+          <Button variant="primary" onClick={async () => (await onSubmit(note, attachments.files)) && onClose()}>
             Envoyer la livraison
           </Button>
         </>
@@ -90,7 +90,7 @@ export const ReasonDialog: React.FC<{
   description: string;
   label: string;
   confirmLabel: string;
-  onSubmit: (reason: string) => boolean;
+  onSubmit: (reason: string) => Promise<boolean>;
 }> = ({ open, onClose, title, description, label, confirmLabel, onSubmit }) => {
   const [reason, setReason] = useState('');
   useEffect(() => {
@@ -107,7 +107,7 @@ export const ReasonDialog: React.FC<{
       footer={
         <>
           <Button onClick={onClose}>Retour</Button>
-          <Button variant="danger" onClick={() => onSubmit(reason) && onClose()}>
+          <Button variant="danger" onClick={async () => (await onSubmit(reason)) && onClose()}>
             {confirmLabel}
           </Button>
         </>
@@ -123,7 +123,7 @@ export const RevisionDialog: React.FC<{
   open: boolean;
   onClose: () => void;
   left: number;
-  onSubmit: (note: string) => boolean;
+  onSubmit: (note: string) => Promise<boolean>;
 }> = ({ open, onClose, left, onSubmit }) => {
   const [note, setNote] = useState('');
   useEffect(() => {
@@ -140,7 +140,7 @@ export const RevisionDialog: React.FC<{
       footer={
         <>
           <Button onClick={onClose}>Retour</Button>
-          <Button variant="primary" onClick={() => onSubmit(note) && onClose()}>
+          <Button variant="primary" onClick={async () => (await onSubmit(note)) && onClose()}>
             Envoyer la demande
           </Button>
         </>
@@ -162,7 +162,7 @@ const DAY_OPTIONS = Array.from({ length: PLATFORM.maxExtensionDays }, (_, i) => 
 export const ExtensionDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSubmit: (days: number, reason: string) => boolean;
+  onSubmit: (days: number, reason: string) => Promise<boolean>;
 }> = ({ open, onClose, onSubmit }) => {
   const [days, setDays] = useState('2');
   const [reason, setReason] = useState('');
@@ -183,7 +183,7 @@ export const ExtensionDialog: React.FC<{
       footer={
         <>
           <Button onClick={onClose}>Retour</Button>
-          <Button variant="primary" onClick={() => onSubmit(Number(days), reason) && onClose()}>
+          <Button variant="primary" onClick={async () => (await onSubmit(Number(days), reason)) && onClose()}>
             Envoyer la demande
           </Button>
         </>
@@ -214,7 +214,7 @@ export const ReportDialog: React.FC<{
   open: boolean;
   onClose: () => void;
   kind: 'digital' | 'service';
-  onSubmit: (reason: string, detail: string) => ReportResult | null;
+  onSubmit: (reason: string, detail: string) => Promise<ReportResult | null>;
 }> = ({ open, onClose, kind, onSubmit }) => {
   const [reason, setReason] = useState('');
   const [detail, setDetail] = useState('');
@@ -263,8 +263,8 @@ export const ReportDialog: React.FC<{
           <Button
             variant="primary"
             disabled={!reason}
-            onClick={() => {
-              const r = onSubmit(reason, detail);
+            onClick={async () => {
+              const r = await onSubmit(reason, detail);
               if (r) setResult(r);
             }}
           >

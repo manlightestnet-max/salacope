@@ -1,122 +1,89 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import { Database } from './schema';
-import { createSeed } from './seed';
 
 /**
- * Local, persisted database used while there is no backend.
- * All writes go through feature services (`features/x/api.ts`), which are the
- * seam to replace with HTTP calls later. Tabs stay in sync via the storage event.
+ * In-memory copy of what the server lets this person see (catalogue, own orders…).
+ * Filled by the bootstrap, then kept current by the rows each write returns and by the sync.
+ * Screens read it synchronously with `useDb`; nothing is written here without the server.
  */
-const KEY = 'salacope.db.v4';
-/** Keys of earlier versions, newest first: their data is migrated, then removed. */
-const PREVIOUS_KEYS = ['salacope.db.v3', 'salacope.db.v2'];
-const LEGACY_KEYS = [
-  'salacope_is_authenticated',
-  'salacope_user',
-  'salacope_favorites',
-  'salacope_following',
-  'salacope_purchases',
-  'salacope_services',
-  'salacope_digital_products',
-  'salacope_orders',
-  'salacope_withdrawals',
-  'salacope_purchases_view_mode',
-];
+export const emptyDatabase = (): Database => ({
+  sessionUserId: null,
+  stats: { listings: {}, sellers: {} },
+  users: [],
+  listings: [],
+  orders: [],
+  favorites: [],
+  follows: [],
+  reviews: [],
+  paymentAttempts: [],
+  tickets: [],
+  notifications: [],
+});
 
-const byId = <T extends { id: string }>(current: T[], additions: T[]) => {
-  const known = new Set(current.map((row) => row.id));
-  return [...current, ...additions.filter((row) => !known.has(row.id))];
+type Collection = 'users' | 'listings' | 'orders' | 'favorites' | 'follows' | 'reviews' | 'paymentAttempts' | 'tickets' | 'notifications';
+
+/** Rows that changed, by collection (upserted). */
+export type Patch = Partial<Pick<Database, Collection>> & { stats?: Database['stats'] };
+/** Keys of rows that no longer exist (favorites by listing id, follows by seller id). */
+export type Removal = Partial<Record<Collection, string[]>>;
+
+const keyOf: Record<Collection, (row: any) => string> = {
+  users: (r) => r.id,
+  listings: (r) => r.id,
+  orders: (r) => r.id,
+  favorites: (r) => r.listingId,
+  follows: (r) => r.sellerId,
+  reviews: (r) => r.id,
+  paymentAttempts: (r) => r.id,
+  tickets: (r) => r.id,
+  notifications: (r) => r.id,
 };
 
-/**
- * Brings older local data to the current version. The visitor's own data is kept;
- * demo rows added since (seed ids are stable) and new listing settings are merged in.
- */
-const migrate = (previous: Partial<Database> & Pick<Database, 'users' | 'listings' | 'orders'>): Database => {
-  const seed = createSeed();
-  const seedOrders = new Map(seed.orders.map((o) => [o.id, o]));
-  // Demo orders from an older seed get the fields added since (payment code, brief, revisions).
-  const upgraded = previous.orders.map((o) => {
-    const fromSeed = seedOrders.get(o.id);
-    if (!fromSeed) return o;
-    return {
-      ...o,
-      item: { ...o.item, revisions: o.item.revisions ?? fromSeed.item.revisions },
-      payment: { ...o.payment, code: o.payment.code ?? fromSeed.payment.code },
-      brief: o.brief ?? fromSeed.brief,
-    };
-  });
-  const orders = byId(upgraded, seed.orders).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const orderIds = new Set(orders.map((o) => o.id));
-  const seedListings = new Map(seed.listings.map((l) => [l.id, l]));
-  return {
-    ...seed,
-    ...previous,
-    version: 4,
-    listings: previous.listings.map((l) => {
-      const fromSeed = seedListings.get(l.id);
-      return l.kind === 'service' && fromSeed && l.briefQuestions === undefined
-        ? { ...l, revisions: fromSeed.revisions, briefQuestions: fromSeed.briefQuestions }
-        : l;
-    }),
-    orders,
-    reviews: byId(previous.reviews ?? [], seed.reviews.filter((r) => orderIds.has(r.orderId))),
-    paymentAttempts: byId(previous.paymentAttempts ?? [], seed.paymentAttempts),
-    tickets: byId(previous.tickets ?? [], seed.tickets),
-    notifications: byId(previous.notifications ?? [], seed.notifications),
-  };
+/** Newest first, like the server sends them. */
+const ORDER_BY: Partial<Record<Collection, (a: any, b: any) => number>> = {
+  orders: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  notifications: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  paymentAttempts: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  tickets: (a, b) => b.updatedAt.localeCompare(a.updatedAt),
+  reviews: (a, b) => b.createdAt.localeCompare(a.createdAt),
 };
 
-const load = (): Database => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Database;
-      if (parsed.version === 4) return parsed;
-    }
-    for (const key of PREVIOUS_KEYS) {
-      const previous = localStorage.getItem(key);
-      if (!previous) continue;
-      localStorage.removeItem(key);
-      return migrate(JSON.parse(previous));
-    }
-  } catch {
-    // fall through to seed
-  }
-  LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
-  return createSeed();
-};
-
-let state: Database = load();
+let state: Database = emptyDatabase();
 const listeners = new Set<() => void>();
-
-const persist = () => {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch {
-    // Quota exceeded (large attachments): keep working in memory.
-  }
-};
-persist();
-
 const emit = () => listeners.forEach((l) => l());
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key === KEY && e.newValue) {
-      state = JSON.parse(e.newValue);
-      emit();
-    }
-  });
-}
 
 export const db = {
   get: (): Database => state,
 
-  /** Applies an immutable update and notifies subscribers. */
+  /** Replaces everything (bootstrap, sign-in, sign-out). */
+  load(next: Database): void {
+    state = next;
+    emit();
+  },
+
+  /** Merges rows sent by the server. */
+  apply(patch: Patch = {}, removed: Removal = {}): void {
+    const next: Database = { ...state };
+    (Object.keys(keyOf) as Collection[]).forEach((c) => {
+      const rows = patch[c] as any[] | undefined;
+      const gone = removed[c];
+      if (!rows?.length && !gone?.length) return;
+      const key = keyOf[c];
+      const drop = new Set(gone ?? []);
+      const incoming = new Map((rows ?? []).map((r) => [key(r), r]));
+      const kept = (state[c] as any[]).filter((r) => !drop.has(key(r))).map((r) => incoming.get(key(r)) ?? r);
+      const known = new Set(kept.map(key));
+      const merged = [...kept, ...[...incoming.values()].filter((r) => !known.has(key(r)))];
+      (next as any)[c] = ORDER_BY[c] ? merged.sort(ORDER_BY[c]) : merged;
+    });
+    if (patch.stats) next.stats = patch.stats;
+    state = next;
+    emit();
+  },
+
+  /** Local-only change (optimistic display); the server stays the reference. */
   update(recipe: (current: Database) => Database): void {
     state = recipe(state);
-    persist();
     emit();
   },
 
@@ -124,16 +91,9 @@ export const db = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
-
-  /** Wipes local data and reloads the demo dataset. */
-  reset(): void {
-    state = createSeed();
-    persist();
-    emit();
-  },
 };
 
-/** Reactive read: re-renders when the database changes. */
+/** Reactive read: re-renders when the data changes. */
 export function useDb<T>(selector: (state: Database) => T, deps: unknown[] = []): T {
   const snapshot = useSyncExternalStore(db.subscribe, db.get);
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -85,7 +85,7 @@ export const ListingsPage: React.FC = () => {
                           label: published ? 'Dépublier' : 'Publier',
                           onSelect: () =>
                             run(
-                              () => setListingStatus(listing.id, user.id, published ? 'draft' : 'published'),
+                              () => setListingStatus(listing.id, published ? 'draft' : 'published'),
                               published ? 'Offre dépubliée' : 'Offre publiée'
                             ),
                         },
@@ -120,14 +120,14 @@ export const ListingsPage: React.FC = () => {
                 title: 'Cette offre a déjà été vendue',
                 description: "Elle ne peut pas être supprimée, car vos clients y ont encore accès. Dépubliez-la pour la retirer du catalogue.",
                 confirmLabel: 'Dépublier',
-                onConfirm: () => run(() => setListingStatus(toDelete.listing.id, user.id, 'draft'), 'Offre dépubliée'),
+                onConfirm: () => run(() => setListingStatus(toDelete.listing.id, 'draft'), 'Offre dépubliée'),
               }
             : {
                 title: 'Supprimer cette offre ?',
                 description: 'Elle sera retirée du catalogue et des favoris. Cette action est définitive.',
                 confirmLabel: 'Supprimer',
                 danger: true,
-                onConfirm: () => run(() => deleteListing(toDelete.listing.id, user.id), 'Offre supprimée'),
+                onConfirm: () => run(() => deleteListing(toDelete.listing.id), 'Offre supprimée'),
               })}
         />
       )}

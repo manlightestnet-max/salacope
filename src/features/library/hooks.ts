@@ -12,7 +12,7 @@ export function useAuthAction() {
   const navigate = useNavigate();
   const location = useLocation();
   return useCallback(
-    (action: (userId: string) => void) => {
+    (action: (userId: string) => unknown) => {
       if (!user) {
         navigate(`${ROUTES.signIn}?next=${encodeURIComponent(location.pathname + location.search)}`);
         return;
@@ -27,7 +27,8 @@ export function useFavorite(listingId: string) {
   const { user } = useSession();
   const run = useAuthAction();
   const active = useDb((s) => s.favorites.some((f) => f.userId === user?.id && f.listingId === listingId), [user?.id, listingId]);
-  const toggle = () => run((uid) => toggleFavorite(uid, listingId));
+  const toast = useToast();
+  const toggle = () => run(() => toggleFavorite(listingId).catch((e) => toast.error((e as Error).message)));
   return { active, toggle };
 }
 
@@ -37,13 +38,7 @@ export function useFollow(sellerId: string) {
   const toast = useToast();
   const active = useDb((s) => s.follows.some((f) => f.userId === user?.id && f.sellerId === sellerId), [user?.id, sellerId]);
   const toggle = () =>
-    run((uid) => {
-      try {
-        toggleFollow(uid, sellerId);
-      } catch (e) {
-        toast.error((e as Error).message);
-      }
-    });
+    run((uid) => toggleFollow(uid, sellerId).catch((e) => toast.error((e as Error).message)));
   return { active, toggle, isSelf: user?.id === sellerId };
 }
 

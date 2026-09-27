@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { Button, Container, EmptyState, Page, useToast } from '@/shared/ui';
+import { Button, Container, EmptyState, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { useBackLink } from '@/shared/hooks';
 import { useListingView } from '@/features/catalog';
@@ -15,8 +15,6 @@ export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) =
   const { id = '' } = useParams<{ id: string }>();
   const view = useListingView(id);
   const { user } = useSession();
-  const navigate = useNavigate();
-  const toast = useToast();
 
   const backTo = inApp ? ROUTES.account.offer(id) : ROUTES.listing(id);
   const back = useBackLink({ to: backTo, label: 'Offre' });
@@ -34,13 +32,7 @@ export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) =
     );
   } else {
     content = (
-      <CheckoutForm
-        listing={view.listing}
-        onPaid={(orderId) => {
-          toast.success('Paiement confirmé');
-          navigate(ROUTES.account.order(orderId), { replace: true });
-        }}
-      />
+      <CheckoutForm listing={view.listing} />
     );
   }
 

@@ -1,97 +1,138 @@
 import React, { useState } from 'react';
 import { Button, Field, Input } from '@/shared/ui';
-import { DEMO_ACCOUNTS } from '@/shared/db';
-import { findUserByEmail, signIn } from '../api';
+import { resetPassword, signIn, signUp } from '../api';
+
+export type SignInMode = 'signin' | 'signup' | 'reset';
+type Mode = SignInMode;
 
 /**
- * E-mail first: known e-mail → signed in; unknown → asks for a name to create the account.
- * `create` starts on the sign-up step (name + e-mail).
+ * E-mail and password. The same account works on LightPay (one sign-in for both).
+ * `create` starts on sign-up.
  */
-export const SignInForm: React.FC<{ onSignedIn: () => void; create?: boolean }> = ({ onSignedIn, create = false }) => {
-  const [email, setEmail] = useState('');
+export const SignInForm: React.FC<{ onSignedIn: () => void; create?: boolean; onModeChange?: (mode: SignInMode) => void }> = ({
+  onSignedIn,
+  create = false,
+  onModeChange,
+}) => {
+  const [mode, setModeState] = useState<Mode>(create ? 'signup' : 'signin');
+  const setMode = (next: Mode) => {
+    setModeState(next);
+    onModeChange?.(next);
+  };
   const [name, setName] = useState('');
-  const [step, setStep] = useState<'email' | 'create'>(create ? 'create' : 'email');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const switchTo = (next: Mode) => {
+    setMode(next);
     setError(undefined);
+    setNotice(undefined);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    setError(undefined);
+    setNotice(undefined);
+    setBusy(true);
     try {
-      if (step === 'email' && !findUserByEmail(email)) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Adresse e-mail invalide.');
-        setStep('create');
+      if (mode === 'reset') {
+        await resetPassword(email);
+        setNotice('Si un compte existe avec cet e-mail, un lien pour choisir un nouveau mot de passe vient d’être envoyé.');
+        setMode('signin');
         return;
       }
-      if (step === 'create' && create && findUserByEmail(email)) {
-        setStep('email');
-        throw new Error('Un compte existe déjà avec cet e-mail : continuez pour vous connecter.');
-      }
-      signIn({ email, name });
+      if (mode === 'signup') await signUp({ name, email, password });
+      else await signIn(email, password);
       onSignedIn();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   };
 
-  const signInDemo = (account: (typeof DEMO_ACCOUNTS)[number]) => {
-    signIn({ email: account.email, name: account.name, phone: account.phone });
-    onSignedIn();
-  };
-
   return (
-    <div className="space-y-6">
-      <form onSubmit={submit} className="space-y-4">
-        <Field label="Adresse e-mail" error={step === 'email' ? error : undefined}>
+    <form onSubmit={submit} className="space-y-4">
+      {mode === 'signup' && (
+        <Field label="Votre nom">
+          {(id) => <Input id={id} autoFocus required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />}
+        </Field>
+      )}
+
+      <Field label="Adresse e-mail">
+        {(id) => (
+          <Input
+            id={id}
+            type="email"
+            autoComplete="email"
+            autoFocus={mode !== 'signup'}
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="vous@exemple.cg"
+          />
+        )}
+      </Field>
+
+      {mode !== 'reset' && (
+        <Field
+          label="Mot de passe"
+          hint={mode === 'signup' ? '8 caractères minimum.' : undefined}
+          action={
+            mode === 'signin' ? (
+              <button type="button" onClick={() => switchTo('reset')} className="text-xs text-gray-500 hover:text-gray-900">
+                Mot de passe oublié ?
+              </button>
+            ) : undefined
+          }
+        >
           {(id) => (
             <Input
               id={id}
-              type="email"
-              autoComplete="email"
-              autoFocus
+              type="password"
               required
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (!create) setStep('email');
-              }}
-              placeholder="vous@exemple.cg"
+              minLength={mode === 'signup' ? 8 : undefined}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           )}
         </Field>
+      )}
 
-        {step === 'create' && (
-          <Field label="Votre nom" hint={create ? undefined : "Aucun compte n'existe avec cet e-mail : il sera créé."} error={error}>
-            {(id) => (
-              <Input id={id} autoFocus={!create} required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-            )}
-          </Field>
-        )}
+      {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+      {notice && <p className="text-sm text-gray-600" role="status">{notice}</p>}
 
-        <Button type="submit" variant="primary" size="lg" block>
-          {step === 'create' ? 'Créer mon compte' : 'Continuer'}
-        </Button>
-      </form>
+      <Button type="submit" variant="primary" size="lg" block disabled={busy}>
+        {busy ? 'Un instant…' : mode === 'signup' ? 'Créer mon compte' : mode === 'reset' ? 'Recevoir le lien' : 'Se connecter'}
+      </Button>
 
-      <div>
-        <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
-          <span className="flex-1 border-t border-gray-200" />
-          Comptes de démonstration
-          <span className="flex-1 border-t border-gray-200" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {DEMO_ACCOUNTS.map((a) => (
-            <button
-              key={a.email}
-              type="button"
-              onClick={() => signInDemo(a)}
-              className="text-left rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50"
-            >
-              <div className="text-sm font-medium text-gray-900">{a.label}</div>
-              <div className="text-xs text-gray-500">{a.role}</div>
+      <p className="text-center text-sm text-gray-500">
+        {mode === 'signup' ? (
+          <>
+            Déjà un compte Salacope ou LightPay ?{' '}
+            <button type="button" onClick={() => switchTo('signin')} className="font-medium text-gray-900 hover:underline">
+              Se connecter
             </button>
-          ))}
-        </div>
-      </div>
-    </div>
+          </>
+        ) : mode === 'reset' ? (
+          <button type="button" onClick={() => switchTo('signin')} className="font-medium text-gray-900 hover:underline">
+            Retour à la connexion
+          </button>
+        ) : (
+          <>
+            Pas encore de compte ?{' '}
+            <button type="button" onClick={() => switchTo('signup')} className="font-medium text-gray-900 hover:underline">
+              Créer un compte
+            </button>
+          </>
+        )}
+      </p>
+      {mode === 'signin' && <p className="text-center text-xs text-gray-400">Votre compte LightPay fonctionne aussi ici.</p>}
+    </form>
   );
 };

@@ -69,7 +69,7 @@ export const DashboardPage: React.FC = () => {
         <Stat label={`Ventes · ${PERIOD_DAYS} jours`} value={formatXaf(periodRevenue)} hint={`${periodCount} commande${periodCount > 1 ? 's' : ''}`} />
         <Stat label="À traiter" value={todo.length} />
         <Stat label="En attente" value={formatXaf(balance.escrow + balance.frozen)} hint="Versé à la validation client" />
-        <Stat label="Disponible" value={formatXaf(balance.available)} hint={<Link to={ROUTES.seller.payouts} className="hover:text-gray-900">Retirer →</Link>} emphasis />
+        <Stat label="Versé sur LightPay" value={formatXaf(balance.released)} hint={<Link to={ROUTES.seller.payouts} className="hover:text-gray-900">Paiements →</Link>} emphasis />
       </StatGrid>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-8 items-start">

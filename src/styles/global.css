@@ -54,6 +54,23 @@
   }
 }
 
+/* Handoff to LightPay: a dot travels from one app to the other. */
+@keyframes handoff-travel {
+  from { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  to { left: calc(100% - 0.625rem); opacity: 0; }
+}
+.handoff-dot {
+  animation: handoff-travel 1.4s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .handoff-dot {
+    animation: none;
+    left: calc(50% - 0.3125rem);
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;

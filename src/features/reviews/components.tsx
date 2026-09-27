@@ -91,7 +91,7 @@ export const OrderReviewCard: React.FC<{ order: Order; isBuyer: boolean; userId:
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => leaveReview({ orderId: order.id, userId, rating, comment }), 'Merci pour votre avis !');
+          run(() => leaveReview({ orderId: order.id, rating, comment }), 'Merci pour votre avis !');
         }}
       >
         <CardBody className="pt-0 space-y-4">
@@ -154,7 +154,7 @@ export const CompactReview: React.FC<{ order: Order; userId: string; className?:
               onChange={(e) => setComment(e.target.value)}
             />
             <div className="flex justify-end">
-              <Button size="sm" variant="primary" onClick={() => run(() => leaveReview({ orderId: order.id, userId, rating, comment }), 'Merci pour votre avis !')}>
+              <Button size="sm" variant="primary" onClick={() => run(() => leaveReview({ orderId: order.id, rating, comment }), 'Merci pour votre avis !')}>
                 Publier
               </Button>
             </div>

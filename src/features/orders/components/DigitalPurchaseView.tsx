@@ -4,13 +4,12 @@ import { ArrowUpRight, CheckCircle2, Download, FileText, Flag, History, LucideIc
 import { Button, ConfirmDialog, DescriptionList, Page, useToast } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { formatDate, formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 import { ROUTES } from '@/shared/config/routes';
 import { COVER_FORMAT, KindBadge, ListingCover } from '@/features/catalog';
 import { CompactReview } from '@/features/reviews';
 import { displayName } from '@/features/session';
 import { OrderView } from '../hooks';
-import { EVENT_LABEL, permissionsFor } from '../model';
+import { EVENT_LABEL, paymentMethodLabel, permissionsFor } from '../model';
 import { ReportResult, confirmOrder, reportProblem } from '../api';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderActivity } from './OrderActivity';
@@ -77,7 +76,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
             </div>
             <h2 className="mt-1.5 text-base sm:text-lg font-semibold tracking-tight leading-snug text-gray-900 line-clamp-2">{order.item.title}</h2>
             <p className="mt-1 text-xs text-gray-500">
-              {formatDate(order.createdAt)} · {formatXaf(order.amounts.total)} · {PAYMENT_CHANNELS[order.payment.channel].label}
+              {formatDate(order.createdAt)} · {formatXaf(order.amounts.total)} · {paymentMethodLabel(order)}
               {order.status === 'completed' && (
                 <span className="inline-flex items-center gap-1 ml-1.5 text-emerald-700">
                   <CheckCircle2 className="w-3 h-3" /> Réception confirmée
@@ -143,7 +142,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
               <DescriptionList
                 items={[
                   { label: 'Payé', value: formatXaf(order.amounts.total) },
-                  { label: 'Via', value: `${PAYMENT_CHANNELS[order.payment.channel].label} · ${order.payment.reference}` },
+                  { label: 'Via', value: `${paymentMethodLabel(order)} · ${order.payment.reference}` },
                   ...(order.payment.code ? [{ label: 'Code', value: <span className="font-mono">{order.payment.code}</span> }] : []),
                   ...order.events.map((e) => ({ label: formatDate(e.at), value: EVENT_LABEL[e.type] })),
                 ]}
@@ -165,10 +164,10 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
         open={dialog === 'report'}
         onClose={() => setDialog(null)}
         kind="digital"
-        onSubmit={(reason, detail) => {
+        onSubmit={async (reason, detail) => {
           let result: ReportResult | null = null;
-          run(() => {
-            result = reportProblem(order.id, userId, reason, detail);
+          await run(async () => {
+            result = await reportProblem(order.id, reason, detail);
           });
           return result;
         }}
@@ -179,7 +178,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
         title="Confirmer la réception ?"
         description={`Le vendeur recevra ${formatXaf(order.amounts.total)}. Vous ne pourrez plus ouvrir de litige sur cette commande.`}
         confirmLabel="Confirmer"
-        onConfirm={() => run(() => confirmOrder(order.id, userId), 'Réception confirmée')}
+        onConfirm={() => run(() => confirmOrder(order.id), 'Réception confirmée')}
       />
     </Page>
   );

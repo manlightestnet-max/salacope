@@ -46,7 +46,7 @@ export const NotificationBell: React.FC<{ userId: string; className?: string }> 
           <div className="flex items-center justify-between px-4 h-11 border-b border-gray-100">
             <span className="text-sm font-semibold text-gray-900">Notifications</span>
             {unread > 0 && (
-              <button type="button" onClick={() => markAllNotificationsRead(userId)} className="text-xs text-gray-500 hover:text-gray-900">
+              <button type="button" onClick={() => markAllNotificationsRead()} className="text-xs text-gray-500 hover:text-gray-900">
                 Tout marquer comme lu
               </button>
             )}
@@ -60,7 +60,7 @@ export const NotificationBell: React.FC<{ userId: string; className?: string }> 
                   <button
                     type="button"
                     onClick={() => {
-                      markNotificationRead(userId, n.id);
+                      markNotificationRead(n.id);
                       setOpen(false);
                       navigate(n.href);
                     }}

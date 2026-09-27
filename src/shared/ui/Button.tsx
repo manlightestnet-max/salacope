@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
@@ -6,12 +6,16 @@ import { Loader2 } from 'lucide-react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg' | 'xl';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
+  /** May return a promise: the button shows a spinner and ignores clicks until it settles. */
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => unknown;
   variant?: Variant;
   size?: Size;
   loading?: boolean;
   /** Renders a router link styled as a button. */
   to?: string;
+  /** Renders a link to another site (LightPay…) styled as a button. */
+  href?: string;
   icon?: React.ReactNode;
   iconRight?: React.ReactNode;
   block?: boolean;
@@ -43,7 +47,9 @@ export const buttonClass = (variant: Variant = 'secondary', size: Size = 'md', e
   );
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'secondary', size = 'md', loading, to, icon, iconRight, block, pill, className, children, disabled, type = 'button', ...props }, ref) => {
+  ({ variant = 'secondary', size = 'md', loading, to, href, icon, iconRight, block, pill, className, children, disabled, type = 'button', onClick, ...props }, ref) => {
+    const [pending, setPending] = useState(false);
+    loading = loading || pending;
     const classes = buttonClass(variant, size, clsx(block && 'w-full', className), pill);
     const content = (
       <>
@@ -61,8 +67,32 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
+    if (href) {
+      return (
+        <a href={href} className={classes} aria-label={props['aria-label']} title={props.title}>
+          {content}
+        </a>
+      );
+    }
+
     return (
-      <button ref={ref} type={type} className={classes} disabled={disabled || loading} {...props}>
+      <button
+        ref={ref}
+        type={type}
+        className={classes}
+        disabled={disabled || loading}
+        onClick={
+          onClick &&
+          ((e) => {
+            const result = onClick(e);
+            if (result instanceof Promise) {
+              setPending(true);
+              result.finally(() => setPending(false)).catch(() => undefined);
+            }
+          })
+        }
+        {...props}
+      >
         {content}
       </button>
     );

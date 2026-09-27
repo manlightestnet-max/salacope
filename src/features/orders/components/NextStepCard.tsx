@@ -6,7 +6,6 @@ import { Order } from '@/shared/db';
 import { Button, Card, ConfirmDialog } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { formatDate, formatRelative, formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { Perspective, hasPendingExtension, isLate, isRevising, permissionsFor, revisionsLeft } from '../model';
@@ -51,7 +50,6 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
   const can = permissionsFor(order, perspective);
   const seller = perspective === 'seller';
   const money = formatXaf(seller ? order.amounts.net : order.amounts.total);
-  const channel = PAYMENT_CHANNELS[order.payment.channel].label;
   const left = revisionsLeft(order);
 
   let title = '';
@@ -123,7 +121,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
     case 'cancelled':
       tone = 'done';
       title = 'Commande annulée';
-      body = `${lastNote(order, 'cancelled') ? `« ${lastNote(order, 'cancelled')} » — ` : ''}${formatXaf(order.amounts.total)} remboursés sur le compte ${channel} du client.`;
+      body = `${lastNote(order, 'cancelled') ? `« ${lastNote(order, 'cancelled')} » — ` : ''}${formatXaf(order.amounts.total)} remboursés au client par LightPay.`;
       break;
   }
 
@@ -162,14 +160,14 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
             {can.revise && <Button onClick={() => setDialog('revise')}>Demander une retouche</Button>}
             {can.answerExtension && (
               <>
-                <Button onClick={() => run(() => answerExtension(order.id, userId, false), 'Délai refusé')}>Refuser</Button>
-                <Button variant="primary" onClick={() => run(() => answerExtension(order.id, userId, true), 'Délai accepté')}>
+                <Button onClick={() => run(() => answerExtension(order.id, false), 'Délai refusé')}>Refuser</Button>
+                <Button variant="primary" onClick={() => run(() => answerExtension(order.id, true), 'Délai accepté')}>
                   Accepter
                 </Button>
               </>
             )}
             {can.accept && (
-              <Button variant="primary" onClick={() => run(() => acceptOrder(order.id, userId), 'Commande acceptée')}>
+              <Button variant="primary" onClick={() => run(() => acceptOrder(order.id), 'Commande acceptée')}>
                 Accepter la commande
               </Button>
             )}
@@ -190,18 +188,18 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
       <DeliverDialog
         open={dialog === 'deliver'}
         onClose={() => setDialog(null)}
-        onSubmit={(note, files) => run(() => deliverOrder(order.id, userId, note, files), 'Livraison envoyée au client')}
+        onSubmit={(note, files) => run(() => deliverOrder(order.id, note, files), 'Livraison envoyée au client')}
       />
       <RevisionDialog
         open={dialog === 'revise'}
         onClose={() => setDialog(null)}
         left={left}
-        onSubmit={(note) => run(() => requestRevision(order.id, userId, note), 'Retouche demandée')}
+        onSubmit={(note) => run(() => requestRevision(order.id, note), 'Retouche demandée')}
       />
       <ExtensionDialog
         open={dialog === 'extend'}
         onClose={() => setDialog(null)}
-        onSubmit={(days, reason) => run(() => requestExtension(order.id, userId, days, reason), 'Demande envoyée au client')}
+        onSubmit={(days, reason) => run(() => requestExtension(order.id, days, reason), 'Demande envoyée au client')}
       />
       <ReasonDialog
         open={dialog === 'cancel'}
@@ -210,16 +208,16 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
         description={`Le client sera remboursé de ${formatXaf(order.amounts.total)}. Cette action est définitive.`}
         label="Raison (visible par l'autre partie)"
         confirmLabel="Annuler et rembourser"
-        onSubmit={(reason) => run(() => cancelOrder(order.id, userId, reason), 'Commande annulée')}
+        onSubmit={(reason) => run(() => cancelOrder(order.id, reason), 'Commande annulée')}
       />
       <ReportDialog
         open={dialog === 'dispute'}
         onClose={() => setDialog(null)}
         kind={order.item.kind}
-        onSubmit={(reason, detail) => {
+        onSubmit={async (reason, detail) => {
           let result: ReportResult | null = null;
-          run(() => {
-            result = reportProblem(order.id, userId, reason, detail);
+          await run(async () => {
+            result = await reportProblem(order.id, reason, detail);
           });
           return result;
         }}
@@ -230,7 +228,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
         title="Confirmer la réception ?"
         description={`Le vendeur recevra ${formatXaf(order.amounts.total)}. Vous ne pourrez plus ouvrir de litige sur cette commande.`}
         confirmLabel="Confirmer"
-        onConfirm={() => run(() => confirmOrder(order.id, userId), 'Réception confirmée')}
+        onConfirm={() => run(() => confirmOrder(order.id), 'Réception confirmée')}
       />
     </Card>
   );

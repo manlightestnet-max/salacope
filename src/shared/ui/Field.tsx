@@ -9,20 +9,25 @@ export interface FieldProps {
   hint?: React.ReactNode;
   error?: string;
   optional?: boolean;
+  /** Small control at the right of the label (e.g. "Mot de passe oublié ?"). */
+  action?: React.ReactNode;
   className?: string;
   children: (id: string) => React.ReactNode;
 }
 
 /** Label + control + hint/error. The control receives the generated id. */
-export const Field: React.FC<FieldProps> = ({ label, hint, error, optional, className, children }) => {
+export const Field: React.FC<FieldProps> = ({ label, hint, error, optional, action, className, children }) => {
   const id = useId();
   return (
     <div className={className}>
       {label && (
-        <label htmlFor={id} className="flex items-baseline justify-between text-sm font-medium text-gray-800 mb-1.5">
-          {label}
-          {optional && <span className="text-xs font-normal text-gray-400">Facultatif</span>}
-        </label>
+        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+          <label htmlFor={id} className="text-sm font-medium text-gray-800">
+            {label}
+          </label>
+          {optional && <span className="text-xs text-gray-400">Facultatif</span>}
+          {action}
+        </div>
       )}
       {children(id)}
       {error ? (

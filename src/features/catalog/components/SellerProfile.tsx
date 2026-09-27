@@ -27,7 +27,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
   const listings = useSellerListings(seller.id);
   const stats = useSellerStat(seller.id);
   const reviews = useSellerReviews(seller.id);
-  const followers = useDb((s) => s.follows.filter((f) => f.sellerId === seller.id).length, [seller.id]);
+  const followers = useDb((s) => s.stats.sellers[seller.id]?.followers ?? 0, [seller.id]);
   const [tab, setTab] = useState<'offers' | 'reviews'>('offers');
   const name = displayName(seller);
   const m = seller.merchant;

@@ -1,5 +1,5 @@
 export * from './model';
-export * from './pricing';
+export { priceOrder } from '@/shared/domain';
 export * from './api';
 export * from './hooks';
 export * from './components/OrderStatusBadge';

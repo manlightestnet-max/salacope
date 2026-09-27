@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { X } from 'lucide-react';
 import { useBodyScrollLock, useKeyPress } from '../hooks';
-import { buttonClass } from './Button';
+import { Button, buttonClass } from './Button';
 import { usePane } from './Pane';
 
 export interface DialogProps {
@@ -89,8 +89,8 @@ export interface ConfirmDialogProps {
   description: React.ReactNode;
   confirmLabel: string;
   danger?: boolean;
-  /** Return `false` to keep the dialog open (e.g. the action failed). */
-  onConfirm: () => boolean | void;
+  /** Return (or resolve to) `false` to keep the dialog open (e.g. the action failed). */
+  onConfirm: () => boolean | void | Promise<boolean | void>;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, onClose, title, description, confirmLabel, danger, onConfirm }) => (
@@ -105,15 +105,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, onClose, tit
         <button type="button" onClick={onClose} className={buttonClass('secondary')}>
           Retour
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (onConfirm() !== false) onClose();
+        <Button
+          variant={danger ? 'danger' : 'primary'}
+          onClick={async () => {
+            if ((await onConfirm()) !== false) onClose();
           }}
-          className={buttonClass(danger ? 'danger' : 'primary')}
         >
           {confirmLabel}
-        </button>
+        </Button>
       </>
     }
   />

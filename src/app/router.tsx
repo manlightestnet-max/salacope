@@ -33,6 +33,8 @@ import { ListingsPage } from '@/pages/seller/ListingsPage';
 import { ListingEditorPage } from '@/pages/seller/ListingEditorPage';
 import { CustomersPage } from '@/pages/seller/CustomersPage';
 import { PayoutsPage } from '@/pages/seller/PayoutsPage';
+import { PaymentReturnPage } from '@/pages/account/PaymentReturnPage';
+import { LightPayCallbackPage } from '@/pages/seller/LightPayCallbackPage';
 
 const NotFound = () => (
   <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />
@@ -102,6 +104,8 @@ export const router = createBrowserRouter([
           { path: '/compte/explorer/boutique/:id', element: <StorePage /> },
           { path: '/compte/explorer/offre/:id', element: <OfferPage /> },
           { path: '/compte/checkout/:id', element: <CheckoutPage inApp /> },
+          { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },
+          { path: ROUTES.lightpayCallback, element: <LightPayCallbackPage /> },
           { path: ROUTES.account.openStore, element: <OpenStorePage /> },
           { path: ROUTES.account.orders, element: <OrdersPage /> },
           { path: '/compte/achats/:id', element: <OrderPage as="buyer" /> },

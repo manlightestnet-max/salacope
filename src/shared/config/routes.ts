@@ -6,6 +6,10 @@ export const ROUTES = {
   checkout: (id: string) => `/checkout/${id}`,
   sell: '/vendre',
   signIn: '/connexion',
+  /** Where LightPay sends the buyer back after paying (set by the server). */
+  paymentReturn: '/paiement/retour',
+  /** Where LightPay sends the seller back after connecting their wallet (registered on LightPay). */
+  lightpayCallback: '/lightpay/callback',
 
   account: {
     root: '/compte',

@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Wallet } from 'lucide-react';
-import { Badge, Button, EmptyState, List, ListRow, Page, Tabs } from '@/shared/ui';
-import { formatDate, formatRelative, formatXaf, plural } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
-import { PLATFORM } from '@/shared/config/platform';
+import { ArrowDownLeft, ArrowRight, ExternalLink, Wallet } from 'lucide-react';
+import { Button, Card, CardBody, EmptyState, List, ListRow, Page, Tabs } from '@/shared/ui';
+import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { useCurrentUser } from '@/features/session';
-import { WithdrawDialog, useWallet } from '@/features/wallet';
+import { LightPayConnect, useCurrentUser } from '@/features/session';
+import { useLightPayWallet, useWallet } from '@/features/wallet';
 import { ListingThumb } from '@/features/catalog';
 import { OrderStatusBadge } from '@/features/orders';
 
-const WITHDRAWAL_BADGE = {
-  pending: { tone: 'warning', label: 'Virement en cours' },
-  paid: { tone: 'success', label: 'Versé' },
-  rejected: { tone: 'danger', label: 'Refusé' },
-} as const;
+type View = 'releases' | 'movements';
 
-type View = 'releases' | 'withdrawals' | 'movements';
-
-/** One step of the money flow: held → available → paid out. */
+/** One step of the money flow: held → paid into the LightPay wallet. */
 const FlowStep: React.FC<{ label: string; value: number; hint?: React.ReactNode; emphasis?: boolean }> = ({ label, value, hint, emphasis }) => (
   <div className={clsx('flex-1 min-w-0 rounded-2xl border px-4 py-3.5', emphasis ? 'border-primary-600/30 bg-primary-50' : 'border-gray-200/70 bg-surface')}>
     <div className="text-xs text-gray-500">{label}</div>
@@ -31,27 +23,60 @@ const FlowStep: React.FC<{ label: string; value: number; hint?: React.ReactNode;
 
 const FlowArrow = () => <ArrowRight className="hidden sm:block w-4 h-4 shrink-0 self-center text-gray-300" aria-hidden />;
 
+/** The seller's LightPay wallet, read live: where sales land and where withdrawals happen. */
+const LightPayWalletCard: React.FC = () => {
+  const { wallet, error, reload } = useLightPayWallet();
+  if (wallet && !wallet.connected) {
+    return (
+      <Card className="mb-8">
+        <CardBody className="pt-5">
+          <LightPayConnect />
+        </CardBody>
+      </Card>
+    );
+  }
+  return (
+    <Card className="mb-8">
+      <CardBody className="pt-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-gray-500">Solde LightPay disponible</div>
+          <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+            {wallet ? formatXaf(wallet.available ?? 0) : error ? '—' : '…'}
+          </div>
+          <div className="mt-0.5 text-xs text-gray-500">
+            {error ? (
+              <button type="button" onClick={reload} className="underline underline-offset-2 hover:text-gray-900">
+                {error} Réessayer
+              </button>
+            ) : wallet?.locked ? (
+              `+ ${formatXaf(wallet.locked)} bloqués jusqu’à validation`
+            ) : (
+              'Retrait vers MTN MoMo ou Airtel Money depuis LightPay'
+            )}
+          </div>
+        </div>
+        {wallet?.withdrawUrl && (
+          <Button variant="primary" href={wallet.withdrawUrl} icon={<ExternalLink className="w-4 h-4" />}>
+            Retirer sur LightPay
+          </Button>
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
 /**
- * Where the seller's money is: held until buyers confirm, available to withdraw, paid out.
- * Below: when held money unlocks, the withdrawals and every movement.
+ * Where the seller's money is: held by LightPay until buyers validate, then paid into
+ * the seller's LightPay wallet. Below: when held money unlocks, and every sale paid.
  */
 export const PayoutsPage: React.FC = () => {
   const user = useCurrentUser();
-  const merchant = user.merchant!;
-  const { balance, ledger, releases, withdrawals } = useWallet(user.id);
-  const [open, setOpen] = useState(false);
+  const { balance, ledger, releases } = useWallet(user.id);
   const [view, setView] = useState<View>('releases');
-  const canWithdraw = balance.available >= PLATFORM.minWithdrawalXaf;
-  const channel = PAYMENT_CHANNELS[merchant.payoutChannel];
 
   return (
     <Page
       title="Paiements"
-      actions={
-        <Button variant="primary" size="sm" onClick={() => setOpen(true)} disabled={!canWithdraw}>
-          Retirer
-        </Button>
-      }
       toolbar={
         <Tabs
           bare
@@ -59,8 +84,7 @@ export const PayoutsPage: React.FC = () => {
           onChange={setView}
           items={[
             { value: 'releases', label: 'Déblocages à venir', count: releases.length },
-            { value: 'withdrawals', label: 'Retraits', count: withdrawals.length },
-            { value: 'movements', label: 'Mouvements', count: ledger.length },
+            { value: 'movements', label: 'Ventes versées', count: ledger.length },
           ]}
         />
       }
@@ -72,25 +96,16 @@ export const PayoutsPage: React.FC = () => {
           hint={balance.frozen ? `dont ${formatXaf(balance.frozen)} en litige` : plural(releases.length, 'vente en cours', 'ventes en cours')}
         />
         <FlowArrow />
-        <FlowStep
-          label="Disponible"
-          value={balance.available}
-          emphasis
-          hint={canWithdraw ? 'Retirable maintenant' : `Retrait dès ${formatXaf(PLATFORM.minWithdrawalXaf)}`}
-        />
-        <FlowArrow />
-        <FlowStep
-          label="Versé"
-          value={balance.paidOut}
-          hint={balance.pendingWithdrawals ? `+ ${formatXaf(balance.pendingWithdrawals)} en cours de virement` : undefined}
-        />
+        <FlowStep label="Versé sur LightPay" value={balance.released} emphasis hint="Après validation du client" />
       </div>
-      <p className="mb-8 px-1 text-xs text-gray-500">
-        Versements sur {channel.label} · {merchant.payoutPhone} ·{' '}
+      <p className="mb-4 px-1 text-xs text-gray-500">
+        LightPay garde l’argent de chaque vente jusqu’à la validation du client, puis le verse sur votre wallet.{' '}
         <Link to={ROUTES.account.settings} className="underline underline-offset-2 hover:text-gray-900">
-          modifier
+          Paramètres
         </Link>
       </p>
+
+      <LightPayWalletCard />
 
       {view === 'releases' &&
         (releases.length ? (
@@ -118,64 +133,27 @@ export const PayoutsPage: React.FC = () => {
           <EmptyState title="Aucun paiement en attente" className="rounded-2xl border border-gray-200/70" />
         ))}
 
-      {view === 'withdrawals' &&
-        (withdrawals.length ? (
+      {view === 'movements' &&
+        (ledger.length ? (
           <List>
-            {withdrawals.map((w) => (
+            {ledger.map((e) => (
               <ListRow
-                key={w.id}
+                key={e.id}
+                to={ROUTES.seller.sale(e.id)}
                 leading={
-                  <span className={clsx('w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold', PAYMENT_CHANNELS[w.channel].logoClass)}>
-                    {PAYMENT_CHANNELS[w.channel].initial}
+                  <span className="w-9 h-9 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-700">
+                    <ArrowDownLeft className="w-4 h-4" />
                   </span>
                 }
-                title={`Retrait ${w.reference}`}
-                subtitle={`${w.phone} · demandé ${formatRelative(w.createdAt)}`}
-                meta={<Badge tone={WITHDRAWAL_BADGE[w.status].tone}>{WITHDRAWAL_BADGE[w.status].label}</Badge>}
-                trailing={<span className="font-medium text-gray-900">−{formatXaf(w.amountXaf)}</span>}
+                title={e.label}
+                subtitle={`${e.detail} · ${formatDate(e.at)}`}
+                trailing={<span className="font-medium text-emerald-700">+{formatXaf(e.amount)}</span>}
               />
             ))}
           </List>
         ) : (
-          <EmptyState icon={Wallet} title="Aucun retrait" className="rounded-2xl border border-gray-200/70" />
+          <EmptyState icon={Wallet} title="Aucune vente versée pour l’instant" className="rounded-2xl border border-gray-200/70" />
         ))}
-
-      {view === 'movements' &&
-        (ledger.length ? (
-          <List>
-            {ledger.map((e) => {
-              const credit = e.amount > 0;
-              const Icon = credit ? ArrowDownLeft : ArrowUpRight;
-              return (
-                <ListRow
-                  key={e.id}
-                  leading={
-                    <span
-                      className={clsx(
-                        'w-9 h-9 rounded-full flex items-center justify-center',
-                        credit ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                      )}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </span>
-                  }
-                  title={e.label}
-                  subtitle={`${e.detail} · ${formatDate(e.at)}`}
-                  trailing={
-                    <span className={clsx('font-medium', credit ? 'text-emerald-700' : 'text-gray-900')}>
-                      {credit ? '+' : '−'}
-                      {formatXaf(Math.abs(e.amount))}
-                    </span>
-                  }
-                />
-              );
-            })}
-          </List>
-        ) : (
-          <EmptyState icon={Wallet} title="Aucun mouvement" className="rounded-2xl border border-gray-200/70" />
-        ))}
-
-      <WithdrawDialog open={open} onClose={() => setOpen(false)} sellerId={user.id} merchant={merchant} available={balance.available} />
     </Page>
   );
 };

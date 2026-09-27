@@ -139,7 +139,7 @@ export const FollowingPage: React.FC = () => {
   // Opening a store marks its offers as seen (badges clear once the row is open).
   useEffect(() => {
     if (!openId) return;
-    if ((updates.bySeller.get(openId)?.length ?? 0) > 0) markFollowSeen(user.id, openId);
+    if ((updates.bySeller.get(openId)?.length ?? 0) > 0) void markFollowSeen(openId).catch(() => undefined);
     document.getElementById(openId)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);

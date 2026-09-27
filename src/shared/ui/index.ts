@@ -17,3 +17,4 @@ export * from './Scroller';
 export * from './Reveal';
 export * from './List';
 export * from './Segmented';
+export * from './Handoff';

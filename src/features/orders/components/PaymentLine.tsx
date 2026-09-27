@@ -2,8 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { Order } from '@/shared/db';
 import { formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
-import { FundsState, Perspective, fundsState } from '../model';
+import { FundsState, Perspective, fundsState, paymentMethodLabel } from '../model';
 
 const FUNDS: Record<FundsState, { label: string; dot: string }> = {
   escrow: { label: 'Retenus par Salacope', dot: 'bg-amber-500' },
@@ -32,7 +31,7 @@ export const PaymentLine: React.FC<{ order: Order; perspective: Perspective; cla
         {funds.label}
       </span>
       <span>
-        {PAYMENT_CHANNELS[order.payment.channel].label} · {order.payment.reference}
+        {paymentMethodLabel(order)} · {order.payment.reference}
       </span>
       {order.payment.code && <span className="font-mono text-gray-600">{order.payment.code}</span>}
     </div>

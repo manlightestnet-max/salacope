@@ -1,15 +1,19 @@
+import { request } from '@/shared/api';
 import { db } from '@/shared/db';
 
-export function markNotificationRead(userId: string, notificationId: string): void {
+/** Shown as read at once; the server records it in the background. */
+const markLocally = (ids: string[] | null) =>
   db.update((s) => ({
     ...s,
-    notifications: s.notifications.map((n) => (n.id === notificationId && n.userId === userId ? { ...n, read: true } : n)),
+    notifications: s.notifications.map((n) => (!n.read && (!ids || ids.includes(n.id)) ? { ...n, read: true } : n)),
   }));
+
+export function markNotificationRead(notificationId: string): void {
+  markLocally([notificationId]);
+  void request('POST', '/notifications/read', { ids: [notificationId] }).catch(() => undefined);
 }
 
-export function markAllNotificationsRead(userId: string): void {
-  db.update((s) => ({
-    ...s,
-    notifications: s.notifications.map((n) => (n.userId === userId && !n.read ? { ...n, read: true } : n)),
-  }));
+export function markAllNotificationsRead(): void {
+  markLocally(null);
+  void request('POST', '/notifications/read', {}).catch(() => undefined);
 }

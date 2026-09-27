@@ -105,8 +105,9 @@ export const Terms: React.FC = () => (
     <section>
       <h2>5. Retraits</h2>
       <p>
-        Le vendeur retire son solde disponible (minimum {PLATFORM.minWithdrawalXaf} FCFA) vers le compte Mobile Money renseigné
-        dans sa boutique. Les retraits sont traités sous 24 h ouvrées.
+        Les paiements sont encaissés et bloqués par LightPay jusqu'à la validation de la commande, puis versés sur le wallet
+        LightPay du vendeur. Le vendeur retire ensuite depuis LightPay vers MTN MoMo ou Airtel Money (minimum{' '}
+        {PLATFORM.minWithdrawalXaf} FCFA), aux frais affichés par LightPay avant chaque retrait.
       </p>
     </section>
     <section>
@@ -152,7 +153,7 @@ export const PrivacyPolicy: React.FC = () => (
       <h2>Données collectées</h2>
       <ul>
         <li>Compte : nom, e-mail, téléphone.</li>
-        <li>Boutique : nom, ville, numéro de versement.</li>
+        <li>Boutique : nom, activité, ville et lien vers le wallet LightPay (aucun solde ni numéro stocké chez Salacope).</li>
         <li>Commandes : contenu, montants, référence de paiement, messages échangés avec l'autre partie.</li>
       </ul>
     </section>
@@ -160,13 +161,16 @@ export const PrivacyPolicy: React.FC = () => (
       <h2>Utilisation</h2>
       <p>
         Ces données servent à exécuter les commandes, verser les vendeurs, prévenir la fraude et respecter nos obligations
-        comptables. Le vendeur reçoit le nom, l'e-mail et le téléphone de ses acheteurs pour livrer la commande. Aucune donnée
-        n'est vendue.
+        comptables. Le vendeur voit seulement le nom de ses acheteurs : e-mail et téléphone ne sont jamais partagés entre acheteur
+        et vendeur, qui échangent par la messagerie de la commande. Aucune donnée n'est vendue.
       </p>
     </section>
     <section>
       <h2>Paiement</h2>
-      <p>Salacope ne demande ni ne stocke jamais votre code secret Mobile Money : il se saisit uniquement sur votre téléphone.</p>
+      <p>
+        Les paiements sont traités par LightPay. Salacope ne voit ni ne stocke votre code secret Mobile Money, qui se saisit
+        uniquement sur votre téléphone, ni votre mot de passe.
+      </p>
     </section>
     <section>
       <h2>Vos droits</h2>

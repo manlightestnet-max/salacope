@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveSync } from '@/shared/api';
 import clsx from 'clsx';
 import { ArrowUp, MessagesSquare, Paperclip } from 'lucide-react';
 import { Order, OrderEvent, OrderMessage, User } from '@/shared/db';
@@ -76,6 +77,8 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   const attachments = useAttachments();
   const run = useServiceAction();
   const feedRef = useRef<HTMLUListElement>(null);
+  // The conversation is live: new messages arrive within a few seconds.
+  useLiveSync(true);
   const perspective = perspectiveOf(order, userId);
   const canMessage = permissionsFor(order, perspective).message;
   const counterpart = users.get(perspective === 'buyer' ? order.sellerId : order.buyerId);
@@ -94,9 +97,9 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [order.messages.length]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (run(() => sendMessage(order.id, userId, body, attachments.files))) {
+    if (await run(() => sendMessage(order.id, body, attachments.files))) {
       setBody('');
       attachments.clear();
     }

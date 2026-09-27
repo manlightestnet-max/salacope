@@ -1,28 +1,20 @@
 import { Order, OrderEventType, OrderStatus } from '@/shared/db';
+import { Perspective, hasPendingExtension } from '@/shared/domain';
 import { Tone } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { formatDate } from '@/shared/lib';
+import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 
-export type Perspective = 'buyer' | 'seller';
+export { CONTACT_BLOCKED, containsContact, hasPendingExtension, perspectiveOf, permissionsFor, revisionsLeft } from '@/shared/domain';
+export type { OrderPermissions, Perspective } from '@/shared/domain';
 
-/**
- * Buyer and seller only talk through Salacope: contact details (phone numbers, e-mails,
- * messaging apps) are refused in messages, deliveries and briefs, so the deal and its
- * protection stay on the platform.
- */
-const CONTACT_PATTERNS = [
-  /(?:\+?\d[\s.\-()]*){8,}/, // phone numbers, however they are spaced
-  /[\w.+-]+@[\w-]+\.[a-z]{2,}/i, // e-mails
-  /\b(?:whats?\s?app|wa\.me|telegram|t\.me|signal|messenger|m\.me)\b/i,
-];
-
-export const containsContact = (text: string) => CONTACT_PATTERNS.some((p) => p.test(text));
-
-export const CONTACT_BLOCKED =
-  'Pas de coordonnées ici (numéro, e-mail, WhatsApp…). Restez sur Salacope : c’est ce qui protège votre paiement et vos droits en cas de litige.';
-
-export const perspectiveOf = (order: Order, userId: string): Perspective | null =>
-  order.buyerId === userId ? 'buyer' : order.sellerId === userId ? 'seller' : null;
+/** How the order was paid (the buyer picks on LightPay). */
+export const paymentMethodLabel = (order: Pick<Order, 'payment'>) =>
+  order.payment.channel
+    ? PAYMENT_CHANNELS[order.payment.channel].label
+    : order.payment.via === 'wallet'
+      ? 'Wallet LightPay'
+      : 'Mobile Money via LightPay';
 
 /** Order page for each party. */
 export const orderHref = (order: Pick<Order, 'id'>, perspective: Perspective) =>
@@ -30,10 +22,6 @@ export const orderHref = (order: Pick<Order, 'id'>, perspective: Perspective) =>
 
 export const isLate = (order: Order, now = Date.now()) =>
   order.status === 'in_progress' && Boolean(order.dueAt) && new Date(order.dueAt!).getTime() < now;
-
-export const revisionsLeft = (order: Order) => Math.max(0, (order.item.revisions ?? 0) - (order.revisionsUsed ?? 0));
-
-export const hasPendingExtension = (order: Order) => order.extension?.status === 'pending';
 
 /** The seller is working on changes the buyer asked for. */
 export const isRevising = (order: Order) =>
@@ -74,27 +62,6 @@ export const EVENT_LABEL: Record<OrderEventType, string> = {
   extension_accepted: 'Délai supplémentaire accepté',
   extension_declined: 'Délai supplémentaire refusé',
 };
-
-/** What a given party may do on an order right now. Enforced again by the services. */
-export const permissionsFor = (order: Order, perspective: Perspective | null) => {
-  const seller = perspective === 'seller';
-  const buyer = perspective === 'buyer';
-  const isService = order.item.kind === 'service';
-  const { status } = order;
-  return {
-    accept: seller && isService && status === 'paid',
-    deliver: seller && isService && (status === 'paid' || status === 'in_progress'),
-    cancel: (seller && (status === 'paid' || status === 'in_progress')) || (buyer && isService && status === 'paid'),
-    confirm: buyer && status === 'delivered',
-    dispute: buyer && status === 'delivered',
-    revise: buyer && isService && status === 'delivered' && revisionsLeft(order) > 0,
-    extend: seller && isService && status === 'in_progress' && !hasPendingExtension(order),
-    answerExtension: buyer && status === 'in_progress' && hasPendingExtension(order),
-    message: Boolean(perspective) && status !== 'cancelled',
-  };
-};
-
-export type OrderPermissions = ReturnType<typeof permissionsFor>;
 
 /** Orders that wait on this party. */
 export const needsAction = (order: Order, perspective: Perspective) =>

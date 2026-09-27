@@ -1,29 +1,22 @@
-import { Order, Withdrawal } from '@/shared/db';
+import { Order } from '@/shared/db';
 import { fundsState } from '@/features/orders';
 
-export interface Balance {
-  /** Released sales minus withdrawals: can be withdrawn now. */
-  available: number;
-  /** Paid orders not yet confirmed by the buyer. */
+/** The seller's sales, by where the money is. Payouts themselves happen on LightPay. */
+export interface SalesBalance {
+  /** Paid orders not yet validated: held by LightPay. */
   escrow: number;
-  /** Orders under dispute. */
+  /** Orders under dispute: frozen by LightPay. */
   frozen: number;
-  /** Withdrawals requested, not yet paid out. */
-  pendingWithdrawals: number;
-  /** Total sent to the seller's Mobile Money account. */
-  paidOut: number;
+  /** Validated sales, paid into the seller's LightPay wallet. */
+  released: number;
 }
 
-export const computeBalance = (orders: Order[], withdrawals: Withdrawal[]): Balance => {
+export const computeBalance = (orders: Order[]): SalesBalance => {
   const sum = (list: Order[]) => list.reduce((s, o) => s + o.amounts.net, 0);
-  const released = sum(orders.filter((o) => fundsState(o.status) === 'released'));
-  const reserved = withdrawals.filter((w) => w.status !== 'rejected').reduce((s, w) => s + w.amountXaf, 0);
   return {
-    available: Math.max(0, released - reserved),
     escrow: sum(orders.filter((o) => fundsState(o.status) === 'escrow')),
     frozen: sum(orders.filter((o) => fundsState(o.status) === 'frozen')),
-    pendingWithdrawals: withdrawals.filter((w) => w.status === 'pending').reduce((s, w) => s + w.amountXaf, 0),
-    paidOut: withdrawals.filter((w) => w.status === 'paid').reduce((s, w) => s + w.amountXaf, 0),
+    released: sum(orders.filter((o) => fundsState(o.status) === 'released')),
   };
 };
 
@@ -33,35 +26,20 @@ export interface LedgerEntry {
   label: string;
   detail: string;
   amount: number;
-  status: 'credited' | 'pending' | 'paid' | 'rejected';
-  href?: string;
 }
 
-/** Money movements on the seller balance: released sales (+) and withdrawals (−). */
-export const buildLedger = (orders: Order[], withdrawals: Withdrawal[]): LedgerEntry[] => {
-  const sales: LedgerEntry[] = orders
+/** Sales paid into the LightPay wallet, newest first. */
+export const buildLedger = (orders: Order[]): LedgerEntry[] =>
+  orders
     .filter((o) => o.status === 'completed')
-    .map((o) => {
-      const releasedAt = [...o.events].reverse().find((e) => e.type === 'completed' || e.type === 'auto_completed')?.at ?? o.updatedAt;
-      return {
-        id: o.id,
-        at: releasedAt,
-        label: `Vente ${o.number}`,
-        detail: o.item.title,
-        amount: o.amounts.net,
-        status: 'credited' as const,
-      };
-    });
-  const payouts: LedgerEntry[] = withdrawals.map((w) => ({
-    id: w.id,
-    at: w.createdAt,
-    label: `Retrait ${w.reference}`,
-    detail: w.phone,
-    amount: -w.amountXaf,
-    status: w.status,
-  }));
-  return [...sales, ...payouts].sort((a, b) => b.at.localeCompare(a.at));
-};
+    .map((o) => ({
+      id: o.id,
+      at: [...o.events].reverse().find((e) => e.type === 'completed' || e.type === 'auto_completed')?.at ?? o.updatedAt,
+      label: `Vente ${o.number}`,
+      detail: o.item.title,
+      amount: o.amounts.net,
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
 
 export interface UpcomingRelease {
   order: Order;

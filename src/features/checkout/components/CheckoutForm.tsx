@@ -1,91 +1,50 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { Listing } from '@/shared/db';
-import { Button, Card, CardBody, CardHeader, Field, Input, Textarea } from '@/shared/ui';
-import { formatXaf } from '@/shared/lib';
-import { DEFAULT_PAYMENT_CHANNEL, PAYMENT_CHANNELS, PaymentChannel } from '@/shared/config/payment';
+import { Button, Card, CardBody, CardHeader, Field, Handoff, Input, Textarea } from '@/shared/ui';
+import { atLeast, formatXaf } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
-import { signIn, useSession } from '@/features/session';
+import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
+import { SignInForm, useSession } from '@/features/session';
 import { ListingThumb } from '@/features/catalog';
-import { findCouponRate, priceOrder } from '@/features/orders';
-import { confirmPayment, startPayment } from '../api';
-import { PaymentChannelPicker } from './PaymentChannelPicker';
-import { PaymentDialog } from './PaymentDialog';
+import { startCheckout } from '../api';
 
 export interface CheckoutFormProps {
   listing: Listing;
-  onPaid: (orderId: string) => void;
 }
 
 /**
- * Contact → brief (services) → payment → summary. Guests get an account from their e-mail
- * so they can follow the order and reach support. The order exists only once paid.
+ * Account → brief (services) → LightPay. The buyer pays on LightPay's page (MTN MoMo,
+ * Airtel Money or LightPay wallet) and comes back here; the seller is paid only after validation.
  */
-export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing, onPaid }) => {
+export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const { user } = useSession();
   const location = useLocation();
-  const [name, setName] = useState(user?.name ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
-  const [channel, setChannel] = useState<PaymentChannel>(DEFAULT_PAYMENT_CHANNEL);
   const [brief, setBrief] = useState<Record<string, string>>({});
-  const [coupon, setCoupon] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<string>();
-  const [couponError, setCouponError] = useState<string>();
   const [showInvoice, setShowInvoice] = useState(false);
   const [company, setCompany] = useState({ companyName: '', taxId: '' });
   const [error, setError] = useState<string>();
-  const [attemptId, setAttemptId] = useState<string>();
-  const [buyer, setBuyer] = useState<{ name: string; email: string }>();
-  const phoneRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
 
-  const amounts = priceOrder(listing.priceXaf, appliedCoupon);
+  const amounts = priceOrder(listing.priceXaf);
   const questions = listing.briefQuestions ?? [];
 
-  const applyCoupon = () => {
-    if (findCouponRate(coupon) === undefined) {
-      setCouponError('Code invalide ou expiré.');
-      setAppliedCoupon(undefined);
-    } else {
-      setCouponError(undefined);
-      setAppliedCoupon(coupon.trim().toUpperCase());
-    }
-  };
-
-  /** Sends the request to the phone; a new code is issued for every try. */
-  const requestPayment = () => {
+  const pay = async () => {
+    if (busy) return;
     setError(undefined);
-    try {
-      const account = user ?? signIn({ email, name, phone });
-      setBuyer({ name: account.name, email: account.email });
-      const attempt = startPayment({
-        listingId: listing.id,
-        buyerId: account.id,
-        channel,
-        phone,
-        couponCode: appliedCoupon,
-        brief,
-      });
-      setAttemptId(attempt.id);
-    } catch (err) {
-      setError((err as Error).message);
+    if (Object.values(brief).some(containsContact)) {
+      setError(CONTACT_BLOCKED);
+      return;
     }
-  };
-
-  const operatorConfirms = () => {
-    if (!attemptId || !buyer) return;
+    setBusy(true);
     try {
-      const order = confirmPayment(attemptId, {
-        buyer: { ...buyer, phone: phone.trim() },
-        couponCode: appliedCoupon,
-        invoice: showInvoice ? company : undefined,
-        brief,
-      });
-      onPaid(order.id);
+      const url = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 900);
+      window.location.assign(url);
     } catch (err) {
       setError((err as Error).message);
+      setBusy(false);
     }
   };
 
@@ -93,60 +52,49 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing, onPaid }) =
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        requestPayment();
+        void pay();
       }}
       className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start"
     >
       <div className="space-y-4 min-w-0">
         <Card>
-          <CardHeader
-            title="Vos coordonnées"
-            description={user ? undefined : 'Un compte est créé avec cet e-mail pour suivre votre commande.'}
-          />
+          <CardHeader title="Votre compte" description={user ? undefined : 'Pour suivre votre commande et échanger avec le vendeur.'} />
           <CardBody className="space-y-4">
             {user ? (
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <div className="min-w-0">
-                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
-                  <div className="text-gray-500 truncate">{user.email}</div>
+              <>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                    <div className="text-gray-500 truncate">{user.email}</div>
+                  </div>
+                  <Link to={`${ROUTES.signIn}?next=${encodeURIComponent(location.pathname)}`} className="shrink-0 text-gray-500 hover:text-gray-900">
+                    Changer de compte
+                  </Link>
                 </div>
-                <Link to={`${ROUTES.signIn}?next=${encodeURIComponent(location.pathname)}`} className="shrink-0 text-gray-500 hover:text-gray-900">
-                  Changer de compte
-                </Link>
-              </div>
+                {showInvoice ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Raison sociale">
+                      {(id) => (
+                        <Input id={id} required value={company.companyName} onChange={(e) => setCompany({ ...company, companyName: e.target.value })} />
+                      )}
+                    </Field>
+                    <Field label="NIU">
+                      {(id) => <Input id={id} required value={company.taxId} onChange={(e) => setCompany({ ...company, taxId: e.target.value })} />}
+                    </Field>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setShowInvoice(true)} className="text-sm text-gray-500 hover:text-gray-900">
+                    + Reçu au nom d'une entreprise
+                  </button>
+                )}
+              </>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Nom complet">
-                  {(id) => <Input id={id} required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />}
-                </Field>
-                <Field label="E-mail">
-                  {(id) => (
-                    <Input id={id} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  )}
-                </Field>
-              </div>
-            )}
-
-            {showInvoice ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Raison sociale">
-                  {(id) => (
-                    <Input id={id} required value={company.companyName} onChange={(e) => setCompany({ ...company, companyName: e.target.value })} />
-                  )}
-                </Field>
-                <Field label="NIU">
-                  {(id) => <Input id={id} required value={company.taxId} onChange={(e) => setCompany({ ...company, taxId: e.target.value })} />}
-                </Field>
-              </div>
-            ) : (
-              <button type="button" onClick={() => setShowInvoice(true)} className="text-sm text-gray-500 hover:text-gray-900">
-                + Reçu au nom d'une entreprise
-              </button>
+              <SignInForm onSignedIn={() => undefined} />
             )}
           </CardBody>
         </Card>
 
-        {questions.length > 0 && (
+        {user && questions.length > 0 && (
           <Card>
             <CardHeader title="Brief pour le vendeur" description="Ce dont il a besoin pour démarrer, sans aller-retour." />
             <CardBody className="space-y-4">
@@ -166,27 +114,6 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing, onPaid }) =
             </CardBody>
           </Card>
         )}
-
-        <Card>
-          <CardHeader title="Paiement" />
-          <CardBody className="space-y-4">
-            <PaymentChannelPicker value={channel} onChange={setChannel} />
-            <Field label={`Numéro ${PAYMENT_CHANNELS[channel].label} à débiter`} hint="Vous validerez le paiement sur ce téléphone.">
-              {(id) => (
-                <Input
-                  ref={phoneRef}
-                  id={id}
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  placeholder={`${PLATFORM.phonePrefix} 06 000 00 00`}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              )}
-            </Field>
-          </CardBody>
-        </Card>
       </div>
 
       <Card className="lg:sticky lg:top-6">
@@ -196,63 +123,50 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing, onPaid }) =
             <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">{listing.title}</p>
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="Code promo"
-              value={coupon}
-              onChange={(e) => setCoupon(e.target.value)}
-              aria-label="Code promo"
-              className="uppercase"
-            />
-            <Button onClick={applyCoupon} disabled={!coupon.trim()}>
-              Appliquer
-            </Button>
-          </div>
-          {couponError && <p className="-mt-2 text-xs text-red-600">{couponError}</p>}
-
           <dl className="space-y-2 text-sm border-t border-gray-100 pt-4">
             <div className="flex justify-between text-gray-600">
               <dt>Prix</dt>
               <dd className="tabular-nums">{formatXaf(amounts.subtotal)}</dd>
             </div>
-            {amounts.discount > 0 && (
-              <div className="flex justify-between text-emerald-700">
-                <dt>Remise {appliedCoupon}</dt>
-                <dd className="tabular-nums">−{formatXaf(amounts.discount)}</dd>
-              </div>
-            )}
             <div className="flex justify-between font-semibold text-gray-900 text-base pt-1">
               <dt>Total</dt>
               <dd className="tabular-nums">{formatXaf(amounts.total)}</dd>
             </div>
+            <p className="text-xs text-gray-500">Les frais de l’opérateur, s’il y en a, sont affichés sur la page de paiement avant validation.</p>
           </dl>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-          <Button type="submit" variant="primary" size="lg" block icon={<Lock className="w-4 h-4" />}>
+          <Button type="submit" variant="primary" size="lg" block disabled={!user || busy} icon={<Lock className="w-4 h-4" />}>
             Payer {formatXaf(amounts.total)}
           </Button>
-          <p className="text-xs text-gray-500">
-            Le vendeur n'est payé qu'après votre validation, ou {PLATFORM.escrowDays} jours après la livraison. En payant, vous
-            acceptez les{' '}
-            <Link to={ROUTES.legal.terms} className="underline">
-              conditions générales
-            </Link>
-            .
-          </p>
+          <div className="flex gap-2 text-xs text-gray-500">
+            <ShieldCheck className="w-4 h-4 shrink-0 text-gray-400" />
+            <p>
+              Paiement par LightPay : MTN MoMo, Airtel Money ou wallet LightPay. Le vendeur n'est payé qu'après votre validation, ou{' '}
+              {PLATFORM.escrowDays} jours après la livraison. En payant, vous acceptez les{' '}
+              <Link to={ROUTES.legal.terms} className="underline">
+                conditions générales
+              </Link>
+              .
+            </p>
+          </div>
         </CardBody>
       </Card>
 
-      <PaymentDialog
-        attemptId={attemptId}
-        onOperatorConfirm={operatorConfirms}
-        onRetry={requestPayment}
-        onChangeNumber={() => {
-          setAttemptId(undefined);
-          window.setTimeout(() => phoneRef.current?.focus(), 0);
-        }}
-        onClose={() => setAttemptId(undefined)}
-      />
+      {busy && (
+        <Handoff
+          overlay
+          from="salacope"
+          to="lightpay"
+          title="Paiement avec LightPay"
+          description={`${formatXaf(amounts.total)} par MTN MoMo, Airtel Money ou wallet LightPay. Vous revenez ici juste après.`}
+        />
+      )}
     </form>
   );
 };

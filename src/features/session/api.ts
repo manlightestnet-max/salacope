@@ -1,74 +1,79 @@
-import { createId, nowIso } from '@/shared/lib';
-import { DomainError, Merchant, User, db, replaceById } from '@/shared/db';
+import { auth, boot, mutate, request } from '@/shared/api';
+import { DomainError, Merchant, db, emptyDatabase } from '@/shared/db';
 
-const normalizeEmail = (email: string) => email.trim().toLowerCase();
-const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-export const findUserByEmail = (email: string): User | undefined =>
-  db.get().users.find((u) => u.email === normalizeEmail(email));
+/**
+ * One account for Salacope and LightPay (same sign-in). A LightPay user signing in here for
+ * the first time gets their Salacope account created on the way.
+ */
+export async function signIn(email: string, password: string): Promise<void> {
+  if (!isEmail(email)) throw new DomainError('Adresse e-mail invalide.');
+  await auth.signIn(email, password);
+  await request('POST', '/session', {});
+  await boot();
+}
 
-export interface SignInInput {
+export interface SignUpInput {
+  name: string;
   email: string;
-  name?: string;
+  password: string;
   phone?: string;
 }
 
-/**
- * Demo sign-in: signs into the account with this e-mail, creating it on first use.
- * Replace with real authentication (OTP / password) when a backend exists.
- */
-export function signIn({ email, name, phone }: SignInInput): User {
-  const normalized = normalizeEmail(email);
-  if (!isEmail(normalized)) throw new DomainError('Adresse e-mail invalide.');
-
-  let user = findUserByEmail(normalized);
-  if (!user) {
-    if (!name?.trim()) throw new DomainError('Indiquez votre nom pour créer le compte.');
-    user = { id: createId('usr'), name: name.trim(), email: normalized, phone: phone?.trim() ?? '', createdAt: nowIso() };
-    const created = user;
-    db.update((s) => ({ ...s, users: [...s.users, created] }));
-  }
-
-  const userId = user.id;
-  db.update((s) => ({ ...s, sessionUserId: userId }));
-  return user;
+export async function signUp({ name, email, password, phone }: SignUpInput): Promise<void> {
+  if (!name.trim()) throw new DomainError('Indiquez votre nom pour créer le compte.');
+  if (!isEmail(email)) throw new DomainError('Adresse e-mail invalide.');
+  if (password.length < 8) throw new DomainError('Mot de passe trop court : 8 caractères minimum.');
+  await auth.signUp(email, password);
+  await request('POST', '/session', { name: name.trim(), phone: phone?.trim() });
+  await boot();
 }
 
-export function signOut(): void {
-  db.update((s) => ({ ...s, sessionUserId: null }));
+export async function resetPassword(email: string): Promise<void> {
+  if (!isEmail(email)) throw new DomainError('Saisissez l’adresse e-mail du compte.');
+  await auth.resetPassword(email);
 }
 
-export function updateProfile(userId: string, data: Pick<User, 'name' | 'phone'>): void {
+export async function signOut(): Promise<void> {
+  auth.signOut();
+  db.load(emptyDatabase());
+  await boot().catch(() => undefined);
+}
+
+export async function updateProfile(data: { name: string; phone: string }): Promise<void> {
   if (!data.name.trim()) throw new DomainError('Le nom est obligatoire.');
-  db.update((s) => ({
-    ...s,
-    users: replaceById(s.users, userId, (u) => ({ ...u, name: data.name.trim(), phone: data.phone.trim() })),
-  }));
+  await mutate('PATCH', '/me', data);
 }
 
-export type MerchantInput = Pick<Merchant, 'storeName' | 'headline' | 'city' | 'payoutChannel' | 'payoutPhone'>;
+export type MerchantInput = Pick<Merchant, 'storeName' | 'headline' | 'city'>;
 
 const validateMerchant = (input: MerchantInput) => {
   if (!input.storeName.trim()) throw new DomainError('Le nom de la boutique est obligatoire.');
-  if (!input.payoutPhone.trim()) throw new DomainError('Le numéro de versement est obligatoire.');
 };
 
 /** Opens the seller account. `verified` is set by the platform after an identity check. */
-export function activateMerchant(userId: string, input: MerchantInput): void {
+export async function activateMerchant(input: MerchantInput): Promise<void> {
   validateMerchant(input);
-  db.update((s) => ({
-    ...s,
-    users: replaceById(s.users, userId, (u) => ({
-      ...u,
-      merchant: { ...input, storeName: input.storeName.trim(), verified: false, activatedAt: nowIso() },
-    })),
-  }));
+  await mutate('POST', '/merchant', input);
 }
 
-export function updateMerchant(userId: string, input: MerchantInput): void {
+export async function updateMerchant(input: MerchantInput): Promise<void> {
   validateMerchant(input);
-  db.update((s) => ({
-    ...s,
-    users: replaceById(s.users, userId, (u) => (u.merchant ? { ...u, merchant: { ...u.merchant, ...input } } : u)),
-  }));
+  await mutate('PATCH', '/merchant', input);
+}
+
+/** Where the seller connects, on LightPay, the wallet that receives the sales. */
+export async function lightPayConnectUrl(): Promise<string> {
+  const { url } = await request<{ url: string }>('POST', '/lightpay/connect', {});
+  return url;
+}
+
+/** Back from LightPay with a code (or a refusal). */
+export async function completeLightPayConnection(params: URLSearchParams): Promise<void> {
+  await mutate('POST', '/lightpay/callback', {
+    code: params.get('code'),
+    state: params.get('state'),
+    error: params.get('error'),
+  });
 }

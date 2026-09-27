@@ -3,17 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { Category, Database, useDb } from '@/shared/db';
 import { CatalogQuery, CatalogSort, ListingView } from './model';
 
-const buildViews = (s: Database, predicate: (l: Database['listings'][number]) => boolean): ListingView[] => {
-  const sales = new Map<string, number>();
-  s.orders.forEach((o) => {
-    if (o.status !== 'cancelled') sales.set(o.listingId, (sales.get(o.listingId) ?? 0) + 1);
-  });
-  return s.listings.filter(predicate).map((listing) => ({
+const buildViews = (s: Database, predicate: (l: Database['listings'][number]) => boolean): ListingView[] =>
+  s.listings.filter(predicate).map((listing) => ({
     listing,
     seller: s.users.find((u) => u.id === listing.sellerId),
-    salesCount: sales.get(listing.id) ?? 0,
+    salesCount: s.stats.listings[listing.id] ?? 0,
   }));
-};
 
 /** Everything a visitor can buy. */
 export const usePublishedListings = () => useDb((s) => buildViews(s, (l) => l.status === 'published'));

@@ -3,7 +3,7 @@ import { Printer } from 'lucide-react';
 import { Order, User } from '@/shared/db';
 import { Button, DescriptionList, Dialog } from '@/shared/ui';
 import { formatDateTime, formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
+import { paymentMethodLabel } from '../model';
 import { COMPANY } from '@/shared/config/company';
 import { displayName } from '@/features/session';
 
@@ -36,8 +36,8 @@ export const OrderReceipt: React.FC<{ order: Order; seller?: User; open: boolean
           { label: 'Vendeur', value: displayName(seller) },
           { label: 'Client', value: order.buyer.name },
           ...(order.invoice ? [{ label: 'Société', value: `${order.invoice.companyName} · NIU ${order.invoice.taxId}` }] : []),
-          { label: 'Moyen de paiement', value: `${PAYMENT_CHANNELS[order.payment.channel].label} · ••• ${order.payment.phone.replace(/\D/g, '').slice(-2)}` },
-          { label: 'Référence opérateur', value: order.payment.reference },
+          { label: 'Moyen de paiement', value: paymentMethodLabel(order) },
+          { label: 'Référence LightPay', value: order.payment.reference },
           { label: 'Sous-total', value: formatXaf(order.amounts.subtotal) },
           ...(order.amounts.discount ? [{ label: `Remise (${order.couponCode})`, value: `−${formatXaf(order.amounts.discount)}` }] : []),
           { label: 'Total payé', value: <strong>{formatXaf(order.amounts.total)}</strong> },

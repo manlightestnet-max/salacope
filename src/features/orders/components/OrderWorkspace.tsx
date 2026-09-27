@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, DescriptionList, Page } from '@/shared/ui';
 import { formatDateTime, formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb, SellerCard } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
 import { OrderView } from '../hooks';
-import { Perspective, fundsState } from '../model';
+import { Perspective, fundsState, paymentMethodLabel } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { NextStepCard } from './NextStepCard';
 import { DeliveryCard } from './DeliveryCard';
@@ -85,7 +84,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
                       ]
                     : []),
                   { label: 'Fonds', value: FUNDS_LABEL[fundsState(order.status)] },
-                  { label: 'Via', value: `${PAYMENT_CHANNELS[order.payment.channel].label} · ${order.payment.reference}` },
+                  { label: 'Via', value: `${paymentMethodLabel(order)} · ${order.payment.reference}` },
                   ...(order.payment.code ? [{ label: 'Code', value: <span className="font-mono">{order.payment.code}</span> }] : []),
                 ]}
               />

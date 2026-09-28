@@ -1,7 +1,7 @@
 /** Business rules shared by the marketplace. Server-side in production. */
 export const PLATFORM = {
-  /** Commission taken on each completed sale (0 = launch offer). */
-  feeRate: 0,
+  /** Commission taken on each completed sale, deducted from the seller (0 = launch offer). */
+  feeRate: 0.1,
   /** Days the buyer has to confirm or dispute a delivery before funds are released. */
   escrowDays: 7,
   /** Days the seller has to deliver a requested revision. */

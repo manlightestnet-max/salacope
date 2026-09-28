@@ -2,13 +2,16 @@ import { User, useDb } from '@/shared/db';
 
 export interface Session {
   user: User | null;
+  /** Signed in, or a guest who bought without an account on this browser. */
   isAuthenticated: boolean;
+  /** Bought without an account: no store, no settings until they create one. */
+  isGuest: boolean;
   isMerchant: boolean;
 }
 
 export function useSession(): Session {
   const user = useDb((s) => s.users.find((u) => u.id === s.sessionUserId) ?? null);
-  return { user, isAuthenticated: Boolean(user), isMerchant: Boolean(user?.merchant) };
+  return { user, isAuthenticated: Boolean(user), isGuest: Boolean(user?.guest), isMerchant: Boolean(user?.merchant) };
 }
 
 /** For screens behind `RequireAuth`: the user is guaranteed. */

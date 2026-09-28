@@ -12,7 +12,7 @@ import type {
 
 /** Rows -> the app's types. What a viewer may not see is removed here, never in the app. */
 
-export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at,
+export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest,
   m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id`;
 export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
@@ -22,8 +22,9 @@ const opt = <T>(v: T | null | undefined) => (v === null ? undefined : v);
 export const userView = (r: any, self: boolean): User => ({
   id: r.id,
   name: r.name,
-  email: self ? r.email : '',
+  email: self ? (r.email ?? '') : '',
   phone: self ? r.phone : '',
+  guest: self && r.guest ? true : undefined,
   createdAt: r.created_at,
   merchant: r.store_name
     ? {

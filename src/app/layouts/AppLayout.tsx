@@ -15,6 +15,7 @@ import {
   Settings,
   ShoppingBag,
   Store,
+  UserPlus,
   UserRound,
   Users,
   Wallet,
@@ -137,7 +138,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             {item({ to: ROUTES.seller.customers, label: 'Clients', icon: Users })}
             {item({ to: ROUTES.seller.payouts, label: 'Paiements', icon: Wallet })}
           </NavGroup>
-        ) : (
+        ) : user.guest ? null : (
           <NavGroup title="Vendre" collapsed={collapsed}>
             {item({ to: ROUTES.account.openStore, label: 'Ouvrir ma boutique', icon: Store })}
           </NavGroup>
@@ -145,7 +146,9 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
       </nav>
       <div className="px-2 py-2 border-t border-gray-200 space-y-0.5">
         {item({ to: ROUTES.account.support, label: 'Support', icon: LifeBuoy, badge: answered })}
-        {item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings })}
+        {user.guest
+          ? item({ to: `${ROUTES.signIn}?creer=1`, label: 'Créer un compte', icon: UserPlus })
+          : item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings })}
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export const SellPage: React.FC = () => {
   const { user, isMerchant } = useSession();
 
   if (isMerchant) return <Navigate to={ROUTES.seller.root} replace />;
-  if (user) return <Navigate to={ROUTES.account.openStore} replace />;
+  if (user && !user.guest) return <Navigate to={ROUTES.account.openStore} replace />;
 
   return (
     <Container size="lg" className="py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">

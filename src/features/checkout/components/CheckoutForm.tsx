@@ -18,11 +18,14 @@ export interface CheckoutFormProps {
 }
 
 /**
- * Account → brief (services) → LightPay. The buyer pays on LightPay's page (MTN MoMo,
+ * Brief (services) → LightPay, with or without an account (a visitor buys as a guest). The buyer pays on LightPay's page (MTN MoMo,
  * Airtel Money or LightPay wallet) and comes back here; the seller is paid only after validation.
  */
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const { user } = useSession();
+  // A guest (bought here before without an account) is not shown as an account.
+  const member = user && !user.guest ? user : null;
+  const [showSignIn, setShowSignIn] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [brief, setBrief] = useState<Record<string, string>>({});
@@ -72,43 +75,48 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
     >
       <div className="space-y-4 min-w-0">
         <Card>
-          <CardHeader title="Votre compte" description={user ? undefined : 'Pour suivre votre commande et échanger avec le vendeur.'} />
+          {member ? (
+            <CardHeader title="Votre compte" />
+          ) : (
+            <CardHeader title="Sans compte" description="Payez directement par mobile money. Votre commande et le chat restent sur cet appareil." />
+          )}
           <CardBody className="space-y-4">
-            {user ? (
-              <>
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <div className="min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{user.name}</div>
-                    <div className="text-gray-500 truncate">{user.email}</div>
-                  </div>
-                  <Link to={`${ROUTES.signIn}?next=${encodeURIComponent(location.pathname)}`} className="shrink-0 text-gray-500 hover:text-gray-900">
-                    Changer de compte
-                  </Link>
+            {member ? (
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <div className="min-w-0">
+                  <div className="font-medium text-gray-900 truncate">{member.name}</div>
+                  <div className="text-gray-500 truncate">{member.email}</div>
                 </div>
-                {showInvoice ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Raison sociale">
-                      {(id) => (
-                        <Input id={id} required value={company.companyName} onChange={(e) => setCompany({ ...company, companyName: e.target.value })} />
-                      )}
-                    </Field>
-                    <Field label="NIU">
-                      {(id) => <Input id={id} required value={company.taxId} onChange={(e) => setCompany({ ...company, taxId: e.target.value })} />}
-                    </Field>
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => setShowInvoice(true)} className="text-sm text-gray-500 hover:text-gray-900">
-                    + Reçu au nom d'une entreprise
-                  </button>
-                )}
-              </>
+                <Link to={`${ROUTES.signIn}?next=${encodeURIComponent(location.pathname)}`} className="shrink-0 text-gray-500 hover:text-gray-900">
+                  Changer de compte
+                </Link>
+              </div>
+            ) : showSignIn ? (
+              <SignInForm onSignedIn={() => setShowSignIn(false)} />
             ) : (
-              <SignInForm onSignedIn={() => undefined} />
+              <button type="button" onClick={() => setShowSignIn(true)} className="text-sm text-gray-500 hover:text-gray-900">
+                Vous avez un compte ? <span className="font-medium text-gray-900">Se connecter</span>
+              </button>
             )}
+            {!showSignIn &&
+              (showInvoice ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Raison sociale">
+                    {(id) => <Input id={id} required value={company.companyName} onChange={(e) => setCompany({ ...company, companyName: e.target.value })} />}
+                  </Field>
+                  <Field label="NIU">
+                    {(id) => <Input id={id} required value={company.taxId} onChange={(e) => setCompany({ ...company, taxId: e.target.value })} />}
+                  </Field>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowInvoice(true)} className="block text-sm text-gray-500 hover:text-gray-900">
+                  + Reçu au nom d'une entreprise
+                </button>
+              ))}
           </CardBody>
         </Card>
 
-        {user && questions.length > 0 && (
+        {questions.length > 0 && (
           <Card>
             <CardHeader title="Brief pour le vendeur" description="Ce dont il a besoin pour démarrer, sans aller-retour." />
             <CardBody className="space-y-4">
@@ -155,13 +163,13 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
             </p>
           )}
 
-          <Button type="submit" variant="primary" size="lg" block disabled={!user || busy} icon={<Lock className="w-4 h-4" />}>
+          <Button type="submit" variant="primary" size="lg" block disabled={busy || showSignIn} icon={<Lock className="w-4 h-4" />}>
             Payer {formatXaf(amounts.total)}
           </Button>
           <div className="flex gap-2 text-xs text-gray-500">
             <ShieldCheck className="w-4 h-4 shrink-0 text-gray-400" />
             <p>
-              Paiement par LightPay : MTN MoMo, Airtel Money ou wallet LightPay. Le vendeur n'est payé qu'après votre validation, ou{' '}
+              Paiement par MTN MoMo ou Airtel Money, sans compte LightPay (le wallet LightPay reste possible). Le vendeur n'est payé qu'après votre validation, ou{' '}
               {PLATFORM.escrowDays} jours après la livraison. En payant, vous acceptez les{' '}
               <Link to={ROUTES.legal.terms} className="underline">
                 conditions générales

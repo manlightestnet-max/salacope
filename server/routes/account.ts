@@ -1,6 +1,7 @@
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { query, tx } from '../db.js';
 import { route } from '../http.js';
+import { claimGuest, guestIdFromKey } from '../guests.js';
 import { newId } from '../ids.js';
 import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
@@ -19,10 +20,17 @@ const cleanPhone = (phone: unknown) => String(phone ?? '').trim().slice(0, 30);
 route('POST', '/session', async (ctx) => {
   const identity = await ctx.identity();
   if (!identity) throw new DomainError('Connexion expirée : reconnectez-vous.', 401);
+  const name = cleanName(ctx.body.name) || cleanName(identity.name) || identity.email.split('@')[0];
+  // Bought without an account on this browser: those purchases join the account.
+  const guestId = await guestIdFromKey(ctx.guestKey);
+  if (guestId) {
+    const id = await tx((q) => claimGuest(q, guestId, identity, name, cleanPhone(ctx.body.phone)));
+    return { userId: id, patch: { users: [await loadSelf(id)] } };
+  }
+
   const [existing] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [identity.uid]);
   if (existing) return { userId: existing.id, patch: { users: [await loadSelf(existing.id)] } };
 
-  const name = cleanName(ctx.body.name) || cleanName(identity.name) || identity.email.split('@')[0];
   const id = newId('usr');
   try {
     await query('INSERT INTO users (id, firebase_uid, email, name, phone) VALUES ($1, $2, $3, $4, $5)', [
@@ -63,7 +71,7 @@ const merchantInput = (body: any) => {
 
 /** Opens the store. `verified` is set by the platform after an identity check. */
 route('POST', '/merchant', async (ctx) => {
-  const userId = await ctx.userId();
+  const userId = await ctx.accountId();
   const m = merchantInput(ctx.body);
   await tx(async (q) => {
     const [taken] = await q('SELECT 1 FROM merchants WHERE LOWER(store_name) = LOWER($1) AND user_id <> $2', [m.storeName, userId]);
@@ -77,7 +85,7 @@ route('POST', '/merchant', async (ctx) => {
 });
 
 route('PATCH', '/merchant', async (ctx) => {
-  const userId = await ctx.userId();
+  const userId = await ctx.accountId();
   const m = merchantInput(ctx.body);
   await tx(async (q) => {
     const [taken] = await q('SELECT 1 FROM merchants WHERE LOWER(store_name) = LOWER($1) AND user_id <> $2', [m.storeName, userId]);

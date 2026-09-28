@@ -22,7 +22,8 @@ import { listingView } from '../views.js';
 route('GET', '/bootstrap', async (ctx) => {
   const identity = await ctx.identity();
   const [me] = identity ? await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [identity.uid]) : [];
-  const userId = me?.id ?? null;
+  // An account, else a guest who bought without one on this browser.
+  const userId = identity ? (me?.id ?? null) : await ctx.viewerId();
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId),
     query(

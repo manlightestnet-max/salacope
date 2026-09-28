@@ -1,4 +1,4 @@
-import { auth, boot, mutate, request } from '@/shared/api';
+import { auth, boot, guest, mutate, request } from '@/shared/api';
 import { DomainError, Merchant, db, emptyDatabase } from '@/shared/db';
 
 const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -10,7 +10,9 @@ const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim(
 export async function signIn(email: string, password: string): Promise<void> {
   if (!isEmail(email)) throw new DomainError('Adresse e-mail invalide.');
   await auth.signIn(email, password);
+  // Purchases made here without an account join it.
   await request('POST', '/session', {});
+  guest.clear();
   await boot();
 }
 
@@ -27,6 +29,7 @@ export async function signUp({ name, email, password, phone }: SignUpInput): Pro
   if (password.length < 8) throw new DomainError('Mot de passe trop court : 8 caractères minimum.');
   await auth.signUp(email, password);
   await request('POST', '/session', { name: name.trim(), phone: phone?.trim() });
+  guest.clear();
   await boot();
 }
 
@@ -37,6 +40,7 @@ export async function resetPassword(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   auth.signOut();
+  guest.clear();
   db.load(emptyDatabase());
   await boot().catch(() => undefined);
 }

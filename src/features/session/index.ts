@@ -4,3 +4,4 @@ export * from './guards';
 export * from './components/SignInForm';
 export * from './components/MerchantForm';
 export * from './components/LightPayConnect';
+export * from './components/GuestPrompt';

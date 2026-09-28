@@ -7,6 +7,7 @@ import { permissionsFor } from '../../src/shared/domain/orders.js';
 import { priceOrder } from '../../src/shared/domain/pricing.js';
 import { Query, json, query, tx } from '../db.js';
 import { Context, route } from '../http.js';
+import { createGuest } from '../guests.js';
 import { newId, paymentCode } from '../ids.js';
 import { connectionGone, lightpay } from '../lightpay.js';
 import { loadAttempts, loadOrder, loadTickets } from '../load.js';
@@ -39,7 +40,14 @@ const returnUrl = (ctx: Context, attemptId: string, cancelled = false) =>
  * LightPay payment page. The money is held by LightPay until the order is validated.
  */
 route('POST', '/checkout', async (ctx) => {
-  const buyerId = await ctx.userId();
+  // No account needed: a visitor buys as a guest (the key goes back to their browser only).
+  let buyerId = await ctx.viewerId();
+  let guest: { id: string; key: string } | null = null;
+  if (!buyerId) {
+    if (await ctx.identity()) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
+    guest = await createGuest();
+    buyerId = guest.id;
+  }
   const [listing] = await query(
     `SELECT l.*, m.lightpay_connection_id FROM listings l JOIN merchants m ON m.user_id = l.seller_id WHERE l.id = $1`,
     [String(ctx.body.listingId ?? '')]
@@ -57,7 +65,7 @@ route('POST', '/checkout', async (ctx) => {
 
   const companyName = text(ctx.body.invoice?.companyName, 120);
   const invoice = companyName ? { companyName, taxId: text(ctx.body.invoice?.taxId, 40) } : null;
-  const [buyer] = await query('SELECT name, email, phone FROM users WHERE id = $1', [buyerId]);
+  const [buyer] = await query("SELECT name, COALESCE(email, '') AS email, phone FROM users WHERE id = $1", [buyerId]);
   const amounts = priceOrder(listing.price_xaf);
   const item = {
     title: listing.title,
@@ -100,7 +108,7 @@ route('POST', '/checkout', async (ctx) => {
       'UPDATE payment_attempts SET lightpay_session_id = $2, checkout_url = $3, updated_at = NOW() WHERE id = $1 RETURNING *',
       [attemptId, session.id, session.checkout_url]
     );
-    return { attempt: attemptView(row), checkoutUrl: session.checkout_url, patch: { paymentAttempts: [attemptView(row), ...(await loadAttempts(buyerId, 'id = ANY($2)', [stale.map((s) => s.id)]))] } };
+    return { attempt: attemptView(row), checkoutUrl: session.checkout_url, guestKey: guest?.key, patch: { paymentAttempts: [attemptView(row), ...(await loadAttempts(buyerId, 'id = ANY($2)', [stale.map((s) => s.id)]))] } };
   } catch (err) {
     await query("UPDATE payment_attempts SET status = 'failed', failure = 'declined', updated_at = NOW() WHERE id = $1", [attemptId]);
     if (connectionGone(err)) {

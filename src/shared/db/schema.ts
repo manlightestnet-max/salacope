@@ -23,6 +23,8 @@ export interface User {
   email: string;
   phone: string;
   createdAt: string;
+  /** Bought without an account (guest profile kept by this browser). */
+  guest?: boolean;
   merchant?: Merchant;
 }
 

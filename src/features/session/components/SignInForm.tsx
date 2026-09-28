@@ -6,7 +6,7 @@ export type SignInMode = 'signin' | 'signup' | 'reset';
 type Mode = SignInMode;
 
 /**
- * E-mail and password. The same account works on LightPay (one sign-in for both).
+ * E-mail and password: a Salacope account. Paying never needs a LightPay account.
  * `create` starts on sign-up.
  */
 export const SignInForm: React.FC<{ onSignedIn: () => void; create?: boolean; onModeChange?: (mode: SignInMode) => void }> = ({
@@ -114,7 +114,7 @@ export const SignInForm: React.FC<{ onSignedIn: () => void; create?: boolean; on
       <p className="text-center text-sm text-gray-500">
         {mode === 'signup' ? (
           <>
-            Déjà un compte Salacope ou LightPay ?{' '}
+            Déjà un compte ?{' '}
             <button type="button" onClick={() => switchTo('signin')} className="font-medium text-gray-900 hover:underline">
               Se connecter
             </button>
@@ -132,7 +132,6 @@ export const SignInForm: React.FC<{ onSignedIn: () => void; create?: boolean; on
           </>
         )}
       </p>
-      {mode === 'signin' && <p className="text-center text-xs text-gray-400">Votre compte LightPay fonctionne aussi ici.</p>}
     </form>
   );
 };

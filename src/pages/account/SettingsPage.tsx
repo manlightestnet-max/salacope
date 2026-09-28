@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Card, CardBody, CardFooter, CardHeader, Field, Input, Page, useToast } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
-import { LightPayConnect, MerchantForm, updateMerchant, updateProfile, useCurrentUser } from '@/features/session';
+import { GuestPrompt, LightPayConnect, MerchantForm, updateMerchant, updateProfile, useCurrentUser, useSession } from '@/features/session';
 
 const ProfileCard: React.FC = () => {
   const user = useCurrentUser();
@@ -79,11 +79,18 @@ const StoreCard: React.FC = () => {
   );
 };
 
-export const SettingsPage: React.FC = () => (
-  <Page title="Paramètres" width="narrow">
-    <div className="space-y-6">
-      <ProfileCard />
-      <StoreCard />
-    </div>
-  </Page>
-);
+export const SettingsPage: React.FC = () => {
+  const { isGuest } = useSession();
+  return (
+    <Page title="Paramètres" width="narrow">
+      {isGuest ? (
+        <GuestPrompt title="Achats sans compte" />
+      ) : (
+        <div className="space-y-6">
+          <ProfileCard />
+          <StoreCard />
+        </div>
+      )}
+    </Page>
+  );
+};

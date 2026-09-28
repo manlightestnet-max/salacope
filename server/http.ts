@@ -1,6 +1,7 @@
 import { DomainError } from '../src/shared/domain/errors.js';
 import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
+import { guestIdFromKey } from './guests.js';
 
 export interface Context {
   method: string;
@@ -14,8 +15,14 @@ export interface Context {
   origin: string;
   /** Firebase identity, or null for visitors. */
   identity(): Promise<Identity | null>;
-  /** Signed-in Salacope user id; 401 otherwise. */
+  /** Buyer without an account: the secret key kept by their browser (`X-Salacope-Guest`), if sent. */
+  guestKey: string | null;
+  /** Salacope user id: an account, or a guest buying without one; 401 otherwise. */
   userId(): Promise<string>;
+  /** Like `userId`, null for a visitor instead of 401. */
+  viewerId(): Promise<string | null>;
+  /** An account only (selling, settings): guests are asked to create one. */
+  accountId(): Promise<string>;
 }
 
 type Handler = (ctx: Context) => Promise<unknown>;
@@ -74,17 +81,32 @@ export async function handle(request: Request): Promise<Response> {
     }
     return identity;
   };
-  let user: Promise<string> | undefined;
-  const getUserId = () => {
-    if (!user) {
-      user = getIdentity().then(async (id) => {
-        if (!id) throw new DomainError('Connectez-vous pour continuer.', 401);
-        const [row] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [id.uid]);
-        if (!row) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
-        return row.id;
+  const guestKey = request.headers.get('x-salacope-guest');
+  let viewer: Promise<{ id: string; guest: boolean } | null> | undefined;
+  const getViewer = () => {
+    if (!viewer) {
+      viewer = getIdentity().then(async (id) => {
+        if (id) {
+          const [row] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [id.uid]);
+          if (!row) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
+          return { id: row.id, guest: false };
+        }
+        const guest = await guestIdFromKey(guestKey);
+        return guest ? { id: guest, guest: true } : null;
       });
     }
-    return user;
+    return viewer;
+  };
+  const getUserId = async () => {
+    const v = await getViewer();
+    if (!v) throw new DomainError('Connectez-vous pour continuer.', 401);
+    return v.id;
+  };
+  const getAccountId = async () => {
+    const v = await getViewer();
+    if (!v) throw new DomainError('Connectez-vous pour continuer.', 401);
+    if (v.guest) throw new DomainError('Créez votre compte Salacope pour continuer.', 403);
+    return v.id;
   };
 
   try {
@@ -98,7 +120,10 @@ export async function handle(request: Request): Promise<Response> {
       headers: request.headers,
       origin: (process.env.SALACOPE_PUBLIC_URL || url.origin).replace(/\/$/, ''),
       identity: getIdentity,
+      guestKey,
       userId: getUserId,
+      viewerId: async () => (await getViewer())?.id ?? null,
+      accountId: getAccountId,
     });
     return reply(200, result ?? { ok: true });
   } catch (err) {

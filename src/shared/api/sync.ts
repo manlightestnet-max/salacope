@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { Database, db, emptyDatabase } from '@/shared/db';
 import { auth } from './auth';
+import { guest } from './guest';
 import { request } from './client';
 
 /**
@@ -32,8 +33,11 @@ export async function boot(): Promise<void> {
     if (res.needsAccount) {
       // Signed in to LightPay/Firebase but never used Salacope: the account is created now.
       await request('POST', '/session', {});
+      guest.clear();
       res = await request<BootstrapResponse>('GET', '/bootstrap');
     }
+    // A guest key nobody holds any more (taken over by an account): forget it.
+    if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
     setStatus('ready');

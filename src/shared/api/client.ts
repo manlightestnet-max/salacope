@@ -1,10 +1,12 @@
 import { DomainError } from '@/shared/domain';
 import { Patch, Removal, db } from '@/shared/db';
 import { auth } from './auth';
+import { guest } from './guest';
 
-/** Calls the Salacope API as the signed-in person. Errors carry a message safe to show. */
+/** Calls the Salacope API as the signed-in person (or this browser's guest). Errors carry a message safe to show. */
 export async function request<T = any>(method: string, path: string, body?: unknown): Promise<T> {
   const token = await auth.idToken();
+  const guestKey = guest.key();
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
@@ -12,6 +14,7 @@ export async function request<T = any>(method: string, path: string, body?: unkn
       headers: {
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(guestKey ? { 'X-Salacope-Guest': guestKey } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });

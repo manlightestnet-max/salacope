@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardHeader, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
-import { LightPayConnect, MerchantForm, activateMerchant, useCurrentUser } from '@/features/session';
+import { GuestPrompt, LightPayConnect, MerchantForm, activateMerchant, useCurrentUser } from '@/features/session';
 
 /** Seller onboarding inside the back-office: the store, then the LightPay wallet that receives the sales. */
 export const OpenStorePage: React.FC = () => {
@@ -14,6 +14,13 @@ export const OpenStorePage: React.FC = () => {
   const wasMerchant = useRef(Boolean(user.merchant));
 
   if (wasMerchant.current) return <Navigate to={ROUTES.seller.root} replace />;
+  if (user.guest) {
+    return (
+      <Page title="Ouvrir ma boutique" width="narrow">
+        <GuestPrompt title="Un compte pour vendre" />
+      </Page>
+    );
+  }
 
   return (
     <Page title="Ouvrir ma boutique" width="narrow">

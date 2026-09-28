@@ -43,6 +43,8 @@ export function validateListing(input: ListingInput): void {
     throw new DomainError(`Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`);
   }
   if (input.priceXaf > LIMITS.price) throw new DomainError('Prix trop élevé.');
+  // FCFA have no centimes: 100.50 is refused, never rounded behind the seller's back.
+  if (!Number.isInteger(input.priceXaf)) throw new DomainError('Prix en FCFA entiers, sans virgule ni point.');
   if (input.kind === 'service' && (!input.deliveryDays || input.deliveryDays < 1 || input.deliveryDays > 90)) {
     throw new DomainError('Indiquez un délai de livraison en jours (1 à 90).');
   }

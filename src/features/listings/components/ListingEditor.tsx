@@ -59,6 +59,7 @@ const stepError = (step: number, f: ListingInput): string | undefined => {
     if (f.kind === 'digital' && !f.fileName?.trim()) return 'Indiquez le fichier livré au client.';
   }
   if (step === 3 && (!f.priceXaf || f.priceXaf < PLATFORM.minPriceXaf)) return `Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`;
+  if (step === 3 && !Number.isInteger(f.priceXaf)) return 'Prix en FCFA entiers, sans virgule ni point.';
   return undefined;
 };
 
@@ -442,7 +443,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                     type="number"
                     inputMode="numeric"
                     min={PLATFORM.minPriceXaf}
-                    step={100}
+                    step={1}
                     trailing="FCFA"
                     value={form.priceXaf || ''}
                     onChange={(e) => set('priceXaf', Number(e.target.value))}

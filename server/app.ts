@@ -5,5 +5,6 @@ import './routes/library.js';
 import './routes/orders.js';
 import './routes/support.js';
 import './routes/lightpay.js';
+import './routes/admin.js';
 
 export { handle } from './http.js';

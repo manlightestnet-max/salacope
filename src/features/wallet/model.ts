@@ -7,16 +7,22 @@ export interface SalesBalance {
   escrow: number;
   /** Orders under dispute: frozen by LightPay. */
   frozen: number;
-  /** Validated sales, paid into the seller's LightPay wallet. */
+  /** Validated sales, paid into the seller's LightPay wallet (commission deducted). */
   released: number;
+  /** Validated sales before the commission, and the commission Salacope kept on them. */
+  sold: number;
+  commission: number;
 }
 
 export const computeBalance = (orders: Order[]): SalesBalance => {
-  const sum = (list: Order[]) => list.reduce((s, o) => s + o.amounts.net, 0);
+  const sum = (list: Order[], key: 'net' | 'total' | 'fee' = 'net') => list.reduce((s, o) => s + o.amounts[key], 0);
+  const released = orders.filter((o) => fundsState(o.status) === 'released');
   return {
     escrow: sum(orders.filter((o) => fundsState(o.status) === 'escrow')),
     frozen: sum(orders.filter((o) => fundsState(o.status) === 'frozen')),
-    released: sum(orders.filter((o) => fundsState(o.status) === 'released')),
+    released: sum(released),
+    sold: sum(released, 'total'),
+    commission: sum(released, 'fee'),
   };
 };
 
@@ -25,7 +31,10 @@ export interface LedgerEntry {
   at: string;
   label: string;
   detail: string;
+  /** Paid into the wallet: the sale minus Salacope's commission. */
   amount: number;
+  sale: number;
+  commission: number;
 }
 
 /** Sales paid into the LightPay wallet, newest first. */
@@ -38,6 +47,8 @@ export const buildLedger = (orders: Order[]): LedgerEntry[] =>
       label: `Vente ${o.number}`,
       detail: o.item.title,
       amount: o.amounts.net,
+      sale: o.amounts.total,
+      commission: o.amounts.fee,
     }))
     .sort((a, b) => b.at.localeCompare(a.at));
 

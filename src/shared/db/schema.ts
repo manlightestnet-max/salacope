@@ -1,4 +1,5 @@
 import { PaymentChannel } from '../config/payment.js';
+import type { KycStatus } from '../domain/kyc.js';
 
 /** Row types of the marketplace database. Features add behaviour on top of these. */
 
@@ -15,6 +16,12 @@ export interface Merchant {
   activatedAt: string;
   /** Own store only: the LightPay wallet that receives the sales is connected. */
   lightpayConnected?: boolean;
+  /** Own store only: identity check (AML/CFT). Offers go online once it is approved. */
+  kycStatus?: KycStatus;
+  /** Own store only: why the check was refused. */
+  kycNote?: string;
+  /** Own store only: suspended by Salacope (offers hidden, nothing can be published). */
+  suspended?: { at: string; reason: string };
 }
 
 export interface User {
@@ -25,6 +32,10 @@ export interface User {
   createdAt: string;
   /** Bought without an account (guest profile kept by this browser). */
   guest?: boolean;
+  /** Own account only: blocked by Salacope. */
+  blocked?: { at: string; reason: string };
+  /** Own account only: a Salacope administrator. */
+  admin?: boolean;
   merchant?: Merchant;
 }
 

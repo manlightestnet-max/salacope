@@ -28,6 +28,7 @@ import {
   transition,
 } from '../orders.js';
 import { attemptView } from '../views.js';
+import { SELLABLE_SELLERS } from '../compliance.js';
 
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 
@@ -49,10 +50,12 @@ route('POST', '/checkout', async (ctx) => {
     buyerId = guest.id;
   }
   const [listing] = await query(
-    `SELECT l.*, m.lightpay_connection_id FROM listings l JOIN merchants m ON m.user_id = l.seller_id WHERE l.id = $1`,
+    `SELECT l.*, m.lightpay_connection_id, l.seller_id IN (${SELLABLE_SELLERS}) AS sellable
+     FROM listings l JOIN merchants m ON m.user_id = l.seller_id WHERE l.id = $1`,
     [String(ctx.body.listingId ?? '')]
   );
-  if (!listing || listing.status !== 'published') throw new DomainError("Cette offre n'est plus disponible.", 404);
+  // Unverified, suspended or blocked sellers are paid nothing (AML/CFT policy §6).
+  if (!listing || listing.status !== 'published' || !listing.sellable) throw new DomainError("Cette offre n'est plus disponible.", 404);
   if (listing.seller_id === buyerId) throw new DomainError('Vous ne pouvez pas acheter votre propre offre.');
   if (!listing.lightpay_connection_id) throw new DomainError('Ce vendeur n’a pas encore activé ses paiements. Réessayez plus tard.', 409);
 

@@ -14,6 +14,13 @@ export const RequireAuth: React.FC = () => {
   return <Outlet />;
 };
 
+/** Salacope administration: only accounts the server marks as administrators (the API checks again). */
+export const RequireAdmin: React.FC = () => {
+  const { user } = useSession();
+  if (!user?.admin) return <Navigate to={ROUTES.account.explorer} replace />;
+  return <Outlet />;
+};
+
 /** Seller area: accounts without a store are sent to store onboarding (inside the back-office). */
 export const RequireMerchant: React.FC = () => {
   const { isMerchant } = useSession();

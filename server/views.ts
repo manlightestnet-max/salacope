@@ -9,11 +9,13 @@ import type {
   Ticket,
   User,
 } from '../src/shared/db/schema.js';
+import { isAdminUid } from './compliance.js';
 
 /** Rows -> the app's types. What a viewer may not see is removed here, never in the app. */
 
-export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest,
-  m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id`;
+export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest, u.firebase_uid,
+  u.blocked_at, u.blocked_reason, m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id,
+  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason`;
 export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
 const opt = <T>(v: T | null | undefined) => (v === null ? undefined : v);
@@ -25,6 +27,8 @@ export const userView = (r: any, self: boolean): User => ({
   email: self ? (r.email ?? '') : '',
   phone: self ? r.phone : '',
   guest: self && r.guest ? true : undefined,
+  blocked: self && r.blocked_at ? { at: r.blocked_at, reason: r.blocked_reason ?? '' } : undefined,
+  admin: self && isAdminUid(r.firebase_uid) ? true : undefined,
   createdAt: r.created_at,
   merchant: r.store_name
     ? {
@@ -34,6 +38,9 @@ export const userView = (r: any, self: boolean): User => ({
         verified: r.verified,
         activatedAt: r.activated_at,
         lightpayConnected: self ? Boolean(r.lightpay_connection_id) : undefined,
+        kycStatus: self ? r.kyc_status : undefined,
+        kycNote: self ? (r.kyc_note ?? undefined) : undefined,
+        suspended: self && r.suspended_at ? { at: r.suspended_at, reason: r.suspended_reason ?? '' } : undefined,
       }
     : undefined,
 });

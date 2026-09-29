@@ -1,4 +1,5 @@
 import { DomainError } from '../../src/shared/domain/errors.js';
+import { KYC_DOCUMENTS, KYC_MAX_BYTES, validateKyc } from '../../src/shared/domain/kyc.js';
 import { query, tx } from '../db.js';
 import { route } from '../http.js';
 import { claimGuest, guestIdFromKey } from '../guests.js';
@@ -95,6 +96,49 @@ route('PATCH', '/merchant', async (ctx) => {
       [userId, m.storeName, m.headline, m.city]
     );
     if (!rows.length) throw new DomainError('Boutique introuvable.', 404);
+  });
+  return { patch: { users: [await loadSelf(userId)] } };
+});
+
+// ---------------------------------------------------------------- identity check (KYC) of the seller
+
+const DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
+const MAGIC: Record<string, (b: Buffer) => boolean> = {
+  'image/jpeg': (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.subarray(0, 4).toString('hex') === '89504e47',
+  'image/webp': (b) => b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP',
+};
+
+const kycDocument = (value: unknown, label: string) => {
+  const m = String(value ?? '').match(DATA_URL);
+  if (!m) throw new DomainError(`Ajoutez la photo : ${label}.`);
+  const data = Buffer.from(m[2], 'base64');
+  if (!MAGIC[m[1]](data)) throw new DomainError(`Photo illisible : ${label}.`);
+  if (data.length > KYC_MAX_BYTES) throw new DomainError(`Photo trop lourde : ${label}.`);
+  if (data.length < 8_000) throw new DomainError(`Photo trop petite pour être lue : ${label}.`);
+  return { mime: m[1], data };
+};
+
+/** The seller sends their identity (policy §6.1); an administrator reviews it before any sale. */
+route('POST', '/kyc', async (ctx) => {
+  const userId = await ctx.accountId();
+  const input = validateKyc(ctx.body, new Date().toISOString().slice(0, 10));
+  const documents = KYC_DOCUMENTS.map((d) => ({ kind: d.kind, ...kycDocument(ctx.body.documents?.[d.kind], d.label) }));
+  await tx(async (q) => {
+    const [m] = await q<{ kyc_status: string }>('SELECT kyc_status FROM merchants WHERE user_id = $1 FOR UPDATE', [userId]);
+    if (!m) throw new DomainError('Ouvrez votre boutique avant de vérifier votre identité.', 403);
+    if (m.kyc_status === 'approved') throw new DomainError('Votre identité est déjà vérifiée.', 409);
+    if (m.kyc_status === 'pending') throw new DomainError('Votre demande est déjà en cours d’examen.', 409);
+    const id = newId('kyc');
+    await q(
+      `INSERT INTO kyc_submissions (id, user_id, full_name, birth_date, nationality, id_type, id_number, id_expires, address, pep)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [id, userId, input.fullName, input.birthDate, input.nationality, input.idType, input.idNumber, input.idExpires ?? null, input.address, input.pep]
+    );
+    for (const d of documents) {
+      await q('INSERT INTO kyc_documents (submission_id, kind, mime, data) VALUES ($1, $2, $3, $4)', [id, d.kind, d.mime, d.data]);
+    }
+    await q("UPDATE merchants SET kyc_status = 'pending', kyc_note = NULL WHERE user_id = $1", [userId]);
   });
   return { patch: { users: [await loadSelf(userId)] } };
 });

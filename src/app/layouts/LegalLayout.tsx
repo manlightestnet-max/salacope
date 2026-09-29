@@ -10,6 +10,7 @@ const LINKS = [
   { to: ROUTES.legal.refund, label: 'Remboursements' },
   { to: ROUTES.legal.privacy, label: 'Confidentialité' },
   { to: ROUTES.legal.cookies, label: 'Cookies' },
+  { to: ROUTES.legal.aml, label: 'Lutte anti-blanchiment' },
 ];
 
 export const LegalLayout: React.FC = () => (

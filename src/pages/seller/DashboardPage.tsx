@@ -11,6 +11,7 @@ import { OrderList, isLate, needsAction, useSellerOrders } from '@/features/orde
 import { useWallet } from '@/features/wallet';
 import { useManagedListings } from '@/features/listings';
 import { ListingThumb } from '@/features/catalog';
+import { VerificationNotice } from '@/features/verification';
 
 const DAY = 86_400_000;
 
@@ -94,6 +95,7 @@ export const DashboardPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        {user.merchant && <VerificationNotice merchant={user.merchant} />}
         <Panel
           title="Aperçu des ventes"
           actions={<Segmented label="Période" value={period} options={PERIODS} onChange={setPeriod} />}

@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { Button, EmptyState } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { RequireAuth, RequireMerchant } from '@/features/session';
+import { RequireAdmin, RequireAuth, RequireMerchant } from '@/features/session';
 import { PublicLayout } from './layouts/PublicLayout';
 import { MinimalLayout } from './layouts/MinimalLayout';
 import { AppLayout } from './layouts/AppLayout';
@@ -18,7 +18,7 @@ import { SignInPage } from '@/pages/public/SignInPage';
 import { CheckoutPage } from '@/pages/shared/CheckoutPage';
 import { ExplorerPage } from '@/pages/account/ExplorerPage';
 import { OpenStorePage } from '@/pages/account/OpenStorePage';
-import { CookiePolicy, LegalNotice, PrivacyPolicy, RefundPolicy, Terms } from '@/pages/legal/LegalPages';
+import { AmlPolicy, CookiePolicy, LegalNotice, PrivacyPolicy, RefundPolicy, Terms } from '@/pages/legal/LegalPages';
 import { OrdersPage } from '@/pages/account/OrdersPage';
 import { FavoritesPage } from '@/pages/account/FavoritesPage';
 import { FollowingPage } from '@/pages/account/FollowingPage';
@@ -35,6 +35,11 @@ import { CustomersPage } from '@/pages/seller/CustomersPage';
 import { PayoutsPage } from '@/pages/seller/PayoutsPage';
 import { PaymentReturnPage } from '@/pages/account/PaymentReturnPage';
 import { LightPayCallbackPage } from '@/pages/seller/LightPayCallbackPage';
+import { VerificationPage } from '@/pages/seller/VerificationPage';
+import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
+import { AdminSellersPage } from '@/pages/admin/AdminSellersPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 
 const NotFound = () => (
   <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />
@@ -79,6 +84,7 @@ export const router = createBrowserRouter([
           { path: 'remboursement', element: <RefundPolicy /> },
           { path: 'confidentialite', element: <PrivacyPolicy /> },
           { path: 'cookies', element: <CookiePolicy /> },
+          { path: 'lutte-anti-blanchiment', element: <AmlPolicy /> },
         ],
       },
       ...LEGACY_REDIRECTS.map(([from, to]) => ({ path: from, element: <Navigate to={to} replace /> })),
@@ -126,6 +132,17 @@ export const router = createBrowserRouter([
               { path: '/dashboard/offres/:id', element: <ListingEditorPage /> },
               { path: ROUTES.seller.customers, element: <CustomersPage /> },
               { path: ROUTES.seller.payouts, element: <PayoutsPage /> },
+              { path: ROUTES.seller.verification, element: <VerificationPage /> },
+            ],
+          },
+          {
+            element: <RequireAdmin />,
+            children: [
+              { path: ROUTES.admin.root, element: <AdminOverviewPage /> },
+              { path: ROUTES.admin.sellers, element: <AdminSellersPage /> },
+              { path: '/admin/vendeurs/:id', element: <AdminSellersPage /> },
+              { path: ROUTES.admin.users, element: <AdminUsersPage /> },
+              { path: ROUTES.admin.audit, element: <AdminAuditPage /> },
             ],
           },
         ],

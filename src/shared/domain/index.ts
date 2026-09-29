@@ -5,3 +5,4 @@ export * from './orders.js';
 export * from './pricing.js';
 export * from './listings.js';
 export * from './reviews.js';
+export * from './kyc.js';

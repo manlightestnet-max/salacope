@@ -12,8 +12,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ReceiptText,
+  ScrollText,
   Settings,
+  ShieldCheck,
   ShoppingBag,
+  UserCheck,
   Store,
   UserPlus,
   UserRound,
@@ -137,10 +140,21 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             {item({ to: ROUTES.seller.listings, label: 'Offres', icon: Package })}
             {item({ to: ROUTES.seller.customers, label: 'Clients', icon: Users })}
             {item({ to: ROUTES.seller.payouts, label: 'Paiements', icon: Wallet })}
+            {user.merchant.kycStatus !== 'approved' &&
+              item({ to: ROUTES.seller.verification, label: 'Vérification', icon: UserCheck, badge: user.merchant.kycStatus === 'pending' ? undefined : 1 })}
           </NavGroup>
         ) : user.guest ? null : (
           <NavGroup title="Vendre" collapsed={collapsed}>
             {item({ to: ROUTES.account.openStore, label: 'Ouvrir ma boutique', icon: Store })}
+          </NavGroup>
+        )}
+
+        {user.admin && (
+          <NavGroup title="Administration" collapsed={collapsed}>
+            {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
+            {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store })}
+            {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
+            {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
           </NavGroup>
         )}
       </nav>
@@ -156,6 +170,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
 
 /** Menu section of a path, shown as the first step of the page breadcrumb. */
 const trailOf = (pathname: string, storeName?: string): string | null => {
+  if (pathname.startsWith(ROUTES.admin.root)) return 'Administration';
   if (pathname.startsWith('/dashboard') || pathname.startsWith(ROUTES.lightpayCallback)) return storeName ?? 'Boutique';
   if (pathname.startsWith(ROUTES.account.explorer)) return 'Catalogue';
   if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/compte/checkout'].some((p) => pathname.startsWith(p))) {

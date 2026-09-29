@@ -7,6 +7,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { KIND_LABEL, ListingThumb } from '@/features/catalog';
 import { ManagedListing, deleteListing, listingHasOrders, setListingStatus, useManagedListings } from '@/features/listings';
+import { VerificationNotice } from '@/features/verification';
 
 type Filter = 'all' | 'published' | 'draft';
 
@@ -30,6 +31,7 @@ export const ListingsPage: React.FC = () => {
         </Button>
       }
     >
+      {user.merchant && <VerificationNotice merchant={user.merchant} className="mb-6" />}
       {listings.length === 0 ? (
         <EmptyState
           icon={Package}

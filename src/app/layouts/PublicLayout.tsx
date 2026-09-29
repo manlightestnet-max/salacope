@@ -120,6 +120,7 @@ const FOOTER_COLUMNS = [
       { to: ROUTES.legal.terms, label: 'Conditions générales' },
       { to: ROUTES.legal.refund, label: 'Remboursements' },
       { to: ROUTES.legal.privacy, label: 'Confidentialité' },
+      { to: ROUTES.legal.aml, label: 'Lutte anti-blanchiment' },
       { to: ROUTES.legal.root, label: 'Mentions légales' },
     ],
   },

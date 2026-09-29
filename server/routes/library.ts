@@ -1,12 +1,16 @@
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { query } from '../db.js';
 import { route } from '../http.js';
+import { SELLABLE_SELLERS } from '../compliance.js';
 
 /** Favourites, followed stores and notifications of the signed-in person. */
 
 route('POST', '/favorites/:listingId', async (ctx) => {
   const userId = await ctx.userId();
-  const [listing] = await query("SELECT 1 FROM listings WHERE id = $1 AND (status = 'published' OR seller_id = $2)", [ctx.params.listingId, userId]);
+  const [listing] = await query(
+    `SELECT 1 FROM listings WHERE id = $1 AND ((status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $2)`,
+    [ctx.params.listingId, userId]
+  );
   if (!listing) throw new DomainError('Offre introuvable.', 404);
   const [row] = await query(
     `INSERT INTO favorites (user_id, listing_id) VALUES ($1, $2)

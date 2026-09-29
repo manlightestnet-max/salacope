@@ -27,7 +27,8 @@ export const OpenStorePage: React.FC = () => {
       <p className="text-sm text-gray-500 mb-4">
         Sans abonnement.{' '}
         {PLATFORM.feeRate > 0 ? `Commission de ${PLATFORM.feeRate * 100} % par vente.` : 'Aucune commission pendant le lancement.'} Vos
-        ventes sont versées sur votre wallet LightPay après validation du client.
+        ventes sont versées sur votre wallet LightPay après validation du client. Votre identité est vérifiée avant la mise
+        en ligne de vos offres.
       </p>
       {!user.merchant ? (
         <Card>
@@ -56,6 +57,9 @@ export const OpenStorePage: React.FC = () => {
           <CardHeader title="Boutique ouverte" description="Dernière étape : où recevoir vos ventes." />
           <CardBody className="space-y-4">
             <LightPayConnect />
+            <Button variant="secondary" to={ROUTES.seller.verification}>
+              Vérifier mon identité
+            </Button>
             <Button variant="ghost" to={ROUTES.seller.newListing}>
               Préparer une offre d’abord
             </Button>

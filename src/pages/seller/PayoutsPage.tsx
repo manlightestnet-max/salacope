@@ -11,8 +11,8 @@ import { OrderStatusBadge } from '@/features/orders';
 type View = 'releases' | 'movements';
 
 /**
- * Where the seller's money is: held by LightPay until buyers validate, then paid into the
- * seller's LightPay wallet (read live), from which they withdraw to Mobile Money.
+ * What Salacope paid the seller: held by LightPay until buyers validate, then paid into the
+ * seller's LightPay wallet. The wallet's balance and withdrawals belong to LightPay, not here.
  */
 export const PayoutsPage: React.FC = () => {
   const user = useCurrentUser();
@@ -20,8 +20,6 @@ export const PayoutsPage: React.FC = () => {
   const { wallet, error, reload } = useLightPayWallet();
   const [view, setView] = useState<View>('releases');
   const connected = wallet ? wallet.connected : Boolean(user.merchant?.lightpayConnected);
-
-  const walletValue = wallet?.connected ? formatXaf(wallet.available ?? 0) : error ? '—' : wallet ? 'Non connecté' : '…';
 
   return (
     <Page
@@ -51,11 +49,11 @@ export const PayoutsPage: React.FC = () => {
                 {error} Réessayer
               </button>
             ) : (
-              'Solde LightPay lu en direct'
+              'Ce que Salacope vous a versé. Votre solde et vos retraits se gèrent sur LightPay.'
             )
           }
         >
-          <StatGrid columns={3}>
+          <StatGrid>
             <Stat
               label="Bloqué"
               value={formatXaf(balance.escrow + balance.frozen)}
@@ -63,17 +61,21 @@ export const PayoutsPage: React.FC = () => {
               hint={balance.frozen ? `dont ${formatXaf(balance.frozen)} en litige` : plural(releases.length, 'vente en cours', 'ventes en cours')}
             />
             <Stat
-              label="Versé sur LightPay"
-              value={formatXaf(balance.released)}
-              help="Total des ventes validées et versées sur votre wallet LightPay."
-              hint={plural(ledger.length, 'vente versée', 'ventes versées')}
+              label="Ventes validées"
+              value={formatXaf(balance.sold)}
+              help="Montant des ventes validées par vos clients, avant commission."
+              hint={plural(ledger.length, 'vente', 'ventes')}
             />
             <Stat
-              label="Solde LightPay"
-              value={walletValue}
-              emphasis={Boolean(wallet?.connected)}
-              help="Ce que vous pouvez retirer maintenant vers MTN MoMo ou Airtel Money, depuis LightPay."
-              hint={wallet?.locked ? `+ ${formatXaf(wallet.locked)} bloqués` : 'Disponible au retrait'}
+              label="Commission Salacope"
+              value={balance.commission ? `−${formatXaf(balance.commission)}` : formatXaf(0)}
+              help="Retenue automatiquement sur chaque vente validée. Elle apparaît aussi, ligne par ligne, dans votre activité LightPay."
+            />
+            <Stat
+              label="Versé sur LightPay"
+              value={formatXaf(balance.released)}
+              emphasis
+              help="Ventes validées moins la commission : ce que Salacope a versé sur votre wallet LightPay. Ce total ne baisse pas quand vous retirez."
             />
           </StatGrid>
         </Panel>
@@ -137,7 +139,16 @@ export const PayoutsPage: React.FC = () => {
                     }
                     title={e.label}
                     subtitle={`${e.detail} · ${formatDate(e.at)}`}
-                    trailing={<span className="font-medium text-emerald-700">+{formatXaf(e.amount)}</span>}
+                    trailing={
+                      <span className="flex flex-col items-end gap-0.5">
+                        <span className="font-medium text-emerald-700">+{formatXaf(e.amount)}</span>
+                        {e.commission > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {formatXaf(e.sale)} − {formatXaf(e.commission)} commission
+                          </span>
+                        )}
+                      </span>
+                    }
                   />
                 ))}
               </List>

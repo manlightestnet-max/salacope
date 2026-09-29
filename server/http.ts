@@ -87,8 +87,10 @@ export async function handle(request: Request): Promise<Response> {
     if (!viewer) {
       viewer = getIdentity().then(async (id) => {
         if (id) {
-          const [row] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [id.uid]);
+          const [row] = await query<{ id: string; blocked_at: string | null }>('SELECT id, blocked_at FROM users WHERE firebase_uid = $1', [id.uid]);
           if (!row) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
+          // Blocked by Salacope (AML/CFT policy): nothing can be done with the account any more.
+          if (row.blocked_at) throw new DomainError('Votre compte est bloqué. Écrivez à contact@salacope.online.', 403);
           return { id: row.id, guest: false };
         }
         const guest = await guestIdFromKey(guestKey);

@@ -17,6 +17,7 @@ import {
 } from '../load.js';
 import { notify } from '../notify.js';
 import { listingView } from '../views.js';
+import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
 
 /** Everything the app needs at start: the public catalogue, plus the signed-in person's own data. */
 route('GET', '/bootstrap', async (ctx) => {
@@ -27,7 +28,7 @@ route('GET', '/bootstrap', async (ctx) => {
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId),
     query(
-      `SELECT * FROM listings WHERE status = 'published' OR seller_id = $1
+      `SELECT * FROM listings WHERE (status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1
          OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)
        ORDER BY COALESCE(published_at, created_at) DESC`,
       [userId]
@@ -70,8 +71,10 @@ const requireMerchant = async (userId: string) => {
   if (!m) throw new DomainError('Activez votre boutique pour publier une offre.', 403);
 };
 
-/** Sales land in the seller's LightPay wallet: no wallet, no publishing. */
+/** Online only once the identity is verified (AML/CFT) and the LightPay wallet is connected. */
 const requirePayouts = async (q: Query, sellerId: string) => {
+  await requireSellable(q, sellerId);
+  // Sales land in the seller's LightPay wallet: no wallet, no publishing.
   const [m] = await q('SELECT lightpay_connection_id FROM merchants WHERE user_id = $1', [sellerId]);
   if (!m?.lightpay_connection_id) {
     throw new DomainError('Connectez votre wallet LightPay pour publier : c’est là que vous recevez vos ventes.', 409);

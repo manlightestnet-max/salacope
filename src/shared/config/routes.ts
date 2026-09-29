@@ -37,6 +37,16 @@ export const ROUTES = {
     sale: (id: string) => `/dashboard/ventes/${id}`,
     customers: '/dashboard/clients',
     payouts: '/dashboard/paiements',
+    verification: '/dashboard/verification',
+  },
+
+  /** Salacope administration (accounts listed in SALACOPE_ADMIN_UIDS). */
+  admin: {
+    root: '/admin',
+    sellers: '/admin/vendeurs',
+    seller: (id: string) => `/admin/vendeurs/${id}`,
+    users: '/admin/comptes',
+    audit: '/admin/journal',
   },
 
   legal: {
@@ -45,5 +55,7 @@ export const ROUTES = {
     refund: '/legal/remboursement',
     privacy: '/legal/confidentialite',
     cookies: '/legal/cookies',
+    aml: '/legal/lutte-anti-blanchiment',
+    amlPolicyPdf: '/legal/salacope-aml-cft-policy.pdf',
   },
 } as const;

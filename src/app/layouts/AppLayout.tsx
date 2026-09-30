@@ -24,7 +24,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
+import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { shortcutLabel, useFocusShortcut, useTrackHistory } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
@@ -249,6 +249,7 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-surface">
+      <LaunchBanner />
       <header className="shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30">
         <button
           type="button"

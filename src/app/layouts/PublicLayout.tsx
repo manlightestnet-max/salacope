@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Compass, LayoutDashboard, LucideIcon, MapPin, Search, ShoppingBag, Store, UserPlus } from 'lucide-react';
-import { Button, Container, Logo, SearchField, ThemeToggle } from '@/shared/ui';
+import { Button, Container, LaunchBanner, Logo, SearchField, ThemeToggle } from '@/shared/ui';
 import { FooterVisibilityContext, shortcutLabel, useFocusShortcut } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
@@ -176,6 +176,7 @@ export const PublicLayout: React.FC = () => {
   return (
     <FooterVisibilityContext.Provider value={setFooterHidden}>
       <div className="flex-1 flex flex-col bg-canvas" style={HEADER_OFFSET}>
+        <LaunchBanner />
         <Header />
         <main className="flex-1">
           <Outlet />

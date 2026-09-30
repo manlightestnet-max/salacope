@@ -21,3 +21,4 @@ export * from './Handoff';
 export * from './HelpTip';
 export * from './Panel';
 export * from './UpdatedAt';
+export * from './LaunchBanner';

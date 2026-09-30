@@ -38,8 +38,9 @@ export const LegalNotice: React.FC = () => (
     <section>
       <h2>Éditeur</h2>
       <ul>
-        <li>Raison sociale : {COMPANY.legalName}, exploitant la marque Salacope</li>
+        <li>Raison sociale : {COMPANY.legalName}</li>
         <li>Forme juridique : {COMPANY.legalForm}</li>
+        <li>Registre du commerce : {COMPANY.registry}</li>
         <li>Identification fiscale : {COMPANY.taxId}</li>
         <li>Licence : {COMPANY.license}</li>
         <li>Siège : {COMPANY.address}</li>
@@ -48,6 +49,13 @@ export const LegalNotice: React.FC = () => (
           Contact : <Contact />
         </li>
       </ul>
+    </section>
+    <section>
+      <h2>Salacope Online</h2>
+      <p>
+        Salacope Online est un produit de {COMPANY.legalName}. Son nom réunit le mot lingala « salacope », faire un travail
+        pour être payé, et « online » : la plateforme où les freelances congolais travaillent et sont payés en ligne.
+      </p>
     </section>
     <section>
       <h2>Hébergement</h2>

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Lock } from 'lucide-react';
-import { Container, Logo, ThemeToggle } from '@/shared/ui';
+import { Container, LaunchBanner, Logo, ThemeToggle } from '@/shared/ui';
 
 /** Distraction-free chrome for checkout and sign-in. */
 export const MinimalLayout: React.FC = () => (
   <div className="flex-1 flex flex-col bg-canvas">
+    <LaunchBanner />
     <header className="h-14 border-b border-gray-200 bg-surface/80 backdrop-blur">
       <Container className="h-full flex items-center justify-between">
         <Logo />

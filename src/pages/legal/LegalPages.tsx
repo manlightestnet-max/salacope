@@ -8,7 +8,6 @@ import { ROUTES } from '@/shared/config/routes';
 
 const UPDATED = '29 septembre 2026';
 const DAYS = PLATFORM.escrowDays;
-const FEE = `${PLATFORM.feeRate * 100} %`;
 
 const Doc: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div>
@@ -125,9 +124,10 @@ export const Terms: React.FC = () => (
         L’acheteur paie par MTN MoMo ou Airtel Money. Le montant est bloqué par LightPay et n’est versé au vendeur qu’une fois
         la commande terminée : quand l’acheteur confirme la réception, ou automatiquement {DAYS} jours après la livraison sans
         litige.
-        {PLATFORM.feeRate > 0
-          ? ` Une commission de ${FEE} est alors retenue automatiquement sur chaque vente validée ; le vendeur l’accepte en connectant son wallet LightPay, et elle apparaît ligne par ligne dans son activité LightPay.`
-          : ' Aucune commission n’est prélevée pendant la période de lancement.'}
+        {' '}Une commission est alors retenue automatiquement sur chaque vente validée, au taux affiché au vendeur au moment de
+        la vente. Ce taux peut être modifié selon les conditions de nos prestataires tiers ou notre politique interne ; le
+        vendeur en est informé, et en acceptant les présentes conditions puis en continuant à vendre, il accepte le taux en
+        vigueur. La commission apparaît ligne par ligne dans l’activité de son wallet.
       </p>
     </section>
     <section>

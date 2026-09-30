@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { Button, EmptyState } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
+import { isAdminHost } from '@/shared/config/hosts';
 import { RequireAdmin, RequireAuth, RequireMerchant } from '@/features/session';
 import { PublicLayout } from './layouts/PublicLayout';
 import { MinimalLayout } from './layouts/MinimalLayout';
@@ -70,7 +71,7 @@ export const router = createBrowserRouter([
   {
     element: <PublicLayout />,
     children: [
-      { path: ROUTES.home, element: <HomePage /> },
+      { path: ROUTES.home, element: isAdminHost() ? <Navigate to={ROUTES.admin.root} replace /> : <HomePage /> },
       { path: ROUTES.search, element: <SearchPage /> },
       { path: '/produit/:id', element: <ListingPage /> },
       { path: '/boutique/:id', element: <PublicStorePage /> },

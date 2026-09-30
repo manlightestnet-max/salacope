@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/shared/config/routes';
+import { ADMIN_HOST, isPublicHost } from '@/shared/config/hosts';
 import { useSession } from './hooks';
 
 /** Redirects to sign-in, then back to the requested page. */
@@ -17,6 +18,12 @@ export const RequireAuth: React.FC = () => {
 /** Salacope administration: only accounts the server marks as administrators (the API checks again). */
 export const RequireAdmin: React.FC = () => {
   const { user } = useSession();
+  const location = useLocation();
+  // On the public site, the administration lives at its own address.
+  if (isPublicHost()) {
+    window.location.replace(`https://${ADMIN_HOST}${location.pathname}${location.search}`);
+    return null;
+  }
   if (!user?.admin) return <Navigate to={ROUTES.account.explorer} replace />;
   return <Outlet />;
 };

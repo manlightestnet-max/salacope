@@ -1,7 +1,9 @@
 import React from 'react';
+import { isAdminHost } from '@/shared/config/hosts';
 
 /** Thin notice above the header until the public launch (FR, and EN for partners reviewing the site). */
-export const LaunchBanner: React.FC = () => (
+export const LaunchBanner: React.FC = () =>
+  isAdminHost() ? null : (
   <div role="note" className="shrink-0 bg-gray-100 border-b border-gray-200/60 text-gray-700 text-xs">
     <p className="h-8 px-4 flex items-center justify-center gap-2 text-center truncate">
       <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" aria-hidden />

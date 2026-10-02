@@ -13,7 +13,8 @@ export const PLATFORM = {
   /** Time the buyer has to approve the Mobile Money request on their phone. */
   paymentTimeoutSeconds: 60,
   minWithdrawalXaf: 1000,
-  minPriceXaf: 500,
+  /** Same as the mobile-money minimum: below it an offer could not be paid. */
+  minPriceXaf: 1000,
   country: 'République du Congo',
   /** Where the team is based (footer). */
   headquarters: 'Luanda, Angola',

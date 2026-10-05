@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Zap } from 'lucide-react';
+import lightpayMark from '@/shared/assets/lightpay-mark.png';
 
 export type Brand = 'salacope' | 'lightpay';
 
@@ -19,9 +19,7 @@ export const BrandMark: React.FC<{ brand: Brand; className?: string }> = ({ bran
     {brand === 'salacope' ? (
       <span className="w-9 h-9 rounded-lg bg-primary-600 text-white flex items-center justify-center text-lg font-bold">S</span>
     ) : (
-      <span className="w-9 h-9 rounded-lg bg-gray-900 text-canvas flex items-center justify-center">
-        <Zap className="w-5 h-5" fill="currentColor" />
-      </span>
+      <img src={lightpayMark} alt="" width={96} height={96} draggable={false} className="w-10 h-10 object-contain" />
     )}
   </span>
 );

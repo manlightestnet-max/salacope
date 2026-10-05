@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { PAYMENT_CHANNEL_LIST, PaymentChannel } from '@/shared/config/payment';
+import { OperatorLogo } from '@/shared/ui';
 
 export const PaymentChannelPicker: React.FC<{ value: PaymentChannel; onChange: (value: PaymentChannel) => void }> = ({
   value,
@@ -21,9 +22,7 @@ export const PaymentChannelPicker: React.FC<{ value: PaymentChannel; onChange: (
             selected ? 'border-primary-600 ring-1 ring-primary-600 bg-primary-50/40' : 'border-gray-200 hover:border-gray-300'
           )}
         >
-          <span className={clsx('w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center', c.logoClass)}>
-            {c.initial}
-          </span>
+          <OperatorLogo channel={c.id} className="w-6 h-6" />
           <span className="text-sm font-medium text-gray-900">{c.label}</span>
         </button>
       );

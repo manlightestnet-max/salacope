@@ -1,11 +1,11 @@
 import React from 'react';
 import clsx from 'clsx';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/shared/ui';
+import { Button, OperatorLogo } from '@/shared/ui';
 import { formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
-import { PAYMENT_CHANNELS, PaymentChannel } from '@/shared/config/payment';
+import { PaymentChannel } from '@/shared/config/payment';
 import { ListingView } from '../model';
 
 /** What a seller sees when money comes in; drawn from real offers of the catalogue. */
@@ -18,12 +18,9 @@ const PaymentNotice: React.FC<{
   credited?: boolean;
   className?: string;
 }> = ({ channel, title, subject, amount, meta, credited = false, className }) => {
-  const config = PAYMENT_CHANNELS[channel];
   return (
     <div className={clsx('rounded-[18px] border border-gray-200/70 bg-gray-50 px-4 py-3.5 flex items-center gap-3.5', className)}>
-      <span className={clsx('w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-sm font-bold', config.logoClass)}>
-        {config.initial}
-      </span>
+      <OperatorLogo channel={channel} className="w-10 h-10 rounded-xl" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900">{title}</p>
         <p className="text-[12.5px] text-gray-500 truncate">{subject}</p>

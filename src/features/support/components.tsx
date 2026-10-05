@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import clsx from 'clsx';
 import { CreditCard, LifeBuoy, Send } from 'lucide-react';
 import { PaymentAttempt, Ticket, TicketTopic, User } from '@/shared/db';
-import { Avatar, Badge, Button, Card, CardBody, Field, Input, List, ListRow, Select, Textarea } from '@/shared/ui';
+import { Avatar, Badge, Button, Card, CardBody, Field, Input, List, ListRow, OperatorLogo, Select, Textarea } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
-import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 import { ROUTES } from '@/shared/config/routes';
 import { attemptOutcome } from '@/features/checkout';
 import { openTicket, replyToTicket, resolveTicket } from './api';
@@ -46,9 +44,7 @@ export const PaymentAttemptList: React.FC<{ attempts: PaymentAttempt[]; titles: 
       <ListRow
         key={a.id}
         leading={
-          <span className={clsx('w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold', PAYMENT_CHANNELS[a.channel].logoClass)}>
-            {PAYMENT_CHANNELS[a.channel].initial}
-          </span>
+          <OperatorLogo channel={a.channel} className="w-9 h-9 rounded-xl" />
         }
         title={<span className="font-mono tracking-wide">{a.code}</span>}
         subtitle={`${titles.get(a.listingId) ?? 'Offre supprimée'} · ${formatRelative(a.createdAt)}`}

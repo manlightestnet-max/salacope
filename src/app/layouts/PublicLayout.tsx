@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Compass, LayoutDashboard, LucideIcon, MapPin, Search, ShoppingBag, Store, UserPlus } from 'lucide-react';
-import { Button, Container, LaunchBanner, Logo, SearchField, ThemeToggle } from '@/shared/ui';
+import { Button, Container, LaunchBanner, Logo, OperatorLogo, SearchField, ThemeToggle } from '@/shared/ui';
 import { FooterVisibilityContext, shortcutLabel, useFocusShortcut } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
@@ -157,9 +157,7 @@ const Footer: React.FC = () => (
         <div className="flex items-center gap-2">
           <span className="mr-1">Paiement</span>
           {PAYMENT_CHANNEL_LIST.map((c) => (
-            <span key={c.id} className={clsx('h-6 px-2 rounded-md text-[11px] font-bold flex items-center', c.logoClass)}>
-              {c.label}
-            </span>
+            <OperatorLogo key={c.id} channel={c.id} className="w-6 h-6" />
           ))}
         </div>
       </div>

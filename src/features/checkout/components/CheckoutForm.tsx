@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { auth } from '@/shared/api';
@@ -11,7 +11,7 @@ import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
 import { SignInForm, useSession } from '@/features/session';
 import { ListingThumb } from '@/features/catalog';
 import { startCheckout } from '../api';
-import { loadLightPay } from '../lightpay';
+import { loadLightPay, warmLightPay } from '../lightpay';
 
 export interface CheckoutFormProps {
   listing: Listing;
@@ -34,6 +34,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
+  useEffect(warmLightPay, []);
+
   const amounts = priceOrder(listing.priceXaf);
   const questions = listing.briefQuestions ?? [];
 
@@ -46,7 +48,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
     }
     setBusy(true);
     try {
-      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 900);
+      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 400);
       let lightpay;
       try {
         lightpay = await loadLightPay(checkoutUrl);

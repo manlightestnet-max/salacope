@@ -4,7 +4,7 @@ import { Lock, ShieldCheck } from 'lucide-react';
 import { auth } from '@/shared/api';
 import { Listing } from '@/shared/db';
 import { Button, Card, CardBody, CardHeader, Field, Handoff, Input, Textarea } from '@/shared/ui';
-import { atLeast, formatXaf } from '@/shared/lib';
+import { atLeast, formatXaf, getTheme } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
@@ -59,7 +59,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
       // LightPay's dialog over the page; the result is confirmed server-side on the return page.
       setBusy(false);
       const idToken = await auth.idToken().catch(() => null);
-      const result = await lightpay.pay(checkoutUrl, idToken ? { idToken } : undefined);
+      const theme = getTheme();
+      const result = await lightpay.pay(checkoutUrl, idToken ? { idToken, theme } : { theme });
       if (result.status === 'completed') navigate(`${ROUTES.paymentReturn}?tentative=${encodeURIComponent(attemptId)}`);
     } catch (err) {
       setError((err as Error).message);

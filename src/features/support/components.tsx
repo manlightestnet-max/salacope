@@ -9,6 +9,7 @@ import { attemptOutcome } from '@/features/checkout';
 import { openTicket, replyToTicket, resolveTicket } from './api';
 import { useSupportReferences } from './hooks';
 import { TICKET_STATUS, TICKET_TOPICS, topicLabel } from './model';
+import salacopeMark from '@/shared/assets/salacope-mark.png';
 
 export const TicketStatusBadge: React.FC<{ ticket: Pick<Ticket, 'status'> }> = ({ ticket }) => (
   <Badge tone={TICKET_STATUS[ticket.status].tone} dot>
@@ -160,7 +161,7 @@ export const TicketThread: React.FC<{ ticket: Ticket; user: User }> = ({ ticket,
                 {mine ? (
                   <Avatar name={user.name} />
                 ) : (
-                  <span className="w-8 h-8 shrink-0 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">S</span>
+                  <span className="w-8 h-8 shrink-0 rounded-full bg-[#0b0d0c] flex items-center justify-center"><img src={salacopeMark} alt="" width={128} height={110} className="w-4 h-auto" /></span>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="text-sm">

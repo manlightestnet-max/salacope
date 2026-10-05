@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { AlertTriangle, Info, Loader2, Search, X } from 'lucide-react';
 import { getInitials } from '../lib/format';
+import salacopeMark from '@/shared/assets/salacope-mark.png';
 
 const CONTAINER_SIZE = {
   /** Storefront width: fills the screen up to 1875px, then stays centred (same as Kubeta). */
@@ -19,7 +20,10 @@ export const Container: React.FC<{ children: React.ReactNode; className?: string
 
 export const Logo: React.FC<{ to?: string; className?: string }> = ({ to = '/', className }) => (
   <Link to={to} className={clsx('flex items-center gap-2 select-none', className)}>
-    <span className="w-6 h-6 rounded-md bg-primary-600 text-white flex items-center justify-center text-xs font-bold">S</span>
+    {/* Salacope's mark (white S, green stroke) on its dark square: logo colours, not theme tokens. */}
+    <span className="w-7 h-7 rounded-lg bg-[#0b0d0c] flex items-center justify-center">
+      <img src={salacopeMark} alt="" width={128} height={110} draggable={false} className="w-5 h-auto" />
+    </span>
     <span className="text-[15px] font-semibold tracking-tight text-gray-900">Salacope</span>
   </Link>
 );

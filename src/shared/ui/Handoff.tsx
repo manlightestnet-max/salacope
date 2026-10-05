@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import lightpayMark from '@/shared/assets/lightpay-mark.png';
+import salacopeMark from '@/shared/assets/salacope-mark.png';
 
 export type Brand = 'salacope' | 'lightpay';
 
@@ -17,7 +18,10 @@ export const BrandMark: React.FC<{ brand: Brand; className?: string }> = ({ bran
     aria-label={BRAND_LABEL[brand]}
   >
     {brand === 'salacope' ? (
-      <span className="w-9 h-9 rounded-lg bg-primary-600 text-white flex items-center justify-center text-lg font-bold">S</span>
+      // White S with the green stroke: always on its dark app-icon square (logo colours, not theme tokens).
+      <span className="w-10 h-10 rounded-xl bg-[#0b0d0c] flex items-center justify-center">
+        <img src={salacopeMark} alt="" width={128} height={110} draggable={false} className="w-7 h-auto" />
+      </span>
     ) : (
       <img src={lightpayMark} alt="" width={96} height={96} draggable={false} className="w-10 h-10 object-contain" />
     )}

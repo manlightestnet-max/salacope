@@ -12,8 +12,9 @@ export const Table: React.FC<{ children: React.ReactNode; className?: string }> 
   );
 };
 
-export const THead: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <thead>
+/** `sticky`: the header row stays in view while the rows scroll (inside a scrolling panel). */
+export const THead: React.FC<{ children: React.ReactNode; sticky?: boolean }> = ({ children, sticky }) => (
+  <thead className={clsx(sticky && 'sticky top-0 z-10 bg-surface')}>
     <tr className="border-b border-gray-200/70">{children}</tr>
   </thead>
 );

@@ -88,7 +88,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
             : `Livraison attendue ${formatRelative(order.dueAt)}`
           : 'Le vendeur travaille sur votre commande';
         body = seller
-          ? `Livrez depuis cette page. Le client aura ensuite ${PLATFORM.escrowDays} jours pour valider.`
+          ? `Livrez depuis cette page. Le client aura ensuite ${PLATFORM.serviceValidationDays} jours pour valider.`
           : `Livraison prévue le ${formatDate(order.dueAt)}.`;
       }
       break;

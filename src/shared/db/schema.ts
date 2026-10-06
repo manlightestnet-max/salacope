@@ -12,6 +12,8 @@ export interface Merchant {
   storeName: string;
   headline: string;
   city: string;
+  /** Store photo: square JPEG data URL. */
+  logo?: string;
   verified: boolean;
   activatedAt: string;
   /** Own store only: the LightPay wallet that receives the sales is connected. */
@@ -36,6 +38,8 @@ export interface User {
   blocked?: { at: string; reason: string };
   /** Own account only: a Salacope administrator. */
   admin?: boolean;
+  /** Own account only: sellers this person blocked in the chat. */
+  blocks?: string[];
   merchant?: Merchant;
 }
 
@@ -61,6 +65,8 @@ export interface Listing {
   description: string;
   features: string[];
   priceXaf: number;
+  /** Promotion: the former price, struck through next to `priceXaf` (always higher). */
+  compareAtXaf?: number;
   coverImage: string;
   /** Services only: committed delivery time, in days. */
   deliveryDays?: number;
@@ -117,12 +123,36 @@ export interface Attachment {
   dataUrl?: string;
 }
 
+/** Seller's card in the chat: one of their offers to pay, valid a few minutes once the buyer opens it. */
+export interface PaymentRequest {
+  listingId: string;
+  title: string;
+  priceXaf: number;
+  coverImage: string;
+  category: Category;
+  /** First time the buyer opened it: the countdown starts here. */
+  openedAt?: string;
+}
+
 export interface OrderMessage {
   id: string;
   authorId: string;
   body: string;
   attachments?: Attachment[];
+  /** A card instead of a plain message. */
+  request?: PaymentRequest;
   at: string;
+}
+
+/** State of the conversation of an order. */
+export interface OrderChat {
+  /** Messages are erased once the order is closed (only the buyer turns it on). */
+  ephemeral: boolean;
+  /** The buyer blocked the seller: the seller can no longer write. */
+  blocked: boolean;
+  /** Last time each party's app received the messages (✓✓) and read them (✓✓ coloured). */
+  seen: { buyer?: string; seller?: string };
+  read: { buyer?: string; seller?: string };
 }
 
 export interface Order {
@@ -167,6 +197,9 @@ export interface Order {
   extension?: DeadlineExtension;
   events: OrderEvent[];
   messages: OrderMessage[];
+  chat: OrderChat;
+  /** Seller only: their own tags and pin on the sale (never shown to the buyer). */
+  sellerMeta?: { tags: string[]; pinnedAt?: string };
 }
 
 export interface DeadlineExtension {

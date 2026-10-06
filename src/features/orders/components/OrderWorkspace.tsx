@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Receipt } from 'lucide-react';
+import { MessagesSquare, Receipt } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, DescriptionList, Page } from '@/shared/ui';
 import { formatDateTime, formatXaf } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb, SellerCard } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
-import { OrderView } from '../hooks';
+import { OrderView, useSellerTagList } from '../hooks';
+import { SellerOrderTools } from './SellerOrderTools';
 import { Perspective, fundsState, paymentMethodLabel } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { NextStepCard } from './NextStepCard';
@@ -34,6 +35,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
   const { order, seller, users } = view;
   const [receiptOpen, setReceiptOpen] = useState(false);
   const isSeller = perspective === 'seller';
+  const knownTags = useSellerTagList(order.sellerId);
 
   // A bought file: show the product, not the order machinery.
   if (!isSeller && order.item.kind === 'digital') return <DigitalPurchaseView view={view} userId={userId} />;
@@ -45,9 +47,15 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
       title={order.number}
       meta={<span className="ml-2"><OrderStatusBadge order={order} perspective={perspective} /></span>}
       actions={
-        <Button size="sm" icon={<Receipt className="w-3.5 h-3.5" />} onClick={() => setReceiptOpen(true)}>
-          Reçu
-        </Button>
+        <>
+          {isSeller && <SellerOrderTools order={order} knownTags={knownTags} />}
+          <Button size="sm" variant="ghost" icon={<MessagesSquare className="w-3.5 h-3.5" />} to={ROUTES.account.chat(order.id)}>
+            Discussion
+          </Button>
+          <Button size="sm" icon={<Receipt className="w-3.5 h-3.5" />} onClick={() => setReceiptOpen(true)}>
+            Reçu
+          </Button>
+        </>
       }
     >
       <div className="flex items-center gap-3 mb-6">

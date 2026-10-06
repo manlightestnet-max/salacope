@@ -15,3 +15,4 @@ export * from './components/ListingQuickView';
 export * from './components/StorefrontHero';
 export * from './components/CreatorStrip';
 export * from './components/SellerInvite';
+export * from './components/ListingPrice';

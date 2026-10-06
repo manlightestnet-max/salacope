@@ -72,3 +72,24 @@ export async function reportProblem(orderId: string, reason: string, detail = ''
   const { result } = await act(orderId, 'report', { reason, detail });
   return result;
 }
+
+// ---------------------------------------------------------------- chat
+
+/** The conversation is on screen: the other party sees their messages as read. */
+export const markRead = (orderId: string) => act(orderId, 'read');
+
+/** Buyer only: messages erased once the order is closed. */
+export const setEphemeral = (orderId: string, on: boolean) => act(orderId, 'ephemeral', { on });
+
+/** Seller: one of their offers to pay, as a card valid a few minutes once opened. */
+export const sendPaymentRequest = (orderId: string, listingId: string) => act(orderId, 'payment-requests', { listingId });
+
+/** Buyer opens the card: the countdown starts (first time only). */
+export const openPaymentRequest = (orderId: string, messageId: string) => act(orderId, `messages/${encodeURIComponent(messageId)}/open`);
+
+/** Buyer: the seller can no longer write to them (or again, when `blocked` is false). */
+export const blockSeller = (sellerId: string, blocked: boolean) => mutate('POST', '/blocks', { sellerId, blocked });
+
+/** Seller's own organisation of a sale; never shown to the buyer. */
+export const setSellerTags = (orderId: string, tags: string[]) => mutate('PATCH', `/orders/${encodeURIComponent(orderId)}/seller-meta`, { tags });
+export const setPinned = (orderId: string, pinned: boolean) => mutate('PATCH', `/orders/${encodeURIComponent(orderId)}/seller-meta`, { pinned });

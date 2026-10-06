@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pin } from 'lucide-react';
 import clsx from 'clsx';
 import { Order } from '@/shared/db';
 import { KindBadge, ListingThumb } from '@/features/catalog';
@@ -6,6 +7,7 @@ import { List, ListRow } from '@/shared/ui';
 import { formatDate, formatRelative, formatXaf } from '@/shared/lib';
 import { Perspective, hasPendingExtension, isLate } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
+import { SellerTags } from './SellerOrderTools';
 
 export interface OrderListProps {
   orders: Order[];
@@ -45,11 +47,21 @@ export const OrderList: React.FC<OrderListProps> = ({ orders, perspective, count
           key={o.id}
           to={hrefFor(o)}
           leading={<ListingThumb src={o.item.coverImage} category={o.item.category} size="md" />}
-          title={o.item.title}
+          title={
+            isSeller && o.sellerMeta?.pinnedAt ? (
+              <span className="inline-flex items-center gap-1.5 max-w-full">
+                <Pin className="w-3.5 h-3.5 shrink-0 text-gray-400" aria-label="Épinglée" />
+                <span className="truncate">{o.item.title}</span>
+              </span>
+            ) : (
+              o.item.title
+            )
+          }
           subtitle={[o.number, counterpartyName?.(o), formatDate(o.createdAt)].filter(Boolean).join(' · ')}
           meta={
             <>
               {showKind && <KindBadge kind={o.item.kind} category={o.item.category} />}
+              {isSeller && <SellerTags tags={o.sellerMeta?.tags} />}
               <OrderStatusBadge order={o} perspective={perspective} />
             </>
           }

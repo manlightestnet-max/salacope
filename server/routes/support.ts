@@ -6,7 +6,7 @@ import { route } from '../http.js';
 import { newId } from '../ids.js';
 import { loadAttempts, loadNotifications, loadOrders, loadReviews, loadStats, loadTickets } from '../load.js';
 import { notify } from '../notify.js';
-import { formatXaf, refreshPendingAttempts, settleDueOrders } from '../orders.js';
+import { formatXaf, markReceived, refreshPendingAttempts, settleDueOrders } from '../orders.js';
 
 const TOPICS = ['payment', 'order', 'account', 'other'];
 const SUPPORT_DELAY = 'Nous vous répondons sous 24 h.';
@@ -138,9 +138,10 @@ route('GET', '/sync', async (ctx) => {
   await Promise.all([
     refreshPendingAttempts(userId).catch(() => undefined),
     settleDueOrders(3).catch(() => undefined),
+    markReceived(userId).catch(() => undefined),
   ]);
   const [orders, paymentAttempts, tickets, notifications] = await Promise.all([
-    loadOrders(userId, 'updated_at >= $2', [from]),
+    loadOrders(userId, '(updated_at >= $2 OR chat_at >= $2)', [from]),
     loadAttempts(userId, 'updated_at >= $2', [from]),
     loadTickets(userId, 'updated_at >= $2', [from]),
     loadNotifications(userId, 'created_at >= $2', [from]),

@@ -23,3 +23,4 @@ export * from './HelpTip';
 export * from './Panel';
 export * from './UpdatedAt';
 export * from './LaunchBanner';
+export * from './ImageViewer';

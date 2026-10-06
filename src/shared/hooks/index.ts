@@ -5,3 +5,4 @@ export * from './useFocusShortcut';
 export * from './useInfiniteList';
 export * from './useFooterVisibility';
 export * from './useBackLink';
+export * from './useNow';

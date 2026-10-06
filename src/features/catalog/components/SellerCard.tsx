@@ -17,7 +17,7 @@ export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: numbe
   const m = seller.merchant;
   return (
     <div className="flex items-start gap-3">
-      <Avatar name={displayName(seller)} size="lg" />
+      <Avatar name={displayName(seller)} src={m?.logo} size="lg" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <Link

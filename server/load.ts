@@ -23,19 +23,28 @@ export async function loadOrders(userId: string, where = 'TRUE', params: unknown
   );
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [events, messages] = await Promise.all([
+  const [events, messages, blocks] = await Promise.all([
     q('SELECT * FROM order_events WHERE order_id = ANY($1) ORDER BY at, id', [ids]),
     q('SELECT * FROM order_messages WHERE order_id = ANY($1) ORDER BY at, id', [ids]),
+    q<{ blocker_id: string; blocked_id: string }>('SELECT blocker_id, blocked_id FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]),
   ]);
+  const blocked = new Set(blocks.map((b) => `${b.blocker_id}>${b.blocked_id}`));
   return rows.map((r) =>
     orderView(
       r,
       events.filter((e) => e.order_id === r.id).map(eventView),
       messages.filter((m) => m.order_id === r.id).map(messageView),
-      userId
+      userId,
+      blocked.has(`${r.buyer_id}>${r.seller_id}`)
     )
   );
 }
+
+/** The signed-in person, with what only they may see (e-mail, blocks…). */
+export const loadSelf = async (userId: string) => {
+  const [row] = await query(`SELECT ${USER_COLUMNS} FROM ${USER_FROM} WHERE u.id = $1`, [userId]);
+  return userView(row, true);
+};
 
 export const loadOrder = async (userId: string, orderId: string, q: Query = query) =>
   (await loadOrders(userId, 'id = $2', [orderId], q))[0];

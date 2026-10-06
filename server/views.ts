@@ -15,7 +15,8 @@ import { isAdminUid } from './compliance.js';
 
 export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest, u.firebase_uid,
   u.blocked_at, u.blocked_reason, m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id,
-  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason`;
+  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason, m.logo,
+  (SELECT COALESCE(array_agg(b.blocked_id), '{}') FROM user_blocks b WHERE b.blocker_id = u.id) AS blocks`;
 export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
 const opt = <T>(v: T | null | undefined) => (v === null ? undefined : v);
@@ -29,12 +30,14 @@ export const userView = (r: any, self: boolean): User => ({
   guest: self && r.guest ? true : undefined,
   blocked: self && r.blocked_at ? { at: r.blocked_at, reason: r.blocked_reason ?? '' } : undefined,
   admin: self && isAdminUid(r.firebase_uid) ? true : undefined,
+  blocks: self && r.blocks?.length ? r.blocks : undefined,
   createdAt: r.created_at,
   merchant: r.store_name
     ? {
         storeName: r.store_name,
         headline: r.headline,
         city: r.city,
+        logo: opt(r.logo),
         verified: r.verified,
         activatedAt: r.activated_at,
         lightpayConnected: self ? Boolean(r.lightpay_connection_id) : undefined,
@@ -55,6 +58,7 @@ export const listingView = (r: any): Listing => ({
   description: r.description,
   features: r.features ?? [],
   priceXaf: r.price_xaf,
+  compareAtXaf: opt(r.compare_at_xaf),
   coverImage: r.cover_image,
   deliveryDays: opt(r.delivery_days),
   revisions: opt(r.revisions),
@@ -69,7 +73,7 @@ export const listingView = (r: any): Listing => ({
 const maskPhone = (phone?: string) => (phone ? `${phone.replace(/\d(?=\d{2})/g, '•')}` : '');
 
 /** The seller never sees the buyer's e-mail or phone: they talk through the order chat. */
-export const orderView = (r: any, events: OrderEvent[], messages: OrderMessage[], viewerId: string): Order => {
+export const orderView = (r: any, events: OrderEvent[], messages: OrderMessage[], viewerId: string, blocked = false): Order => {
   const seller = r.seller_id === viewerId && r.buyer_id !== viewerId;
   return {
     id: r.id,
@@ -94,6 +98,13 @@ export const orderView = (r: any, events: OrderEvent[], messages: OrderMessage[]
     extension: opt(r.extension),
     events,
     messages,
+    chat: {
+      ephemeral: Boolean(r.ephemeral),
+      blocked,
+      seen: { buyer: opt(r.buyer_seen_at), seller: opt(r.seller_seen_at) },
+      read: { buyer: opt(r.buyer_read_at), seller: opt(r.seller_read_at) },
+    },
+    sellerMeta: seller ? { tags: r.seller_tags ?? [], pinnedAt: opt(r.seller_pinned_at) } : undefined,
   };
 };
 
@@ -104,6 +115,7 @@ export const messageView = (r: any): OrderMessage => ({
   authorId: r.author_id,
   body: r.body,
   attachments: r.attachments?.length ? r.attachments : undefined,
+  request: r.kind === 'payment_request' ? r.data : undefined,
   at: r.at,
 });
 

@@ -28,22 +28,39 @@ export const Logo: React.FC<{ to?: string; className?: string }> = ({ to = '/', 
   </Link>
 );
 
-export const Avatar: React.FC<{ name: string; size?: 'sm' | 'md' | 'lg'; className?: string }> = ({
+/**
+ * A profile photo that can't be saved from the page: no drag, no selection, and the image
+ * ignores the pointer, so a right click / long press lands on its frame, never on the image.
+ */
+export const ProtectedImage: React.FC<{ src: string; className?: string }> = ({ src, className }) => (
+  <img
+    src={src}
+    alt=""
+    draggable={false}
+    onContextMenu={(e) => e.preventDefault()}
+    className={clsx('w-full h-full object-cover select-none pointer-events-none [-webkit-touch-callout:none]', className)}
+  />
+);
+
+/** Initials, or the photo (store logo) when there is one. */
+export const Avatar: React.FC<{ name: string; src?: string; size?: 'sm' | 'md' | 'lg'; className?: string }> = ({
   name,
+  src,
   size = 'md',
   className,
 }) => (
   <span
     className={clsx(
-      'inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-700 font-medium shrink-0',
+      'inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-700 font-medium shrink-0 overflow-hidden select-none',
       size === 'sm' && 'w-6 h-6 text-[10px]',
       size === 'md' && 'w-8 h-8 text-xs',
       size === 'lg' && 'w-10 h-10 text-sm',
       className
     )}
+    onContextMenu={src ? (e) => e.preventDefault() : undefined}
     aria-hidden
   >
-    {getInitials(name)}
+    {src ? <ProtectedImage src={src} /> : getInitials(name)}
   </span>
 );
 

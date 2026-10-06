@@ -11,7 +11,7 @@ export function useWallet(sellerId: string) {
       return {
         balance: computeBalance(orders),
         ledger: buildLedger(orders),
-        releases: upcomingReleases(orders, PLATFORM.escrowDays),
+        releases: upcomingReleases(orders, PLATFORM.serviceValidationDays),
       };
     },
     [sellerId]

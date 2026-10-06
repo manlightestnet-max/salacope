@@ -33,6 +33,7 @@ export interface OrderRow {
   revisions_used: number;
   extension: Order['extension'] | null;
   lightpay_hold_id: string | null;
+  ephemeral: boolean;
 }
 
 /** Permission view of a row (same rules as the app). */
@@ -87,6 +88,48 @@ export async function transition(q: Query, row: OrderRow, t: Transition): Promis
     at,
   ]);
   await notify(q, t.notices ?? []);
+  if (CLOSED.includes(t.status)) await purgeEphemeral(q, row.id);
+}
+
+// ---------------------------------------------------------------- chat
+
+/** Sale validated or dispute settled: the order is closed. */
+const CLOSED: OrderStatus[] = ['completed', 'cancelled'];
+
+/** Ephemeral chat of a closed order: its messages are erased (events, receipt and money records stay). */
+export async function purgeEphemeral(q: Query, orderId: string): Promise<void> {
+  const gone = await q(
+    `DELETE FROM order_messages m USING orders o
+     WHERE m.order_id = o.id AND o.id = $1 AND o.ephemeral AND o.status IN ('completed', 'cancelled') RETURNING m.id`,
+    [orderId]
+  );
+  if (gone.length) await q('UPDATE orders SET chat_at = NOW() WHERE id = $1', [orderId]);
+}
+
+/** Ephemeral orders already closed: what was written afterwards is erased after a day (checked once a minute at most). */
+let lastSweep = 0;
+export async function purgeLateEphemeral(): Promise<void> {
+  if (Date.now() - lastSweep < 60_000) return;
+  lastSweep = Date.now();
+  await query(
+    `WITH gone AS (
+       DELETE FROM order_messages m USING orders o
+       WHERE m.order_id = o.id AND o.ephemeral AND o.status IN ('completed', 'cancelled') AND m.at < NOW() - INTERVAL '1 day'
+       RETURNING m.order_id)
+     UPDATE orders SET chat_at = NOW() WHERE id IN (SELECT order_id FROM gone)`
+  );
+}
+
+/** The person's app has the messages written to them: "received" (✓✓) for the other party. */
+export async function markReceived(userId: string): Promise<void> {
+  for (const side of ['buyer', 'seller'] as const) {
+    await query(
+      `UPDATE orders o SET ${side}_seen_at = NOW(), chat_at = NOW()
+       WHERE o.${side}_id = $1 AND EXISTS (
+         SELECT 1 FROM order_messages m WHERE m.order_id = o.id AND m.author_id <> $1 AND m.at > COALESCE(o.${side}_seen_at, 'epoch'))`,
+      [userId]
+    );
+  }
 }
 
 const requireHold = (row: OrderRow) => {
@@ -136,7 +179,7 @@ export async function settleAttempt(attemptId: string, known?: LightPaySession):
           json(d.brief ?? []),
           json(d.amounts),
           digital ? 'delivered' : 'paid',
-          digital ? addDays(now, PLATFORM.escrowDays) : null,
+          digital ? addDays(now, PLATFORM.digitalHoldDays) : null,
           a.id,
           session.hold_id,
           now,
@@ -182,6 +225,7 @@ export async function refreshPendingAttempts(userId: string): Promise<void> {
 
 /** Delivered orders whose confirmation window has passed: the seller is paid automatically. */
 export async function settleDueOrders(limit = 5): Promise<number> {
+  await purgeLateEphemeral().catch((err) => console.error('[purgeLateEphemeral]', err?.message));
   const due = await query<{ id: string }>(
     "SELECT id FROM orders WHERE status = 'delivered' AND release_at <= NOW() ORDER BY release_at LIMIT $1",
     [limit]

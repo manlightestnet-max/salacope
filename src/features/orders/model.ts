@@ -5,7 +5,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { formatDate } from '@/shared/lib';
 import { PAYMENT_CHANNELS } from '@/shared/config/payment';
 
-export { CONTACT_BLOCKED, containsContact, hasPendingExtension, perspectiveOf, permissionsFor, revisionsLeft } from '@/shared/domain';
+export { CONTACT_BLOCKED, MAX_MESSAGE_IMAGES, containsContact, hasPendingExtension, isImageType, perspectiveOf, permissionsFor, revisionsLeft } from '@/shared/domain';
 export type { OrderPermissions, Perspective } from '@/shared/domain';
 
 /** How the order was paid (the buyer picks on LightPay). */
@@ -140,6 +140,26 @@ export const ORDER_STATUS_FILTERS: { value: 'all' | 'todo' | 'active' | 'complet
 ];
 
 export type OrderFilter = (typeof ORDER_STATUS_FILTERS)[number]['value'];
+
+/** Date filter of an order history: recent windows, then each year that has orders. */
+export type OrderPeriod = 'all' | '30d' | '90d' | `y${number}`;
+
+export const periodOptions = (orders: Pick<Order, 'createdAt'>[]): { value: OrderPeriod; label: string }[] => {
+  const years = [...new Set(orders.map((o) => new Date(o.createdAt).getFullYear()))].sort((a, b) => b - a);
+  return [
+    { value: 'all', label: 'Toutes les dates' },
+    { value: '30d', label: '30 derniers jours' },
+    { value: '90d', label: '3 derniers mois' },
+    ...years.map((y) => ({ value: `y${y}` as OrderPeriod, label: `Année ${y}` })),
+  ];
+};
+
+export const inPeriod = (order: Pick<Order, 'createdAt'>, period: OrderPeriod, now = Date.now()) => {
+  if (period === 'all') return true;
+  const at = new Date(order.createdAt);
+  if (period === '30d' || period === '90d') return now - at.getTime() <= (period === '30d' ? 30 : 90) * 86_400_000;
+  return at.getFullYear() === Number(period.slice(1));
+};
 
 export const matchesFilter = (order: Order, filter: OrderFilter, perspective: Perspective) => {
   switch (filter) {

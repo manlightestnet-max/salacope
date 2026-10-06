@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import { BadgeCheck, MessageSquareQuote, Package } from 'lucide-react';
-import { EmptyState, Tabs } from '@/shared/ui';
+import { EmptyState, ProtectedImage, Tabs } from '@/shared/ui';
 import { User, useDb } from '@/shared/db';
 import { formatMonthYear, formatNumber, getInitials } from '@/shared/lib';
 import { FollowButton } from '@/features/library';
@@ -36,8 +36,11 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
     <div>
       <section className="rounded-3xl border border-gray-200/70 bg-surface p-5 sm:p-7">
         <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          <span className={clsx('w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-semibold', creatorTint(seller.id))}>
-            {getInitials(name)}
+          <span
+            className={clsx('w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full overflow-hidden select-none flex items-center justify-center text-2xl sm:text-3xl font-semibold', creatorTint(seller.id))}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            {m?.logo ? <ProtectedImage src={m.logo} /> : getInitials(name)}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

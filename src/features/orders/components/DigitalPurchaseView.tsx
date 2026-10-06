@@ -60,7 +60,17 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
   const report = () => setDialog('report');
 
   return (
-    <Page back={{ to: ROUTES.account.orders, label: 'Mes achats' }} title={order.number} meta={<span className="ml-2"><OrderStatusBadge order={order} perspective="buyer" /></span>} width="narrow">
+    <Page
+      back={{ to: ROUTES.account.orders, label: 'Mes achats' }}
+      title={order.number}
+      meta={<span className="ml-2"><OrderStatusBadge order={order} perspective="buyer" /></span>}
+      actions={
+        <Button size="sm" variant="ghost" icon={<MessageCircle className="w-3.5 h-3.5" />} to={ROUTES.account.chat(order.id)}>
+          Discussion
+        </Button>
+      }
+      width="narrow"
+    >
       <section className="rounded-3xl border border-gray-200/70 bg-surface p-4 sm:p-5">
         <div className="flex gap-4 sm:gap-5">
           <ListingCover

@@ -17,6 +17,8 @@ export const ROUTES = {
     store: (sellerId: string) => `/compte/explorer/boutique/${sellerId}`,
     offer: (listingId: string) => `/compte/explorer/offre/${listingId}`,
     checkout: (id: string) => `/compte/checkout/${id}`,
+    messages: '/compte/messages',
+    chat: (orderId: string) => `/compte/messages/${orderId}`,
     orders: '/compte/achats',
     order: (id: string) => `/compte/achats/${id}`,
     favorites: '/compte/favoris',

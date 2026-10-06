@@ -5,7 +5,7 @@ import { auth } from '@/shared/api';
 import { Listing } from '@/shared/db';
 import { Button, Card, CardBody, CardHeader, Field, Handoff, Input, Textarea } from '@/shared/ui';
 import { atLeast, formatXaf, getTheme } from '@/shared/lib';
-import { PLATFORM } from '@/shared/config/platform';
+import { releaseDays } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
 import { SignInForm, useSession } from '@/features/session';
@@ -173,7 +173,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
             <ShieldCheck className="w-4 h-4 shrink-0 text-gray-400" />
             <p>
               Paiement par MTN MoMo ou Airtel Money, sans compte LightPay (le wallet LightPay reste possible). Le vendeur n'est payé qu'après votre validation, ou{' '}
-              {PLATFORM.escrowDays} jours après la livraison. En payant, vous acceptez les{' '}
+              {releaseDays(listing.kind)} jours après la livraison. En payant, vous acceptez les{' '}
               <Link to={ROUTES.legal.terms} className="underline">
                 conditions générales
               </Link>

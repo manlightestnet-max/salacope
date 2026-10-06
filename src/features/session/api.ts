@@ -67,6 +67,11 @@ export async function updateMerchant(input: MerchantInput): Promise<void> {
   await mutate('PATCH', '/merchant', input);
 }
 
+/** Store photo: `null` removes it. The image is cropped square and reduced in the browser. */
+export async function setStoreLogo(logo: string | null): Promise<void> {
+  await mutate('PUT', '/merchant/logo', { logo });
+}
+
 /** Where the seller connects, on LightPay, the wallet that receives the sales. */
 export async function lightPayConnectUrl(): Promise<string> {
   const { url } = await request<{ url: string }>('POST', '/lightpay/connect', {});

@@ -8,6 +8,7 @@ import {
   LifeBuoy,
   LucideIcon,
   Menu as MenuIcon,
+  MessagesSquare,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -29,7 +30,7 @@ import { useDb } from '@/shared/db';
 import { shortcutLabel, useFocusShortcut, useTrackHistory } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
-import { needsAction } from '@/features/orders';
+import { needsAction, useUnreadCount } from '@/features/orders';
 import { NotificationBell } from '@/features/notifications';
 import { useAnsweredTicketCount } from '@/features/support';
 import { useFollowUpdates } from '@/features/library';
@@ -119,13 +120,17 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
     [user.id]
   );
   const answered = useAnsweredTicketCount(user.id);
+  const unread = useUnreadCount(user.id);
   const followUpdates = useFollowUpdates(user.id);
   const item = (props: NavItem) => <NavEntry key={props.to} {...props} collapsed={collapsed} onNavigate={onNavigate} />;
 
   return (
     <div className="flex flex-col h-full">
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-5 scrollbar-none">
-        <div className="space-y-0.5">{item({ to: ROUTES.account.explorer, label: 'Explorer', icon: Compass })}</div>
+        <div className="space-y-0.5">
+          {item({ to: ROUTES.account.explorer, label: 'Explorer', icon: Compass })}
+          {item({ to: ROUTES.account.messages, label: 'Messages', icon: MessagesSquare, badge: unread })}
+        </div>
 
         <NavGroup title="Achats" collapsed={collapsed}>
           {item({ to: ROUTES.account.orders, label: 'Mes achats', icon: ShoppingBag, badge: counts.toValidate })}
@@ -173,6 +178,7 @@ const trailOf = (pathname: string, storeName?: string): string | null => {
   if (pathname.startsWith(ROUTES.admin.root)) return 'Administration';
   if (pathname.startsWith('/dashboard') || pathname.startsWith(ROUTES.lightpayCallback)) return storeName ?? 'Boutique';
   if (pathname.startsWith(ROUTES.account.explorer)) return 'Catalogue';
+  if (pathname.startsWith(ROUTES.account.messages)) return 'Messages';
   if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/compte/checkout'].some((p) => pathname.startsWith(p))) {
     return 'Achats';
   }

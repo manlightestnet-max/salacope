@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, ReceiptText } from 'lucide-react';
-import { EmptyState, ListSection, Page, SearchField, Tabs } from '@/shared/ui';
+import { EmptyState, ListSection, Page, SearchField, Select, Tabs } from '@/shared/ui';
 import { Order } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
 import { useCurrentUser } from '@/features/session';
-import { OrderList, SELLER_LANES, SellerLane, sellerLane, useSellerOrders } from '@/features/orders';
+import { OrderList, SELLER_LANES, SellerLane, sellerLane, useSellerOrders, useSellerTagList } from '@/features/orders';
 
 type View = 'todo' | 'waiting' | 'completed' | 'cancelled' | 'all';
 
@@ -37,13 +37,32 @@ export const SalesPage: React.FC = () => {
   const orders = useSellerOrders(user.id);
   const [view, setView] = useState<View>('todo');
   const [search, setSearch] = useState('');
+  const [client, setClient] = useState('');
+  const [tag, setTag] = useState('');
+  const tags = useSellerTagList(user.id);
 
-  const matching = useMemo(() => {
+  // One entry per client (their name as shown on their orders), alphabetical.
+  const clients = useMemo(() => {
+    const byId = new Map(orders.map((o) => [o.buyerId, o.buyer.name]));
+    return [...byId.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr')).map(([value, label]) => ({ value, label }));
+  }, [orders]);
+
+  // Search (number, client, offer, tag), then the client and tag filters.
+  const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return orders.filter(
-      (o) => !q || [o.number, o.item.title, o.buyer.name].some((v) => v.toLowerCase().includes(q))
+      (o) =>
+        (!q || [o.number, o.item.title, o.buyer.name, ...(o.sellerMeta?.tags ?? [])].some((v) => v.toLowerCase().includes(q))) &&
+        (!client || o.buyerId === client) &&
+        (!tag || o.sellerMeta?.tags.includes(tag))
     );
-  }, [orders, search]);
+  }, [orders, search, client, tag]);
+  // Pinned sales sit on top of every view, once.
+  const pinned = filtered
+    .filter((o) => o.sellerMeta?.pinnedAt)
+    .sort((a, b) => (b.sellerMeta!.pinnedAt ?? '').localeCompare(a.sellerMeta!.pinnedAt ?? ''));
+  const matching = filtered.filter((o) => !o.sellerMeta?.pinnedAt);
+  const filtering = Boolean(search || client || tag);
 
   const count = (v: View) => (v === 'all' ? orders.length : orders.filter((o) => VIEW_LANES[v].includes(sellerLane(o))).length);
   const tabs = [
@@ -83,7 +102,7 @@ export const SalesPage: React.FC = () => {
         ))}
       </div>
     ) : (
-      empty(search ? 'Aucune commande ne correspond' : 'Tout est à jour')
+      !pinned.length && empty(filtering ? 'Aucune commande ne correspond' : 'Tout est à jour')
     );
   } else {
     const items = view === 'all' ? matching : matching.filter((o) => VIEW_LANES[view].includes(sellerLane(o)));
@@ -100,8 +119,25 @@ export const SalesPage: React.FC = () => {
       title="Ventes"
       help="Vos commandes rangées par prochaine action, la plus urgente en premier."
       actions={orders.length > 0 && <SearchField value={search} onChange={setSearch} placeholder="N°, client, offre…" className="w-40 sm:w-64" />}
-      toolbar={orders.length > 0 && <Tabs bare value={view} items={tabs} onChange={setView} />}
+      toolbar={
+        orders.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-x-3">
+            <Tabs bare value={view} items={tabs} onChange={setView} className="min-w-0" />
+            <div className="flex gap-2 pb-2 sm:py-2 sm:ml-auto shrink-0">
+              <Select aria-label="Client" value={client} options={[{ value: '', label: 'Tous les clients' }, ...clients]} onChange={setClient} />
+              {tags.length > 0 && (
+                <Select aria-label="Tag" value={tag} options={[{ value: '', label: 'Tous les tags' }, ...tags.map((t) => ({ value: t, label: t }))]} onChange={setTag} />
+              )}
+            </div>
+          </div>
+        )
+      }
     >
+      {pinned.length > 0 && (
+        <ListSection title="Épinglées" count={pinned.length} className="mb-6">
+          {list(pinned)}
+        </ListSection>
+      )}
       {content}
     </Page>
   );

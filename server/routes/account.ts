@@ -4,12 +4,9 @@ import { query, tx } from '../db.js';
 import { route } from '../http.js';
 import { claimGuest, guestIdFromKey } from '../guests.js';
 import { newId } from '../ids.js';
+import { loadSelf } from '../load.js';
 import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
-const loadSelf = async (userId: string) => {
-  const [row] = await query(`SELECT ${USER_COLUMNS} FROM ${USER_FROM} WHERE u.id = $1`, [userId]);
-  return userView(row, true);
-};
 
 const cleanName = (name: unknown) => String(name ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
 const cleanPhone = (phone: unknown) => String(phone ?? '').trim().slice(0, 30);
@@ -118,6 +115,24 @@ const kycDocument = (value: unknown, label: string) => {
   if (data.length < 8_000) throw new DomainError(`Photo trop petite pour être lue : ${label}.`);
   return { mime: m[1], data };
 };
+
+/** Store photo, square and already reduced by the browser; the type is read from the bytes, never trusted. */
+const LOGO_MAX_BYTES = 80_000;
+route('PUT', '/merchant/logo', async (ctx) => {
+  const userId = await ctx.accountId();
+  let logo: string | null = null;
+  if (ctx.body.logo) {
+    const m = String(ctx.body.logo).match(DATA_URL);
+    if (!m) throw new DomainError('Photo refusée : JPG, PNG ou WebP uniquement.');
+    const data = Buffer.from(m[2], 'base64');
+    if (!MAGIC[m[1]](data)) throw new DomainError('Ce fichier n’est pas une image valide.');
+    if (data.length > LOGO_MAX_BYTES) throw new DomainError('Photo trop lourde après réduction : choisissez une autre image.');
+    logo = String(ctx.body.logo);
+  }
+  const rows = await query('UPDATE merchants SET logo = $2 WHERE user_id = $1 RETURNING user_id', [userId, logo]);
+  if (!rows.length) throw new DomainError('Boutique introuvable.', 404);
+  return { patch: { users: [await loadSelf(userId)] } };
+});
 
 /** The seller sends their identity (policy §6.1); an administrator reviews it before any sale. */
 route('POST', '/kyc', async (ctx) => {

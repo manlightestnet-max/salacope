@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button, Card, Container } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { PLATFORM } from '@/shared/config/platform';
+import { PLATFORM, RELEASE_RULE } from '@/shared/config/platform';
 import { useSession } from '@/features/session';
 
 const STEPS = [
@@ -10,7 +10,7 @@ const STEPS = [
   { title: 'Publiez vos offres', text: 'Fichiers livrés automatiquement, ou services livrés dans un délai fixé.' },
   {
     title: 'Encaissez',
-    text: `Chaque vente est payée dès que le client valide, ou ${PLATFORM.escrowDays} jours après la livraison. Retrait sur MTN MoMo ou Airtel Money.`,
+    text: `Chaque vente est payée dès que le client valide, ou automatiquement après la livraison (${RELEASE_RULE}). Retrait sur MTN MoMo ou Airtel Money.`,
   },
 ];
 

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
-import { ScrollArrows, useHorizontalScroll } from '@/shared/ui';
+import { ProtectedImage, ScrollArrows, useHorizontalScroll } from '@/shared/ui';
 import { getInitials, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { FollowButton } from '@/features/library';
@@ -77,9 +77,9 @@ export const CreatorStrip: React.FC<{ views: ListingView[]; limit?: number; clas
               <Link to={ROUTES.store(seller.id)} className="group w-full min-w-0 flex flex-col items-center gap-2">
                 <span
                   aria-hidden
-                  className={clsx('w-14 h-14 rounded-full flex items-center justify-center text-[17px] font-semibold', creatorTint(seller.id))}
+                  className={clsx('w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-[17px] font-semibold', creatorTint(seller.id))}
                 >
-                  {getInitials(name)}
+                  {seller.merchant?.logo ? <ProtectedImage src={seller.merchant.logo} /> : getInitials(name)}
                 </span>
                 <span className="mt-0.5 text-[13.5px] font-semibold leading-tight text-gray-900 line-clamp-2 group-hover:text-gray-950">{name}</span>
                 <RatingSummary stats={s} className="text-xs" />

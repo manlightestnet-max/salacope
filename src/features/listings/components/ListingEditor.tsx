@@ -3,9 +3,10 @@ import clsx from 'clsx';
 import { Check, Download, ImagePlus, Link2, Plus, Trash2, Wrench } from 'lucide-react';
 import { BriefQuestion, Category, Listing, ListingKind } from '@/shared/db';
 import { Button, Field, Input, Panel, Select, Textarea } from '@/shared/ui';
-import { createId, cropImageFile, formatXaf } from '@/shared/lib';
+import { createId, cropImageFile } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
-import { CATEGORIES, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, cardBreadcrumb } from '@/features/catalog';
+import { CATEGORIES, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb } from '@/features/catalog';
+import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
 
 const FORMATS = ['PDF', 'ZIP', 'DOCX', 'XLSX', 'Vidéo', 'Accès en ligne'].map((f) => ({ value: f, label: f }));
@@ -40,6 +41,7 @@ const fromListing = (l?: Listing): ListingInput => ({
   description: l?.description ?? '',
   features: l?.features ?? [],
   priceXaf: l?.priceXaf ?? 0,
+  compareAtXaf: l?.compareAtXaf,
   coverImage: l?.coverImage ?? '',
   deliveryDays: l?.deliveryDays ?? 3,
   revisions: l?.revisions ?? 1,
@@ -48,11 +50,20 @@ const fromListing = (l?: Listing): ListingInput => ({
   fileFormat: l?.file?.format ?? 'PDF',
 });
 
+/** "12 / 120" next to a label; turns red past the limit. */
+const Count: React.FC<{ value: number; max: number }> = ({ value, max }) => (
+  <span className={clsx('ml-auto text-xs tabular-nums', value > max ? 'text-red-600' : 'text-gray-400')}>
+    {value} / {max}
+  </span>
+);
+
 /** What is still missing on a step (checked before moving on). */
 const stepError = (step: number, f: ListingInput): string | undefined => {
   if (step === 1) {
     if (f.title.trim().length < 8) return 'Le titre doit faire au moins 8 caractères.';
     if (!f.summary.trim()) return 'Ajoutez un résumé en une phrase.';
+    const features = featuresError(f.features);
+    if (features) return features;
   }
   if (step === 2) {
     if (f.kind === 'service' && (!f.deliveryDays || f.deliveryDays < 1)) return 'Indiquez un délai de livraison.';
@@ -60,6 +71,7 @@ const stepError = (step: number, f: ListingInput): string | undefined => {
   }
   if (step === 3 && (!f.priceXaf || f.priceXaf < PLATFORM.minPriceXaf)) return `Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`;
   if (step === 3 && !Number.isInteger(f.priceXaf)) return 'Prix en FCFA entiers, sans virgule ni point.';
+  if (step === 3 && f.compareAtXaf && f.compareAtXaf <= f.priceXaf) return 'Le prix barré doit être plus élevé que le prix de vente.';
   return undefined;
 };
 
@@ -130,7 +142,7 @@ const Preview: React.FC<{ form: ListingInput; sellerName: string; size?: 'md' | 
         </p>
         <p className="mt-1 text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{form.title.trim() || 'Titre de votre offre'}</p>
         <p className="mt-1 text-[12.5px] text-gray-500 truncate">{sellerName}</p>
-        <p className="mt-2 text-sm font-semibold text-primary-700 tabular-nums">{form.priceXaf ? formatXaf(form.priceXaf) : '— FCFA'}</p>
+        <p className="mt-2 text-sm font-semibold text-primary-700 tabular-nums">{form.priceXaf ? <ListingPrice listing={form} /> : '— FCFA'}</p>
       </div>
     </div>
   );
@@ -253,7 +265,8 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
   const [reached, setReached] = useState(isNew ? 0 : STEPS.length - 1);
   const [error, setError] = useState<string>();
   const set = <K extends keyof ListingInput>(key: K, value: ListingInput[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const input = (): ListingInput => ({ ...form, features: featuresText.split('\n') });
+  const featureList = featuresText.split('\n');
+  const input = (): ListingInput => ({ ...form, features: featureList });
 
   const categories = CATEGORIES.filter((c) => c.kind === form.kind);
   const chooseKind = (kind: ListingKind) => setForm((f) => ({ ...f, kind, category: CATEGORIES.find((c) => c.kind === kind)!.id }));
@@ -261,7 +274,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
   const goTo = (target: number) => {
     // Moving forward checks every step in between.
     for (let s = step; s < target; s += 1) {
-      const problem = stepError(s, form);
+      const problem = stepError(s, input());
       if (problem) {
         setStep(s);
         setError(problem);
@@ -366,14 +379,21 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
 
           {step === 1 && (
             <>
-              <Field label="Titre">{(id) => <Input id={id} value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus />}</Field>
-              <Field label="Résumé" hint="Une phrase affichée sous le titre.">
-                {(id) => <Input id={id} maxLength={160} value={form.summary} onChange={(e) => set('summary', e.target.value)} />}
+              <Field label="Titre" action={<Count value={form.title.trim().length} max={LISTING_LIMITS.title} />}>
+                {(id) => <Input id={id} maxLength={LISTING_LIMITS.title} value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus />}
+              </Field>
+              <Field label="Résumé" hint="Une phrase affichée sous le titre." action={<Count value={form.summary.trim().length} max={LISTING_LIMITS.summary} />}>
+                {(id) => <Input id={id} maxLength={LISTING_LIMITS.summary} value={form.summary} onChange={(e) => set('summary', e.target.value)} />}
               </Field>
               <Field label="Description">
                 {(id) => <Textarea id={id} rows={6} value={form.description} onChange={(e) => set('description', e.target.value)} />}
               </Field>
-              <Field label="Ce qui est inclus" optional hint="Un élément par ligne.">
+              <Field
+                label="Ce qui est inclus"
+                action={<Count value={featureLines(featureList).length} max={LISTING_LIMITS.features} />}
+                hint={`Un élément par ligne, ${LISTING_LIMITS.feature} caractères au maximum chacun. Facultatif.`}
+                error={featuresError(featureList)}
+              >
                 {(id) => <Textarea id={id} rows={4} value={featuresText} onChange={(e) => setFeaturesText(e.target.value)} />}
               </Field>
             </>
@@ -447,6 +467,25 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                     trailing="FCFA"
                     value={form.priceXaf || ''}
                     onChange={(e) => set('priceXaf', Number(e.target.value))}
+                    className="max-w-xs"
+                  />
+                )}
+              </Field>
+              <Field
+                label="Prix barré"
+                optional
+                hint="Pour une promotion : l’ancien prix, affiché barré avec le pourcentage de réduction. Laissez vide sinon."
+                error={form.compareAtXaf && form.priceXaf && form.compareAtXaf <= form.priceXaf ? 'Doit être plus élevé que le prix de vente.' : undefined}
+              >
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="number"
+                    inputMode="numeric"
+                    step={1}
+                    trailing="FCFA"
+                    value={form.compareAtXaf || ''}
+                    onChange={(e) => set('compareAtXaf', e.target.value ? Number(e.target.value) : undefined)}
                     className="max-w-xs"
                   />
                 )}

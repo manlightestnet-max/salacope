@@ -14,6 +14,7 @@ import { ListingPage } from '@/pages/public/ListingPage';
 import { SellPage } from '@/pages/public/SellPage';
 import { PublicStorePage } from '@/pages/public/StorePage';
 import { StorePage } from '@/pages/account/StorePage';
+import { MessagesPage } from '@/pages/account/MessagesPage';
 import { OfferPage } from '@/pages/account/OfferPage';
 import { SignInPage } from '@/pages/public/SignInPage';
 import { CheckoutPage } from '@/pages/shared/CheckoutPage';
@@ -114,6 +115,8 @@ export const router = createBrowserRouter([
           { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },
           { path: ROUTES.lightpayCallback, element: <LightPayCallbackPage /> },
           { path: ROUTES.account.openStore, element: <OpenStorePage /> },
+          { path: ROUTES.account.messages, element: <MessagesPage /> },
+          { path: '/compte/messages/:id', element: <MessagesPage /> },
           { path: ROUTES.account.orders, element: <OrdersPage /> },
           { path: '/compte/achats/:id', element: <OrderPage as="buyer" /> },
           { path: ROUTES.account.favorites, element: <FavoritesPage /> },

@@ -3,7 +3,7 @@ import { ROUTES } from '../../src/shared/config/routes.js';
 import type { Attachment } from '../../src/shared/db/schema.js';
 import { CONTACT_BLOCKED, containsContact } from '../../src/shared/domain/contact.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
-import { permissionsFor } from '../../src/shared/domain/orders.js';
+import { MAX_MESSAGE_IMAGES, isImageType, permissionsFor } from '../../src/shared/domain/orders.js';
 import { priceOrder } from '../../src/shared/domain/pricing.js';
 import { Query, json, query, tx } from '../db.js';
 import { Context, route } from '../http.js';
@@ -28,6 +28,7 @@ import {
   transition,
 } from '../orders.js';
 import { attemptView } from '../views.js';
+import { requireNotBlocked } from './chat.js';
 import { SELLABLE_SELLERS } from '../compliance.js';
 
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
@@ -206,7 +207,7 @@ act('deliver', 'deliver', async (row, userId, ctx, q) => {
     at,
     set: {
       delivery: { note, files, at },
-      release_at: addDays(at, PLATFORM.escrowDays),
+      release_at: addDays(at, PLATFORM.serviceValidationDays),
       // A pending request for more time is moot once delivered.
       extension: row.extension?.status === 'pending' ? null : row.extension,
     },
@@ -326,9 +327,13 @@ route('POST', '/orders/:id/messages', async (ctx) => {
   const body = text(ctx.body.body, 4000);
   const attachments = cleanAttachments(ctx.body.attachments);
   if (!body && attachments.length === 0) throw new DomainError('Message vide.');
+  if (attachments.filter((a) => isImageType(a.type)).length > MAX_MESSAGE_IMAGES) {
+    throw new DomainError(`${MAX_MESSAGE_IMAGES} images au maximum par message : envoyez les autres dans un message suivant.`);
+  }
   if (containsContact(body)) throw new DomainError(CONTACT_BLOCKED);
   await tx(async (q) => {
     const { row, perspective } = await authorize(q, ctx.params.id, userId, 'message');
+    if (perspective === 'seller') await requireNotBlocked(q, row);
     const at = new Date().toISOString();
     await q('INSERT INTO order_messages (id, order_id, author_id, body, attachments, at) VALUES ($1, $2, $3, $4, $5::jsonb, $6)', [
       newId('msg'),

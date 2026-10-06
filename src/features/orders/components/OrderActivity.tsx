@@ -1,14 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveSync } from '@/shared/api';
 import clsx from 'clsx';
-import { ArrowUp, MessagesSquare, Paperclip } from 'lucide-react';
+import { ArrowUp, Ban, Banknote, MessagesSquare, Paperclip, Timer } from 'lucide-react';
 import { Order, OrderEvent, OrderMessage, User } from '@/shared/db';
-import { Avatar, Card } from '@/shared/ui';
+import { Avatar, Card, ImageViewer } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { formatDateTime, formatRelative } from '@/shared/lib';
 import { displayName } from '@/features/session';
-import { CONTACT_BLOCKED, EVENT_LABEL, containsContact, permissionsFor, perspectiveOf } from '../model';
-import { sendMessage } from '../api';
+import { CONTACT_BLOCKED, EVENT_LABEL, MAX_MESSAGE_IMAGES, containsContact, isImageType, permissionsFor, perspectiveOf } from '../model';
+import { markRead, sendMessage } from '../api';
+import { messageStatus, unreadCount } from '../chat';
+import { MessageTicks } from './chat/MessageTicks';
+import { PaymentRequestCard } from './chat/PaymentRequestCard';
+import { PaymentRequestDialog } from './chat/PaymentRequestDialog';
+import { ValidationCard } from './chat/ValidationCard';
 import { useAttachments } from '../useAttachments';
 import { AttachmentList } from './OrderDialogs';
 
@@ -25,41 +30,65 @@ const EventRow: React.FC<{ event: OrderEvent; actor?: User }> = ({ event, actor 
   </li>
 );
 
-const MessageRow: React.FC<{ message: OrderMessage; author?: User; mine: boolean }> = ({ message, author, mine }) => (
-  <li className={clsx('flex items-end gap-2', mine && 'flex-row-reverse')}>
-    {!mine && <Avatar name={displayName(author)} size="sm" />}
-    <div className={clsx('min-w-0 max-w-[80%] flex flex-col', mine ? 'items-end' : 'items-start')}>
-      {message.body && (
-        <p
-          className={clsx(
-            'px-3.5 py-2 text-sm whitespace-pre-line break-words rounded-2xl',
-            mine ? 'bg-accent text-on-accent rounded-br-md' : 'bg-gray-100 text-gray-900 rounded-bl-md'
-          )}
-        >
-          {message.body}
-        </p>
-      )}
-      {message.attachments && message.attachments.length > 0 && (
-        <div className={clsx('mt-1.5 flex flex-wrap gap-1.5', mine && 'justify-end')}>
-          {message.attachments.map((a) => (
-            <a
-              key={a.id}
-              href={a.dataUrl}
-              download={a.name}
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-gray-200 text-xs text-gray-700 hover:border-gray-300"
-            >
-              <Paperclip className="w-3 h-3" />
-              <span className="truncate max-w-[180px]">{a.name}</span>
-            </a>
-          ))}
-        </div>
-      )}
-      <span className="mt-1 px-1 text-[11px] text-gray-400" title={formatDateTime(message.at)}>
-        {mine ? 'Vous' : displayName(author)} · {formatRelative(message.at)}
-      </span>
-    </div>
-  </li>
-);
+const MessageRow: React.FC<{ order: Order; message: OrderMessage; author?: User; mine: boolean; userId: string }> = ({ order, message, author, mine, userId }) => {
+  const [viewing, setViewing] = useState<number | null>(null);
+  // Images open in the viewer; other files stay downloadable chips.
+  const photos = (message.attachments ?? []).filter((a) => isImageType(a.type) && a.dataUrl);
+  const files = (message.attachments ?? []).filter((a) => !photos.includes(a));
+  return (
+    <li className={clsx('flex items-end gap-2', mine && 'flex-row-reverse')}>
+      {!mine && <Avatar name={displayName(author)} src={author?.merchant?.logo} size="sm" />}
+      <div className={clsx('min-w-0 max-w-[80%] flex flex-col', mine ? 'items-end' : 'items-start')}>
+        {message.request && <PaymentRequestCard order={order} message={message} mine={mine} />}
+        {message.body && (
+          <p
+            className={clsx(
+              'px-3.5 py-2 text-sm whitespace-pre-line break-words rounded-2xl',
+              mine ? 'bg-accent text-on-accent rounded-br-md' : 'bg-gray-100 text-gray-900 rounded-bl-md'
+            )}
+          >
+            {message.body}
+          </p>
+        )}
+        {photos.length > 0 && (
+          <div className={clsx('mt-1.5 grid gap-1', photos.length > 1 ? 'grid-cols-2' : 'grid-cols-1', 'w-56 max-w-full')}>
+            {photos.map((a, i) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setViewing(i)}
+                className={clsx('block overflow-hidden rounded-xl bg-gray-100', photos.length === 3 && i === 0 && 'col-span-2')}
+                aria-label={`Voir ${a.name}`}
+              >
+                <img src={a.dataUrl} alt="" className="w-full h-full max-h-56 object-cover" />
+              </button>
+            ))}
+            <ImageViewer images={photos.map((a) => ({ src: a.dataUrl!, alt: a.name }))} index={viewing} onIndex={setViewing} />
+          </div>
+        )}
+        {files.length > 0 && (
+          <div className={clsx('mt-1.5 flex flex-wrap gap-1.5', mine && 'justify-end')}>
+            {files.map((a) => (
+              <a
+                key={a.id}
+                href={a.dataUrl}
+                download={a.name}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-gray-200 text-xs text-gray-700 hover:border-gray-300"
+              >
+                <Paperclip className="w-3 h-3" />
+                <span className="truncate max-w-[180px]">{a.name}</span>
+              </a>
+            ))}
+          </div>
+        )}
+        <span className="mt-1 px-1 inline-flex items-center gap-1 text-[11px] text-gray-400" title={formatDateTime(message.at)}>
+          {mine ? 'Vous' : displayName(author)} · {formatRelative(message.at)}
+          {mine && <MessageTicks status={messageStatus(order, message, userId)} />}
+        </span>
+      </div>
+    </li>
+  );
+};
 
 /**
  * Single chronological feed: the conversation between buyer and seller, with lifecycle
@@ -74,13 +103,23 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   fill,
 }) => {
   const [body, setBody] = useState('');
-  const attachments = useAttachments();
+  const attachments = useAttachments({ maxImages: MAX_MESSAGE_IMAGES });
   const run = useServiceAction();
   const feedRef = useRef<HTMLUListElement>(null);
   // The conversation is live: new messages arrive within a few seconds.
   useLiveSync(true);
   const perspective = perspectiveOf(order, userId);
-  const canMessage = permissionsFor(order, perspective).message;
+  // The buyer blocked the seller: the seller can no longer write here.
+  const silenced = perspective === 'seller' && Boolean(order.chat?.blocked);
+  const canMessage = permissionsFor(order, perspective).message && !silenced;
+  const [requesting, setRequesting] = useState(false);
+  const lastDelivery = [...order.events].reverse().find((e) => e.type === 'delivered')?.id;
+
+  // On screen = read: the other party's ticks turn coloured (once per new message).
+  const unread = unreadCount(order, userId);
+  useEffect(() => {
+    if (unread > 0 && document.visibilityState === 'visible') void markRead(order.id).catch(() => undefined);
+  }, [order.id, unread]);
   const counterpart = users.get(perspective === 'buyer' ? order.sellerId : order.buyerId);
 
   const entries = useMemo<Entry[]>(
@@ -112,6 +151,17 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
     <>
       {!bare && <h2 className="px-5 pt-4 pb-2 text-sm font-semibold text-gray-900">Activité</h2>}
       <ul ref={feedRef} className={clsx('px-4 sm:px-5 py-4 space-y-4 overflow-y-auto scrollbar-none', fill ? 'flex-1 min-h-0' : 'max-h-[560px]')}>
+        {order.chat?.ephemeral && (
+          <li className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
+            <Timer className="w-3.5 h-3.5" /> Messages éphémères : effacés à la clôture de la commande.
+          </li>
+        )}
+        {order.chat?.blocked && (
+          <li className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
+            <Ban className="w-3.5 h-3.5" />
+            {perspective === 'buyer' ? 'Vous avez bloqué ce vendeur : il ne peut plus vous écrire.' : 'Ce client a bloqué les messages de votre boutique.'}
+          </li>
+        )}
         {order.messages.length === 0 && (
           <li className="flex flex-col items-center gap-2 py-4 text-center">
             <MessagesSquare className="w-5 h-5 text-gray-300" />
@@ -120,10 +170,19 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
         )}
         {entries.map((entry) =>
           entry.kind === 'event' ? (
-            <EventRow key={entry.event.id} event={entry.event} actor={entry.event.actorId ? users.get(entry.event.actorId) : undefined} />
+            <React.Fragment key={entry.event.id}>
+              <EventRow event={entry.event} actor={entry.event.actorId ? users.get(entry.event.actorId) : undefined} />
+              {entry.event.type === 'delivered' && order.item.kind === 'service' && perspective && (
+                <li className="flex justify-center">
+                  <ValidationCard order={order} perspective={perspective} current={entry.event.id === lastDelivery} />
+                </li>
+              )}
+            </React.Fragment>
           ) : (
             <MessageRow
               key={entry.message.id}
+              order={order}
+              userId={userId}
               message={entry.message}
               author={users.get(entry.message.authorId)}
               mine={entry.message.authorId === userId}
@@ -150,6 +209,17 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
               >
                 <Paperclip className="w-4 h-4" />
               </button>
+              {perspective === 'seller' && (
+                <button
+                  type="button"
+                  onClick={() => setRequesting(true)}
+                  aria-label="Demande de paiement"
+                  title="Demande de paiement"
+                  className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <Banknote className="w-4 h-4" />
+                </button>
+              )}
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
@@ -174,6 +244,9 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
             {blocked ? CONTACT_BLOCKED : 'Entrée pour envoyer · Maj + Entrée pour aller à la ligne'}
           </p>
         </form>
+      )}
+      {perspective === 'seller' && (
+        <PaymentRequestDialog orderId={order.id} sellerId={order.sellerId} open={requesting} onClose={() => setRequesting(false)} />
       )}
     </>
   );

@@ -79,3 +79,15 @@ export const shrinkImageFile = (file: File, maxSide = 1600, maxBytes = 700_000):
     };
     img.src = url;
   });
+
+/** Image types accepted for photos, read from the first bytes (the file name and its declared type can lie). */
+export const IMAGE_TYPES = { 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP' } as const;
+
+export async function sniffImageType(file: File): Promise<keyof typeof IMAGE_TYPES | null> {
+  const b = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const ascii = (from: number, to: number) => String.fromCharCode(...b.slice(from, to));
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png';
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
-import { Button, EmptyState, Page, Panel, Segmented, Stat, StatGrid, Table, TBody, THead, Td, Th, Tr, Tabs } from '@/shared/ui';
+import { Button, EmptyState, Page, Panel, Segmented, Select, Stat, StatGrid, Table, TBody, THead, Td, Th, Tr, Tabs } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
@@ -11,6 +11,9 @@ import { KIND_FILTERS, KindBadge, KindFilter, ListingThumb } from '@/features/ca
 import {
   ORDER_STATUS_FILTERS,
   OrderFilter,
+  OrderPeriod,
+  inPeriod,
+  periodOptions,
   OrderList,
   OrderStatusBadge,
   buyerFollowUp,
@@ -29,8 +32,10 @@ export const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [kind, setKind] = useState<KindFilter>('all');
+  const [period, setPeriod] = useState<OrderPeriod>('all');
+  const periods = useMemo(() => periodOptions(orders), [orders]);
 
-  const ofKind = useMemo(() => orders.filter((o) => kind === 'all' || o.item.kind === kind), [orders, kind]);
+  const ofKind = useMemo(() => orders.filter((o) => (kind === 'all' || o.item.kind === kind) && inPeriod(o, period)), [orders, kind, period]);
   const visible = useMemo(() => ofKind.filter((o) => matchesFilter(o, filter, 'buyer')), [ofKind, filter]);
   const tabs = ORDER_STATUS_FILTERS.map((f) => ({
     ...f,
@@ -44,6 +49,7 @@ export const OrdersPage: React.FC = () => {
 
   return (
     <Page
+      fill
       title="Mes achats"
       help="Vos commandes et leur suivi. Tant que vous n’avez pas validé, votre argent reste bloqué chez LightPay : le vendeur n’est pas encore payé."
       actions={orders.length > 0 && <Segmented label="Type d'achat" value={kind} options={KIND_FILTERS} onChange={setKind} />}
@@ -57,8 +63,9 @@ export const OrdersPage: React.FC = () => {
           className="rounded-2xl border border-gray-200/70 bg-surface"
         />
       ) : (
-        <div className="space-y-6">
-          <Panel title="Aperçu">
+        // The history card stays pinned below the overview; only its rows scroll.
+        <div className="h-full flex flex-col gap-4 lg:gap-6">
+          <Panel title="Aperçu" className="shrink-0 hidden sm:block">
             <StatGrid columns={3}>
               <Stat label="Achats" value={visible.length} hint={`${formatXaf(spent)} dépensés`} />
               <Stat label="À valider" value={toValidate} help="Livraisons à vérifier, ou demandes de délai auxquelles répondre." />
@@ -66,14 +73,21 @@ export const OrdersPage: React.FC = () => {
             </StatGrid>
           </Panel>
 
-          <Panel title="Historique" count={visible.length} flush>
+          <Panel
+            title="Historique"
+            count={visible.length}
+            flush
+            className="flex-1 min-h-0 flex flex-col"
+            bodyClassName="flex-1 min-h-0 overflow-y-auto"
+            actions={<Select aria-label="Période" value={period} options={periods} onChange={setPeriod} />}
+          >
             {visible.length === 0 ? (
               <EmptyState title="Aucun achat dans cette vue" />
             ) : (
               <>
                 <div className="hidden md:block">
-                  <Table>
-                    <THead>
+                  <Table className="!overflow-visible">
+                    <THead sticky>
                       <Th>Commande</Th>
                       <Th>Offre</Th>
                       <Th>Type</Th>

@@ -2,13 +2,13 @@ import React from 'react';
 import clsx from 'clsx';
 import { Check, Clock, Download, ShieldCheck } from 'lucide-react';
 import { Badge, Button, usePane } from '@/shared/ui';
-import { formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
 import { FavoriteButton } from '@/features/library';
 import { useSession } from '@/features/session';
 import { COVER_FORMAT, ListingView, categoryLabel, deliveryLabel } from '../model';
 import { ListingCover } from './ListingCover';
+import { ListingPrice } from './ListingPrice';
 import { SellerCard } from './SellerCard';
 
 /** Full listing content: used by the product page and the quick view. */
@@ -75,7 +75,7 @@ export const ListingDetail: React.FC<{ view: ListingView; sellerSales?: number }
 
       <aside className="lg:sticky lg:top-[calc(var(--sticky-offset,0px)+1.5rem)] self-start">
         <div className="rounded-lg border border-gray-200 bg-surface p-5 space-y-4">
-          <div className="text-2xl font-semibold text-gray-900 tabular-nums">{formatXaf(listing.priceXaf)}</div>
+          <ListingPrice listing={listing} className="text-2xl font-semibold text-gray-900" />
 
           {isOwn ? (
             <Button to={ROUTES.seller.listing(listing.id)} block size="lg">
@@ -96,8 +96,9 @@ export const ListingDetail: React.FC<{ view: ListingView; sellerSales?: number }
             <li className="flex gap-2">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
-                Paiement MTN MoMo ou Airtel Money. Le vendeur est payé après votre validation, ou {PLATFORM.escrowDays} jours
-                après la livraison.
+                Paiement MTN MoMo ou Airtel Money. {listing.kind === 'digital'
+                  ? `Accès immédiat ; le vendeur est payé ${PLATFORM.digitalHoldDays} jours plus tard si vous ne signalez aucun problème.`
+                  : `Le vendeur est payé après votre validation, ou ${PLATFORM.serviceValidationDays} jours après la livraison.`}
               </span>
             </li>
           </ul>

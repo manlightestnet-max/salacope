@@ -2,13 +2,13 @@ import React from 'react';
 import clsx from 'clsx';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { formatXaf } from '@/shared/lib';
 import { Reveal, usePane } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { FavoriteButton } from '@/features/library';
 import { displayName } from '@/features/session';
 import { COVER_FORMAT, CoverFormat, ListingView, cardBreadcrumb } from '../model';
 import { ListingCover } from './ListingCover';
+import { ListingPrice } from './ListingPrice';
 
 export const QUICK_VIEW_PARAM = 'produit';
 
@@ -62,7 +62,7 @@ export const ListingCard: React.FC<{ view: ListingView }> = ({ view: { listing, 
           {listing.title}
         </h3>
         <p className="mt-1 text-[12.5px] text-gray-500 truncate">{displayName(seller)}</p>
-        <p className="mt-2 text-sm font-semibold text-primary-700 tabular-nums whitespace-nowrap">{formatXaf(listing.priceXaf)}</p>
+        <ListingPrice listing={listing} className="mt-2 text-sm font-semibold text-primary-700" />
       </div>
     </Link>
   );

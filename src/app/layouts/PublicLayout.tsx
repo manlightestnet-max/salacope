@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Compass, LayoutDashboard, LucideIcon, MapPin, Search, ShoppingBag, Store, UserPlus } from 'lucide-react';
 import { Button, Container, LaunchBanner, Logo, OperatorLogo, SearchField, ThemeToggle } from '@/shared/ui';
 import { FooterVisibilityContext, shortcutLabel, useFocusShortcut } from '@/shared/hooks';
@@ -181,6 +181,10 @@ export const PublicLayout: React.FC = () => {
         </main>
         {!footerHidden && <Footer />}
         <ListingQuickView />
+        {/* A new page opens at the top (the window kept the previous page's offset, so a store
+            reached from deep in the catalogue looked empty); back/forward restore the position.
+            Keyed by path: filters, search and the quick view (?produit=) never move the page. */}
+        <ScrollRestoration getKey={(location) => location.pathname} />
       </div>
     </FooterVisibilityContext.Provider>
   );

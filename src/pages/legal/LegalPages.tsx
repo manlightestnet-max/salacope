@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { Button } from '@/shared/ui';
 import { COMPANY, companyField } from '@/shared/config/company';
-import { PLATFORM } from '@/shared/config/platform';
+import { PLATFORM, RELEASE_RULE } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 
 const UPDATED = '29 septembre 2026';
-const DAYS = PLATFORM.escrowDays;
+const DAYS = RELEASE_RULE;
 
 const Doc: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div>
@@ -122,8 +122,8 @@ export const Terms: React.FC = () => (
       <h2>4. Paiement, commission et versement</h2>
       <p>
         L’acheteur paie par MTN MoMo ou Airtel Money. Le montant est bloqué par LightPay et n’est versé au vendeur qu’une fois
-        la commande terminée : quand l’acheteur confirme la réception, ou automatiquement {DAYS} jours après la livraison sans
-        litige.
+        la commande terminée : quand l’acheteur confirme la réception, ou automatiquement après la livraison sans litige
+        ({DAYS}).
         {' '}Une commission est alors retenue automatiquement sur chaque vente validée, au taux affiché au vendeur au moment de
         la vente. Ce taux peut être modifié selon les conditions de nos prestataires tiers ou notre politique interne ; le
         vendeur en est informé, et en acceptant les présentes conditions puis en continuant à vendre, il accepte le taux en
@@ -134,7 +134,7 @@ export const Terms: React.FC = () => (
       <h2>5. Annulation et litiges</h2>
       <p>
         Un service peut être annulé par l’acheteur tant que le vendeur ne l’a pas accepté, et par le vendeur tant qu’il n’est pas
-        livré ; l’acheteur est alors intégralement remboursé. Après livraison, l’acheteur dispose de {DAYS} jours pour signaler un
+        livré ; l’acheteur est alors intégralement remboursé. Après livraison, l’acheteur dispose d’un délai ({DAYS}) pour signaler un
         problème. Les fonds sont bloqués pendant l’examen du litige. Voir la{' '}
         <Link to={ROUTES.legal.refund}>politique de remboursement</Link>.
       </p>
@@ -179,7 +179,7 @@ export const RefundPolicy: React.FC = () => (
       <ul>
         <li>Le vendeur refuse ou annule votre commande avant de livrer.</li>
         <li>Vous annulez un service que le vendeur n’a pas encore accepté.</li>
-        <li>Un litige ouvert dans les {DAYS} jours suivant la livraison est tranché en votre faveur (non-livraison, fichier défectueux ou non conforme).</li>
+        <li>Un litige ouvert dans le délai suivant la livraison ({DAYS}) est tranché en votre faveur (non-livraison, fichier défectueux ou non conforme).</li>
       </ul>
     </section>
     <section>
@@ -191,7 +191,7 @@ export const RefundPolicy: React.FC = () => (
     </section>
     <section>
       <h2>Exclusions</h2>
-      <p>Une commande dont vous avez confirmé la réception, ou dont le délai de {DAYS} jours est écoulé, n’est plus remboursable.</p>
+      <p>Une commande dont vous avez confirmé la réception, ou dont le délai ({DAYS}) est écoulé, n’est plus remboursable.</p>
     </section>
   </Doc>
 );

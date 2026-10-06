@@ -3,12 +3,12 @@ import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, LucideIcon, ShieldCheck, Smartphone, Zap } from 'lucide-react';
 import { Avatar, Button } from '@/shared/ui';
-import { formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
 import { displayName, useSession } from '@/features/session';
 import { COVER_FORMAT, ListingView } from '../model';
 import { CardBreadcrumb, useQuickViewTo } from './ListingCard';
+import { ListingPrice } from './ListingPrice';
 import { ListingCover } from './ListingCover';
 
 interface BuyerPromise {
@@ -35,7 +35,7 @@ const PROMISES: BuyerPromise[] = [
     id: 'escrow',
     icon: ShieldCheck,
     label: 'Paiement protégé',
-    detail: `Pour un service, le vendeur est payé après la livraison : vous avez ${PLATFORM.escrowDays} jours pour la valider ou signaler un problème.`,
+    detail: `Pour un service, le vendeur est payé après la livraison : vous avez ${PLATFORM.serviceValidationDays} jours pour la valider ou signaler un problème.`,
   },
 ];
 
@@ -128,11 +128,11 @@ const FeaturedListing: React.FC<{ view: ListingView }> = ({ view: { listing, sel
         </h2>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Avatar name={name} size="sm" />
+            <Avatar name={name} src={seller?.merchant?.logo} size="sm" />
             <span className="text-[13.5px] text-gray-500 truncate">{name}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold text-primary-700 tabular-nums whitespace-nowrap">{formatXaf(listing.priceXaf)}</span>
+            <ListingPrice listing={listing} className="text-lg font-semibold text-primary-700" />
             <Link
               to={to}
               preventScrollReset

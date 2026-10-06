@@ -49,7 +49,7 @@ export const DeliverDialog: React.FC<{
       open={open}
       onClose={onClose}
       title="Livrer la commande"
-      description={`Le client est notifié et dispose de ${PLATFORM.escrowDays} jours pour valider, demander une retouche ou signaler un problème.`}
+      description={`Le client est notifié et dispose de ${PLATFORM.serviceValidationDays} jours pour valider, demander une retouche ou signaler un problème.`}
       footer={
         <>
           <Button onClick={onClose}>Annuler</Button>

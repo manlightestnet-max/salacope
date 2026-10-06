@@ -7,7 +7,8 @@ import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
 import { displayName } from '@/features/session';
-import { OrderView } from '../hooks';
+import { OrderView, useSellerTagList } from '../hooks';
+import { SellerOrderTools } from './SellerOrderTools';
 import { Perspective, needsAction } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderProgress } from './OrderProgress';
@@ -32,6 +33,7 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const todo = needsAction(order, perspective);
+  const knownTags = useSellerTagList(order.sellerId);
 
   const details = (
     <>
@@ -81,6 +83,7 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
       actions={
         <>
           <OrderProgress order={order} className="hidden md:flex mr-3" />
+          {isSeller && <SellerOrderTools order={order} knownTags={knownTags} />}
           <Button size="sm" variant="ghost" icon={<Receipt className="w-3.5 h-3.5" />} onClick={() => setReceiptOpen(true)}>
             Reçu
           </Button>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck, ChevronDown, UserRound } from 'lucide-react';
-import { EmptyState, Page, Panel, SearchField } from '@/shared/ui';
+import { EmptyState, Page, Panel, ProtectedImage, SearchField } from '@/shared/ui';
 import { Listing, User, useDb } from '@/shared/db';
 import { formatRelative, formatXaf, getInitials } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
@@ -55,8 +55,8 @@ const FollowRow: React.FC<{
     <li id={seller.id} className="scroll-mt-4">
       <div className={clsx('flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50', GRID)}>
         <Link to={ROUTES.account.store(seller.id)} className="group flex-1 min-w-0 flex items-center gap-3">
-          <span className={clsx('w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold', creatorTint(seller.id))}>
-            {getInitials(name)}
+          <span className={clsx('w-10 h-10 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-sm font-semibold', creatorTint(seller.id))}>
+            {seller.merchant?.logo ? <ProtectedImage src={seller.merchant.logo} /> : getInitials(name)}
           </span>
           <span className="min-w-0">
             <span className="flex items-center gap-1.5">

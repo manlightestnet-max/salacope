@@ -10,6 +10,8 @@ export interface ListingInput {
   description: string;
   features: string[];
   priceXaf: number;
+  /** Promotion: former price, higher than `priceXaf`; empty = no promotion. */
+  compareAtXaf?: number;
   coverImage: string;
   deliveryDays?: number;
   /** Services: revisions included. */
@@ -23,7 +25,21 @@ export interface ListingInput {
 export const MAX_BRIEF_QUESTIONS = 6;
 export const CATEGORY_IDS: Category[] = ['ebook', 'formation', 'service', 'template', 'mentorat'];
 
-const LIMITS = { title: 120, summary: 200, description: 5000, feature: 120, features: 12, price: 5_000_000 };
+/** Shown in the editor (counters, max lengths) and enforced here, on both sides. */
+export const LISTING_LIMITS = { title: 120, summary: 200, description: 5000, feature: 120, features: 12, price: 5_000_000 };
+const LIMITS = LISTING_LIMITS;
+
+/** "What's included": one item per non-empty line, as stored. */
+export const featureLines = (features: string[] | undefined) => (features ?? []).map((f) => String(f).trim()).filter(Boolean);
+
+/** First problem with the "what's included" items, in words the seller can act on. */
+export function featuresError(features: string[] | undefined): string | undefined {
+  const lines = featureLines(features);
+  if (lines.length > LIMITS.features) return `${LIMITS.features} éléments au maximum dans « Ce qui est inclus » (vous en avez ${lines.length}).`;
+  const i = lines.findIndex((f) => f.length > LIMITS.feature);
+  if (i >= 0) return `L’élément ${i + 1} de « Ce qui est inclus » fait ${lines[i].length} caractères : ${LIMITS.feature} au maximum.`;
+  return undefined;
+}
 
 export function validateListing(input: ListingInput): void {
   if (input.kind !== 'digital' && input.kind !== 'service') throw new DomainError('Type d’offre invalide.');
@@ -35,14 +51,17 @@ export function validateListing(input: ListingInput): void {
   if (!summary) throw new DomainError('Ajoutez un résumé en une phrase.');
   if (summary.length > LIMITS.summary) throw new DomainError(`Le résumé dépasse ${LIMITS.summary} caractères.`);
   if (String(input.description ?? '').length > LIMITS.description) throw new DomainError('La description est trop longue.');
-  const features = Array.isArray(input.features) ? input.features : [];
-  if (features.length > LIMITS.features || features.some((f) => String(f).length > LIMITS.feature)) {
-    throw new DomainError('Trop de points forts, ou un point trop long.');
-  }
+  // Blank lines are not items (they are dropped when saved), so they never count.
+  const features = featuresError(Array.isArray(input.features) ? input.features : []);
+  if (features) throw new DomainError(features);
   if (!Number.isFinite(input.priceXaf) || input.priceXaf < PLATFORM.minPriceXaf) {
     throw new DomainError(`Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`);
   }
   if (input.priceXaf > LIMITS.price) throw new DomainError('Prix trop élevé.');
+  if (input.compareAtXaf) {
+    if (!Number.isInteger(input.compareAtXaf) || input.compareAtXaf > LIMITS.price) throw new DomainError('Prix barré invalide.');
+    if (input.compareAtXaf <= input.priceXaf) throw new DomainError('Le prix barré doit être plus élevé que le prix de vente.');
+  }
   // FCFA have no centimes: 100.50 is refused, never rounded behind the seller's back.
   if (!Number.isInteger(input.priceXaf)) throw new DomainError('Prix en FCFA entiers, sans virgule ni point.');
   if (input.kind === 'service' && (!input.deliveryDays || input.deliveryDays < 1 || input.deliveryDays > 90)) {
@@ -62,7 +81,7 @@ export function validateListing(input: ListingInput): void {
 
 type ListingFields = Pick<
   Listing,
-  'kind' | 'category' | 'title' | 'summary' | 'description' | 'features' | 'priceXaf' | 'coverImage' | 'deliveryDays' | 'revisions' | 'briefQuestions' | 'file'
+  'kind' | 'category' | 'title' | 'summary' | 'description' | 'features' | 'priceXaf' | 'compareAtXaf' | 'coverImage' | 'deliveryDays' | 'revisions' | 'briefQuestions' | 'file'
 >;
 
 /** The stored fields of a listing, cleaned. Past orders keep their own snapshot. */
@@ -72,8 +91,9 @@ export const listingFields = (input: ListingInput): ListingFields => ({
   title: input.title.trim(),
   summary: input.summary.trim(),
   description: String(input.description ?? '').trim(),
-  features: (input.features ?? []).map((f) => String(f).trim()).filter(Boolean),
+  features: featureLines(input.features),
   priceXaf: Math.round(input.priceXaf),
+  compareAtXaf: input.compareAtXaf ? Math.round(input.compareAtXaf) : undefined,
   coverImage: String(input.coverImage ?? '').trim(),
   deliveryDays: input.kind === 'service' ? Math.round(input.deliveryDays!) : undefined,
   revisions: input.kind === 'service' ? input.revisions ?? 0 : undefined,

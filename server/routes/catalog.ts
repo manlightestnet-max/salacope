@@ -103,7 +103,7 @@ const tellFollowers = async (q: Query, listing: Listing) => {
 };
 
 const checkedInput = (body: any): ListingInput => {
-  const input = { ...body, priceXaf: Number(body.priceXaf), deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined } as ListingInput;
+  const input = { ...body, priceXaf: Number(body.priceXaf), compareAtXaf: body.compareAtXaf ? Number(body.compareAtXaf) : undefined, deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined } as ListingInput;
   validateListing(input);
   const fields = listingFields(input);
   if (!fields.coverImage) throw new DomainError('Ajoutez une image de couverture.');
@@ -121,8 +121,8 @@ route('POST', '/listings', async (ctx) => {
     if (publish) await requirePayouts(q, sellerId);
     await q(
       `INSERT INTO listings (id, seller_id, kind, category, title, summary, description, features, price_xaf, cover_image,
-         delivery_days, revisions, brief_questions, file, status, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16)`,
+         delivery_days, revisions, brief_questions, file, status, published_at, compare_at_xaf)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16, $17)`,
       [
         id,
         sellerId,
@@ -140,6 +140,7 @@ route('POST', '/listings', async (ctx) => {
         json(fields.file),
         publish ? 'published' : 'draft',
         publish ? new Date().toISOString() : null,
+        fields.compareAtXaf ?? null,
       ]
     );
     const created = (await loadListing(id, q))!;
@@ -157,7 +158,7 @@ route('PATCH', '/listings/:id', async (ctx) => {
     await q(
       `UPDATE listings SET kind = $2, category = $3, title = $4, summary = $5, description = $6, features = $7::jsonb,
          price_xaf = $8, cover_image = $9, delivery_days = $10, revisions = $11, brief_questions = $12::jsonb, file = $13::jsonb,
-         updated_at = NOW()
+         compare_at_xaf = $14, updated_at = NOW()
        WHERE id = $1`,
       [
         ctx.params.id,
@@ -173,6 +174,7 @@ route('PATCH', '/listings/:id', async (ctx) => {
         fields.revisions ?? null,
         json(fields.briefQuestions),
         json(fields.file),
+        fields.compareAtXaf ?? null,
       ]
     );
     return (await loadListing(ctx.params.id, q))!;

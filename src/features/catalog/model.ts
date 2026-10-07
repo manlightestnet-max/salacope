@@ -1,3 +1,4 @@
+import { ROUTES } from '@/shared/config/routes';
 import { Category, Listing, ListingKind, User } from '@/shared/db';
 
 export interface CategoryConfig {
@@ -136,3 +137,7 @@ export const queryListings = (views: ListingView[], query: CatalogQuery): Listin
     return b.salesCount - a.salesCount || b.listing.createdAt.localeCompare(a.listing.createdAt);
   });
 };
+
+/** Public address of a store: its own @handle once verified, else its id. */
+export const storeHref = (seller: Pick<User, 'id' | 'merchant'>) =>
+  seller.merchant?.verified && seller.merchant.handle ? ROUTES.storeHandle(seller.merchant.handle) : ROUTES.store(seller.id);

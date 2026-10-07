@@ -228,7 +228,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
                 }}
                 rows={1}
                 placeholder={`Écrire à ${displayName(counterpart)}…`}
-                className="flex-1 min-w-0 resize-none bg-transparent py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none max-h-40 [field-sizing:content]"
+                className="flex-1 min-w-0 resize-none bg-transparent py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none max-h-40 [field-sizing:content]"
               />
               <button
                 type="submit"

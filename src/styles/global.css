@@ -54,6 +54,23 @@
   }
 }
 
+/* Shimmer: what is loading keeps its shape (lists, cards, images) instead of a spinner. */
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+.shimmer {
+  background-color: rgb(var(--gray-100));
+  background-image: linear-gradient(100deg, rgb(var(--gray-100)) 30%, rgb(var(--gray-200)) 50%, rgb(var(--gray-100)) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
+}
+
 /* Handoff to LightPay: a dot travels from one app to the other. */
 @keyframes handoff-travel {
   from { left: 0; opacity: 0; }

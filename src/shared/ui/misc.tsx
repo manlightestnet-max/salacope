@@ -137,7 +137,7 @@ export const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
           }
         }}
         className={clsx(
-          'w-full pl-9 border bg-surface text-sm placeholder:text-gray-400 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15 [&::-webkit-search-cancel-button]:hidden',
+          'w-full pl-9 border bg-surface text-base sm:text-sm placeholder:text-gray-400 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15 [&::-webkit-search-cancel-button]:hidden',
           pill ? 'h-10 rounded-full border-gray-200 transition-colors hover:border-gray-300' : 'h-9 rounded-md border-gray-300 shadow-xs',
           hint ? 'pr-16' : 'pr-8'
         )}

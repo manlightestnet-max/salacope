@@ -28,7 +28,9 @@ route('GET', '/bootstrap', async (ctx) => {
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId),
     query(
-      `SELECT * FROM listings WHERE (status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1
+      `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, cover_image, delivery_days,
+         revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count
+       FROM listings WHERE (status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1
          OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)
        ORDER BY COALESCE(published_at, created_at) DESC`,
       [userId]
@@ -103,7 +105,7 @@ const tellFollowers = async (q: Query, listing: Listing) => {
 };
 
 const checkedInput = (body: any): ListingInput => {
-  const input = { ...body, priceXaf: Number(body.priceXaf), compareAtXaf: body.compareAtXaf ? Number(body.compareAtXaf) : undefined, deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined } as ListingInput;
+  const input = { ...body, gallery: Array.isArray(body.gallery) ? body.gallery : undefined, priceXaf: Number(body.priceXaf), compareAtXaf: body.compareAtXaf ? Number(body.compareAtXaf) : undefined, deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined } as ListingInput;
   validateListing(input);
   const fields = listingFields(input);
   if (!fields.coverImage) throw new DomainError('Ajoutez une image de couverture.');
@@ -121,8 +123,8 @@ route('POST', '/listings', async (ctx) => {
     if (publish) await requirePayouts(q, sellerId);
     await q(
       `INSERT INTO listings (id, seller_id, kind, category, title, summary, description, features, price_xaf, cover_image,
-         delivery_days, revisions, brief_questions, file, status, published_at, compare_at_xaf)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16, $17)`,
+         delivery_days, revisions, brief_questions, file, status, published_at, compare_at_xaf, gallery)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16, $17, $18::jsonb)`,
       [
         id,
         sellerId,
@@ -141,6 +143,7 @@ route('POST', '/listings', async (ctx) => {
         publish ? 'published' : 'draft',
         publish ? new Date().toISOString() : null,
         fields.compareAtXaf ?? null,
+        json(fields.gallery ?? []),
       ]
     );
     const created = (await loadListing(id, q))!;
@@ -158,7 +161,7 @@ route('PATCH', '/listings/:id', async (ctx) => {
     await q(
       `UPDATE listings SET kind = $2, category = $3, title = $4, summary = $5, description = $6, features = $7::jsonb,
          price_xaf = $8, cover_image = $9, delivery_days = $10, revisions = $11, brief_questions = $12::jsonb, file = $13::jsonb,
-         compare_at_xaf = $14, updated_at = NOW()
+         compare_at_xaf = $14, gallery = COALESCE($15::jsonb, gallery), updated_at = NOW()
        WHERE id = $1`,
       [
         ctx.params.id,
@@ -175,6 +178,7 @@ route('PATCH', '/listings/:id', async (ctx) => {
         json(fields.briefQuestions),
         json(fields.file),
         fields.compareAtXaf ?? null,
+        fields.gallery === undefined ? null : json(fields.gallery),
       ]
     );
     return (await loadListing(ctx.params.id, q))!;
@@ -212,4 +216,47 @@ route('DELETE', '/listings/:id', async (ctx) => {
     await q('DELETE FROM listings WHERE id = $1', [ctx.params.id]);
   });
   return { removed: { listings: [ctx.params.id], favorites: [ctx.params.id] } };
+});
+
+// ---------------------------------------------------------------- gallery and insights
+
+/** Extra images of an offer, fetched when it is opened (kept out of the catalogue load). */
+route('GET', '/listings/:id/gallery', async (ctx) => {
+  const viewer = await ctx.viewerId();
+  const [row] = await query<{ gallery: string[] }>(
+    `SELECT gallery FROM listings WHERE id = $1 AND ((status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $2)`,
+    [ctx.params.id, viewer]
+  );
+  if (!row) throw new DomainError("Cette offre n'est plus disponible.", 404);
+  return { images: row.gallery ?? [] };
+});
+
+/** A visit of the offer page, or a click on Buy. The seller's own visits never count. */
+route('POST', '/listings/:id/track', async (ctx) => {
+  const column = ctx.body.type === 'click' ? 'clicks' : 'views';
+  const viewer = await ctx.viewerId();
+  await query(
+    `INSERT INTO listing_daily_stats (listing_id, day, ${column})
+     SELECT id, CURRENT_DATE, 1 FROM listings WHERE id = $1 AND status = 'published' AND seller_id IS DISTINCT FROM $2
+     ON CONFLICT (listing_id, day) DO UPDATE SET ${column} = listing_daily_stats.${column} + 1`,
+    [ctx.params.id, viewer]
+  );
+  return { ok: true };
+});
+
+/** The seller's figures per offer: views, clicks (30 days and all time) and revenue of completed sales. */
+route('GET', '/seller/insights', async (ctx) => {
+  const sellerId = await ctx.userId();
+  const rows = await query(
+    `SELECT l.id,
+       COALESCE(SUM(s.views), 0)::int AS views,
+       COALESCE(SUM(s.clicks), 0)::int AS clicks,
+       COALESCE(SUM(s.views) FILTER (WHERE s.day > CURRENT_DATE - 30), 0)::int AS views30,
+       COALESCE(SUM(s.clicks) FILTER (WHERE s.day > CURRENT_DATE - 30), 0)::int AS clicks30,
+       (SELECT COALESCE(SUM((o.amounts->>'net')::int), 0) FROM orders o WHERE o.listing_id = l.id AND o.status = 'completed')::int AS revenue
+     FROM listings l LEFT JOIN listing_daily_stats s ON s.listing_id = l.id
+     WHERE l.seller_id = $1 GROUP BY l.id`,
+    [sellerId]
+  );
+  return { insights: rows };
 });

@@ -91,6 +91,8 @@ export const router = createBrowserRouter([
       },
       ...LEGACY_REDIRECTS.map(([from, to]) => ({ path: from, element: <Navigate to={to} replace /> })),
       { path: '/dashboard/commandes/:id', element: <RedirectOrder /> },
+      // salacope.online/@handle (verified stores); other one-segment addresses show "not found".
+      { path: '/:handle', element: <PublicStorePage /> },
       { path: '*', element: <NotFound /> },
     ],
   },

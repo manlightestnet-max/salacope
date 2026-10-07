@@ -1,8 +1,9 @@
 import React, { useId } from 'react';
 import clsx from 'clsx';
 
+// 16px on phones (iOS zooms into any smaller field), 14px from `sm`.
 const control =
-  'rounded-md border border-gray-300 bg-surface text-sm text-gray-900 placeholder:text-gray-400 shadow-xs transition-colors focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15 disabled:bg-gray-50 disabled:text-gray-500';
+  'rounded-md border border-gray-300 bg-surface text-base sm:text-sm text-gray-900 placeholder:text-gray-400 shadow-xs transition-colors focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15 disabled:bg-gray-50 disabled:text-gray-500';
 
 export interface FieldProps {
   label?: string;

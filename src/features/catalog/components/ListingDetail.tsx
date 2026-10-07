@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import clsx from 'clsx';
 import { Check, Clock, Download, ShieldCheck } from 'lucide-react';
 import { Badge, Button, usePane } from '@/shared/ui';
@@ -7,7 +7,8 @@ import { PLATFORM } from '@/shared/config/platform';
 import { FavoriteButton } from '@/features/library';
 import { useSession } from '@/features/session';
 import { COVER_FORMAT, ListingView, categoryLabel, deliveryLabel } from '../model';
-import { ListingCover } from './ListingCover';
+import { ListingGallery } from './ListingGallery';
+import { trackListing } from '../api';
 import { ListingPrice } from './ListingPrice';
 import { SellerCard } from './SellerCard';
 
@@ -21,6 +22,10 @@ export const ListingDetail: React.FC<{ view: ListingView; sellerSales?: number }
   const checkoutHref = usePane() ? ROUTES.account.checkout(listing.id) : ROUTES.checkout(listing.id);
 
   const format = COVER_FORMAT[listing.category];
+  // Insights for the seller: one view per visit (never their own).
+  useEffect(() => {
+    if (!isOwn) trackListing(listing.id, 'view');
+  }, [listing.id, isOwn]);
   const heading = (
     <div className="min-w-0">
       <Badge className="mb-2">{categoryLabel(listing.category)}</Badge>
@@ -35,16 +40,18 @@ export const ListingDetail: React.FC<{ view: ListingView; sellerSales?: number }
         {format === 'portrait' || format === 'square' ? (
           // Books and square covers sit beside the title, like a product sheet.
           <div className="flex flex-col sm:flex-row gap-5 sm:items-start">
-            <ListingCover
-              src={listing.coverImage}
-              category={listing.category}
-              className={clsx('shrink-0 shadow-sm', format === 'portrait' ? 'w-36 sm:w-44' : 'w-44 sm:w-52')}
+            <ListingGallery
+              listing={listing}
+              className={clsx(
+                'shrink-0 shadow-sm w-full mx-auto sm:mx-0 animate-fade-up motion-reduce:animate-none',
+                format === 'portrait' ? 'max-w-[18rem] sm:w-44' : 'max-w-[20rem] sm:w-52'
+              )}
             />
             {heading}
           </div>
         ) : (
           <>
-            <ListingCover src={listing.coverImage} category={listing.category} />
+            <ListingGallery listing={listing} className="-mx-4 sm:mx-0 animate-fade-up motion-reduce:animate-none" />
             {heading}
           </>
         )}
@@ -82,7 +89,7 @@ export const ListingDetail: React.FC<{ view: ListingView; sellerSales?: number }
               Modifier mon offre
             </Button>
           ) : (
-            <Button to={checkoutHref} variant="primary" block size="lg">
+            <Button to={checkoutHref} variant="primary" block size="lg" onClick={() => trackListing(listing.id, 'click')}>
               {isService ? 'Commander' : 'Acheter'}
             </Button>
           )}

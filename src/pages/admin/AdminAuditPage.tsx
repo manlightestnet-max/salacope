@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollText } from 'lucide-react';
-import { EmptyState, List, ListRow, Page, Panel, Spinner } from '@/shared/ui';
+import { EmptyState, List, ListRow, Page, Panel, SkeletonRows } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { AUDIT_LABEL, adminApi, useAdminResource } from '@/features/admin';
@@ -16,7 +16,7 @@ export const AdminAuditPage: React.FC = () => {
           <EmptyState title="Journal indisponible" description={error} />
         ) : !log || loading ? (
           <div className="py-12 flex justify-center">
-            <Spinner />
+            <SkeletonRows rows={4} className="w-full" />
           </div>
         ) : log.length ? (
           <List columns={{ main: 'Action', trailing: 'Date' }}>

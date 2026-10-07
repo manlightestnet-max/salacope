@@ -61,7 +61,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (to) {
       return (
-        <Link to={to} className={classes} aria-label={props['aria-label']} title={props.title}>
+        // A link still runs its onClick (tracking, closing a dialog) before navigating.
+        <Link to={to} onClick={onClick as unknown as React.MouseEventHandler<HTMLAnchorElement>} className={classes} aria-label={props['aria-label']} title={props.title}>
           {content}
         </Link>
       );

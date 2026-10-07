@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowUpRight, CheckCircle2, Download, FileText, Flag, History, LucideIcon, MessageCircle, Receipt } from 'lucide-react';
 import { Button, ConfirmDialog, DescriptionList, Page, useToast } from '@/shared/ui';
@@ -12,11 +13,11 @@ import { OrderView } from '../hooks';
 import { EVENT_LABEL, paymentMethodLabel, permissionsFor } from '../model';
 import { ReportResult, confirmOrder, reportProblem } from '../api';
 import { OrderStatusBadge } from './OrderStatusBadge';
-import { OrderActivity } from './OrderActivity';
+import { unreadCount } from '../chat';
 import { OrderReceipt } from './OrderReceipt';
 import { ReportDialog } from './OrderDialogs';
 
-type Panel = 'details' | 'activity' | null;
+type Panel = 'details' | null;
 
 /** A secondary option: discreet until pressed. */
 const OptionChip: React.FC<{ icon: LucideIcon; label: string; active?: boolean; onClick: () => void; controls?: string }> = ({
@@ -46,8 +47,10 @@ const OptionChip: React.FC<{ icon: LucideIcon; label: string; active?: boolean; 
  * details, activity, receipt and reporting stay one tap away; the rating sits quietly below.
  */
 export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> = ({ view, userId }) => {
-  const { order, seller, users } = view;
+  const { order, seller } = view;
   const toast = useToast();
+  const navigate = useNavigate();
+  const unread = unreadCount(order, userId);
   const run = useServiceAction();
   const [panel, setPanel] = useState<Panel>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -64,11 +67,6 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
       back={{ to: ROUTES.account.orders, label: 'Mes achats' }}
       title={order.number}
       meta={<span className="ml-2"><OrderStatusBadge order={order} perspective="buyer" /></span>}
-      actions={
-        <Button size="sm" variant="ghost" icon={<MessageCircle className="w-3.5 h-3.5" />} to={ROUTES.account.chat(order.id)}>
-          Discussion
-        </Button>
-      }
       width="narrow"
     >
       <section className="rounded-3xl border border-gray-200/70 bg-surface p-4 sm:p-5">
@@ -141,7 +139,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
       <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         <OptionChip icon={Receipt} label="Reçu" onClick={() => setReceiptOpen(true)} />
         <OptionChip icon={History} label="Paiement et activité" active={panel === 'details'} onClick={() => toggle('details')} controls="purchase-panel" />
-        <OptionChip icon={MessageCircle} label="Écrire au vendeur" active={panel === 'activity'} onClick={() => toggle('activity')} controls="purchase-panel" />
+        <OptionChip icon={MessageCircle} label={unread ? `Messages du vendeur · ${unread}` : 'Écrire au vendeur'} onClick={() => navigate(ROUTES.account.chat(order.id))} />
         <OptionChip icon={Flag} label="Signaler un problème" onClick={report} />
       </div>
 
@@ -157,11 +155,6 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
                   ...order.events.map((e) => ({ label: formatDate(e.at), value: EVENT_LABEL[e.type] })),
                 ]}
               />
-            </div>
-          )}
-          {panel === 'activity' && (
-            <div className="animate-fade-up">
-              <OrderActivity order={order} userId={userId} users={users} />
             </div>
           )}
         </div>

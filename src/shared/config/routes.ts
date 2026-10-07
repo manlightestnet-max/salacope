@@ -3,6 +3,8 @@ export const ROUTES = {
   search: '/recherche',
   listing: (id: string) => `/produit/${id}`,
   store: (sellerId: string) => `/boutique/${sellerId}`,
+  /** Verified stores: salacope.online/@handle. */
+  storeHandle: (handle: string) => `/@${handle}`,
   checkout: (id: string) => `/checkout/${id}`,
   sell: '/vendre',
   signIn: '/connexion',

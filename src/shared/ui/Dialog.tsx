@@ -75,7 +75,7 @@ export const Dialog: React.FC<DialogProps> = ({ open, onClose, title, descriptio
           )}
         </div>
         {children && <div className="px-5 pb-5 overflow-y-auto">{children}</div>}
-        {footer && <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">{footer}</div>}
+        {footer && <div className="px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3 border-t border-gray-100 flex items-center justify-end gap-2">{footer}</div>}
       </div>
     </div>,
     scoped ? pane! : document.body

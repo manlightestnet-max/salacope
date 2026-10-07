@@ -14,6 +14,8 @@ export interface Merchant {
   city: string;
   /** Store photo: square JPEG data URL. */
   logo?: string;
+  /** Verified stores: salacope.online/@handle. */
+  handle?: string;
   verified: boolean;
   activatedAt: string;
   /** Own store only: the LightPay wallet that receives the sales is connected. */
@@ -67,6 +69,8 @@ export interface Listing {
   priceXaf: number;
   /** Promotion: the former price, struck through next to `priceXaf` (always higher). */
   compareAtXaf?: number;
+  /** Number of extra images after the cover (loaded when the offer is opened). */
+  galleryCount?: number;
   coverImage: string;
   /** Services only: committed delivery time, in days. */
   deliveryDays?: number;

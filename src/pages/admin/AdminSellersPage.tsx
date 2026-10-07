@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Store } from 'lucide-react';
-import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, Spinner } from '@/shared/ui';
+import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { KycBadge, SellerDetail, SellerFilter, adminApi, useAdminResource } from '@/features/admin';
@@ -68,7 +68,7 @@ export const AdminSellersPage: React.FC = () => {
             <EmptyState title="Liste indisponible" description={error} />
           ) : !sellers || loading ? (
             <div className="py-12 flex justify-center">
-              <Spinner />
+              <SkeletonRows rows={4} className="w-full" />
             </div>
           ) : sellers.length ? (
             <List columns={{ main: 'Vendeur', meta: 'Statut', trailing: 'Volume' }}>

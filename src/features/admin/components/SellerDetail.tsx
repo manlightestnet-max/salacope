@@ -12,7 +12,7 @@ import {
   ListRow,
   Panel,
   Select,
-  Spinner,
+  SkeletonRows,
   Stat,
   StatGrid,
   useToast,
@@ -65,7 +65,7 @@ const DocumentTile: React.FC<{ submissionId: string; kind: KycDocumentKind; labe
         {url ? (
           <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
         ) : busy ? (
-          <Spinner />
+          <SkeletonRows rows={4} className="w-full" />
         ) : (
           <>
             <ImageIcon className="w-4 h-4" />
@@ -123,7 +123,7 @@ export const SellerDetail: React.FC<{ id: string; onChanged?: () => void }> = ({
     }
   }, [data]);
 
-  if (loading && !data) return <Panel><div className="py-10 flex justify-center"><Spinner /></div></Panel>;
+  if (loading && !data) return <Panel><div className="py-10 flex justify-center"><SkeletonRows rows={4} className="w-full" /></div></Panel>;
   if (error || !data) return <Panel><EmptyState title="Vendeur indisponible" description={error} action={<Button onClick={reload}>Réessayer</Button>} /></Panel>;
 
   const { seller, submissions, listings, stats, log } = data;

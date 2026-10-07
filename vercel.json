@@ -1,8 +1,27 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api?__path=:path*" },
-    { "source": "/((?!api/|api$).*)", "destination": "/index.html" }
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://lightpay-a5f01.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://lightpay-a5f01.firebaseapp.com/__/firebase/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api?__path=:path*"
+    },
+    {
+      "source": "/((?!api/|api$|__/).*)",
+      "destination": "/index.html"
+    }
   ],
-  "crons": [{ "path": "/api/cron/settle", "schedule": "0 3 * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron/settle",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

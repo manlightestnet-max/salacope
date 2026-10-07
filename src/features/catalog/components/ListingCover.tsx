@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import clsx from 'clsx';
 import { Category } from '@/shared/db';
 import { COVER_ASPECT, COVER_FORMAT, CoverFormat } from '../model';
@@ -18,17 +18,28 @@ export const ListingThumb: React.FC<{ src: string; category: Category; size?: 's
   size = 'sm',
   className,
 }) => (
-  <img
-    src={src}
-    alt=""
-    loading="lazy"
-    className={clsx(
-      'rounded object-cover bg-gray-100 border border-gray-200 shrink-0',
-      THUMB_SIZE[COVER_FORMAT[category]][size],
-      className
-    )}
-  />
+  <span className={clsx('relative block overflow-hidden rounded border border-gray-200 shrink-0', THUMB_SIZE[COVER_FORMAT[category]][size], className)}>
+    <LoadingImage src={src} className="absolute inset-0 w-full h-full object-cover" />
+  </span>
 );
+
+/** Image that fades in over a shimmer of its own shape once loaded. */
+export const LoadingImage: React.FC<{ src: string; alt?: string; className?: string }> = ({ src, alt = '', className }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && <span aria-hidden className="absolute inset-0 shimmer" />}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        className={clsx(className, 'transition-opacity duration-300 motion-reduce:transition-none', loaded ? 'opacity-100' : 'opacity-0')}
+      />
+    </>
+  );
+};
 
 /** Cover at full width of its container, in the shape of its category. `bare`: no frame (storefront cards). */
 export const ListingCover: React.FC<{
@@ -47,7 +58,7 @@ export const ListingCover: React.FC<{
       className
     )}
   >
-    <img src={src} alt="" loading="lazy" className={clsx('w-full h-full object-cover', imageClassName)} />
+    <LoadingImage key={src} src={src} className={clsx('w-full h-full object-cover', imageClassName)} />
     {bare && <span className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-gray-950/[0.06]" />}
     {children}
   </div>

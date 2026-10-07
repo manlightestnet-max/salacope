@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Users } from 'lucide-react';
-import { Avatar, Badge, Button, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, Spinner, useToast } from '@/shared/ui';
+import { Avatar, Badge, Button, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows, useToast } from '@/shared/ui';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { AdminUserRow, ReasonDialog, adminApi, useAdminResource } from '@/features/admin';
@@ -49,7 +49,7 @@ export const AdminUsersPage: React.FC = () => {
           <EmptyState title="Liste indisponible" description={error} />
         ) : !users || loading ? (
           <div className="py-12 flex justify-center">
-            <Spinner />
+            <SkeletonRows rows={4} className="w-full" />
           </div>
         ) : users.length ? (
           <List columns={{ main: 'Compte', meta: 'Statut', trailing: 'Achats' }}>

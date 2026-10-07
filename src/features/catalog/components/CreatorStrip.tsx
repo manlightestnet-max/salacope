@@ -3,11 +3,10 @@ import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import { ProtectedImage, ScrollArrows, useHorizontalScroll } from '@/shared/ui';
 import { getInitials, plural } from '@/shared/lib';
-import { ROUTES } from '@/shared/config/routes';
 import { FollowButton } from '@/features/library';
 import { RatingSummary, isTopCreator, useSellerStats } from '@/features/reviews';
 import { displayName } from '@/features/session';
-import { ListingView } from '../model';
+import { ListingView, storeHref } from '../model';
 
 /** Avatar tints, picked from the seller id so a creator keeps the same colour everywhere. */
 const TINTS = [
@@ -74,7 +73,7 @@ export const CreatorStrip: React.FC<{ views: ListingView[]; limit?: number; clas
               key={seller.id}
               className="w-[172px] shrink-0 snap-start rounded-[18px] border border-gray-200/60 bg-surface px-3 pt-5 pb-4 flex flex-col items-center gap-3 text-center transition-colors hover:border-gray-300"
             >
-              <Link to={ROUTES.store(seller.id)} className="group w-full min-w-0 flex flex-col items-center gap-2">
+              <Link to={storeHref(seller)} className="group w-full min-w-0 flex flex-col items-center gap-2">
                 <span
                   aria-hidden
                   className={clsx('w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-[17px] font-semibold', creatorTint(seller.id))}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { SearchX } from 'lucide-react';
-import { Button, EmptyState, Spinner } from '@/shared/ui';
+import { Button, EmptyState, SkeletonCards } from '@/shared/ui';
 import { useHideFooter, useInfiniteList } from '@/shared/hooks';
 import { plural } from '@/shared/lib';
 import { ListingView, categoryLabel, queryListings } from '../model';
@@ -21,8 +21,8 @@ const ResultsGrid: React.FC<{ views: ListingView[]; mixed: boolean; resetKey: st
     <>
       {mixed ? <ListingMasonry views={visible} /> : <ListingGrid views={visible} reveal />}
       {hasMore && (
-        <div ref={sentinelRef} className="flex justify-center py-12" aria-hidden>
-          <Spinner />
+        <div ref={sentinelRef} className="pt-6">
+          <SkeletonCards />
         </div>
       )}
     </>

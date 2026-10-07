@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button, EmptyState, List, ListRow, Page, Panel, Spinner, Stat, StatGrid } from '@/shared/ui';
+import { Button, EmptyState, List, ListRow, Page, Panel, SkeletonRows, Stat, StatGrid } from '@/shared/ui';
 import { formatDateTime, formatNumber, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { AUDIT_LABEL, adminApi, useAdminResource } from '@/features/admin';
@@ -18,7 +18,7 @@ export const AdminOverviewPage: React.FC = () => {
         </Panel>
       ) : !o || loading ? (
         <div className="py-16 flex justify-center">
-          <Spinner />
+          <SkeletonRows rows={4} className="w-full" />
         </div>
       ) : (
         <div className="space-y-6">

@@ -13,6 +13,8 @@ export interface ListingInput {
   /** Promotion: former price, higher than `priceXaf`; empty = no promotion. */
   compareAtXaf?: number;
   coverImage: string;
+  /** Extra images after the cover. `undefined`: unchanged (not loaded yet in the editor). */
+  gallery?: string[];
   deliveryDays?: number;
   /** Services: revisions included. */
   revisions?: number;
@@ -26,7 +28,7 @@ export const MAX_BRIEF_QUESTIONS = 6;
 export const CATEGORY_IDS: Category[] = ['ebook', 'formation', 'service', 'template', 'mentorat'];
 
 /** Shown in the editor (counters, max lengths) and enforced here, on both sides. */
-export const LISTING_LIMITS = { title: 120, summary: 200, description: 5000, feature: 120, features: 12, price: 5_000_000 };
+export const LISTING_LIMITS = { title: 120, summary: 200, description: 5000, feature: 120, features: 12, price: 5_000_000, gallery: 5 };
 const LIMITS = LISTING_LIMITS;
 
 /** "What's included": one item per non-empty line, as stored. */
@@ -58,6 +60,11 @@ export function validateListing(input: ListingInput): void {
     throw new DomainError(`Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`);
   }
   if (input.priceXaf > LIMITS.price) throw new DomainError('Prix trop élevé.');
+  if (input.gallery !== undefined) {
+    if (!Array.isArray(input.gallery) || input.gallery.length > LIMITS.gallery) throw new DomainError(`${LIMITS.gallery} images en plus de la couverture, au maximum.`);
+    if (input.gallery.some((g) => typeof g !== 'string' || !/^(data:image\/(jpeg|png|webp);base64,|https:\/\/)/.test(g))) throw new DomainError('Image de la galerie invalide.');
+    if (input.gallery.some((g) => g.length > 400_000)) throw new DomainError('Une image de la galerie est trop lourde.');
+  }
   if (input.compareAtXaf) {
     if (!Number.isInteger(input.compareAtXaf) || input.compareAtXaf > LIMITS.price) throw new DomainError('Prix barré invalide.');
     if (input.compareAtXaf <= input.priceXaf) throw new DomainError('Le prix barré doit être plus élevé que le prix de vente.');
@@ -82,7 +89,7 @@ export function validateListing(input: ListingInput): void {
 type ListingFields = Pick<
   Listing,
   'kind' | 'category' | 'title' | 'summary' | 'description' | 'features' | 'priceXaf' | 'compareAtXaf' | 'coverImage' | 'deliveryDays' | 'revisions' | 'briefQuestions' | 'file'
->;
+> & { gallery?: string[] };
 
 /** The stored fields of a listing, cleaned. Past orders keep their own snapshot. */
 export const listingFields = (input: ListingInput): ListingFields => ({
@@ -95,6 +102,7 @@ export const listingFields = (input: ListingInput): ListingFields => ({
   priceXaf: Math.round(input.priceXaf),
   compareAtXaf: input.compareAtXaf ? Math.round(input.compareAtXaf) : undefined,
   coverImage: String(input.coverImage ?? '').trim(),
+  gallery: input.gallery,
   deliveryDays: input.kind === 'service' ? Math.round(input.deliveryDays!) : undefined,
   revisions: input.kind === 'service' ? input.revisions ?? 0 : undefined,
   briefQuestions:
@@ -105,3 +113,14 @@ export const listingFields = (input: ListingInput): ListingFields => ({
       : undefined,
   file: input.kind === 'digital' ? { name: input.fileName!.trim(), format: input.fileFormat?.trim() || 'PDF' } : undefined,
 });
+
+/** Address of a verified store: salacope.online/@handle (lower case, 3 to 30 characters). */
+export const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{1,28})[a-z0-9]$/;
+const RESERVED_HANDLES = ['salacope', 'admin', 'support', 'aide', 'help', 'api', 'compte', 'dashboard', 'lightpay', 'boutique', 'vendre', 'legal'];
+
+export function validateHandle(value: unknown): string {
+  const handle = String(value ?? '').trim().replace(/^@/, '').toLowerCase();
+  if (!HANDLE_PATTERN.test(handle)) throw new DomainError('3 à 30 caractères : lettres, chiffres, point, tiret ou tiret bas, sans espace.');
+  if (RESERVED_HANDLES.includes(handle)) throw new DomainError('Cette adresse est réservée.');
+  return handle;
+}

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Receipt } from 'lucide-react';
-import { Button, Card, Dialog, Page } from '@/shared/ui';
-import { formatRelative, formatXaf } from '@/shared/lib';
+import { Receipt } from 'lucide-react';
+import { Button, Page } from '@/shared/ui';
+import { formatRelative } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
 import { displayName } from '@/features/session';
 import { OrderView, useSellerTagList } from '../hooks';
 import { SellerOrderTools } from './SellerOrderTools';
-import { Perspective, needsAction } from '../model';
+import { Perspective } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderProgress } from './OrderProgress';
 import { PaymentLine } from './PaymentLine';
@@ -17,22 +17,19 @@ import { NextStepCard } from './NextStepCard';
 import { DeadlineCard } from './DeadlineCard';
 import { BriefCard } from './BriefCard';
 import { DeliveryCard } from './DeliveryCard';
-import { ChatHeader } from './ChatHeader';
-import { OrderActivity } from './OrderActivity';
+import { ChatPreviewCard } from './chat/ChatPreviewCard';
+import { OrderTimeline } from './OrderTimeline';
 import { OrderReceipt } from './OrderReceipt';
 
 /**
- * Desk of a service order. On desktop the page never scrolls: the conversation takes
- * the full height on the right (its feed scrolls inside), the order on the left
- * (what it is, what it cost, the action of the moment, the clock, brief, delivery).
- * On mobile the conversation is the whole screen; the order opens in a dialog.
+ * Desk of a service order: what it is, what it cost, the action of the moment, the clock,
+ * brief and delivery. The conversation is apart (preview here, the room in Messages);
+ * the order's own steps are listed under it.
  */
 export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; userId: string }> = ({ view, perspective, userId }) => {
   const { order, seller, users } = view;
   const isSeller = perspective === 'seller';
   const [receiptOpen, setReceiptOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const todo = needsAction(order, perspective);
   const knownTags = useSellerTagList(order.sellerId);
 
   const details = (
@@ -72,7 +69,6 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
 
   return (
     <Page
-      fill
       back={isSeller ? { to: ROUTES.seller.sales, label: 'Ventes' } : { to: ROUTES.account.orders, label: 'Mes achats' }}
       title={order.number}
       meta={
@@ -90,36 +86,14 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
         </>
       }
     >
-      <div className="h-full flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-5">
-        <div className="hidden lg:block min-w-0 space-y-4 h-full overflow-y-auto scrollbar-none pb-4">{details}</div>
-
-        <button
-          type="button"
-          onClick={() => setDetailsOpen(true)}
-          className="lg:hidden shrink-0 flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-surface p-2.5 pr-3 text-left"
-        >
-          <ListingThumb src={order.item.coverImage} category={order.item.category} />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium text-gray-900 truncate">{order.item.title}</span>
-            <span className="block text-xs text-gray-500 tabular-nums truncate">
-              {formatXaf(isSeller ? order.amounts.net : order.amounts.total)} · {todo ? 'Action attendue de votre part' : 'Voir la commande'}
-            </span>
-          </span>
-          {todo && <span className="w-2 h-2 rounded-full bg-accent shrink-0" aria-hidden />}
-          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
-        </button>
-
-        <Card className="min-w-0 flex-1 min-h-0 lg:h-full flex flex-col overflow-hidden">
-          <ChatHeader order={order} perspective={perspective} seller={seller} />
-          <div className="flex-1 min-h-0">
-            <OrderActivity order={order} userId={userId} users={users} bare fill />
-          </div>
-        </Card>
+      {/* The order and its conversation are kept apart: the chat opens in Messages. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+        <div className="min-w-0 space-y-4">{details}</div>
+        <div className="space-y-4 lg:sticky lg:top-0 order-first lg:order-none">
+          <ChatPreviewCard order={order} perspective={perspective} userId={userId} users={users} />
+          <OrderTimeline order={order} users={users} />
+        </div>
       </div>
-
-      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Commande" description={order.number} size="lg">
-        <div className="space-y-4">{details}</div>
-      </Dialog>
       <OrderReceipt order={order} seller={seller} open={receiptOpen} onClose={() => setReceiptOpen(false)} />
     </Page>
   );

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Package, Plus } from 'lucide-react';
-import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Menu, Page, Panel, Segmented } from '@/shared/ui';
+import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Menu, Page, Panel, Segmented, Skeleton, Stat, StatGrid } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
-import { formatDate, formatXaf, plural } from '@/shared/lib';
+import { formatDate, formatNumber, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { KIND_LABEL, ListingThumb } from '@/features/catalog';
-import { ManagedListing, deleteListing, listingHasOrders, setListingStatus, useManagedListings } from '@/features/listings';
+import { ManagedListing, deleteListing, listingHasOrders, setListingStatus, useListingInsights, useManagedListings } from '@/features/listings';
 import { VerificationNotice } from '@/features/verification';
 
 type Filter = 'all' | 'published' | 'draft';
@@ -17,6 +17,10 @@ export const ListingsPage: React.FC = () => {
   const run = useServiceAction();
   const [filter, setFilter] = useState<Filter>('all');
   const [toDelete, setToDelete] = useState<ManagedListing | null>(null);
+  const insights = useListingInsights();
+  const totals = insights && [...insights.values()].reduce((t, i) => ({ views: t.views + i.views30, clicks: t.clicks + i.clicks30 }), { views: 0, clicks: 0 });
+  const revenue = listings.reduce((s, m) => s + m.revenue, 0);
+  const figure = (value: string | number) => (insights ? value : <Skeleton className="h-7 w-16 mt-1" />);
 
   const visible = listings.filter((l) => filter === 'all' || l.listing.status === filter);
   const count = (f: Filter) => listings.filter((l) => f === 'all' || l.listing.status === f).length;
@@ -41,6 +45,15 @@ export const ListingsPage: React.FC = () => {
           className="rounded-2xl border border-gray-200/70 bg-surface"
         />
       ) : (
+        <div className="space-y-6">
+        <Panel title="Performance" help="Vues : fiche de l’offre ouverte (une fois par visite, les vôtres ne comptent pas). Clics : « Acheter » ou « Commander ». Sur les 30 derniers jours ; revenus : ventes non annulées, net pour vous.">
+          <StatGrid columns={4}>
+            <Stat label="Vues · 30 j" value={figure(formatNumber(totals?.views ?? 0))} />
+            <Stat label="Clics · 30 j" value={figure(formatNumber(totals?.clicks ?? 0))} />
+            <Stat label="Taux de clic" value={figure(totals?.views ? `${Math.round((totals.clicks / totals.views) * 100)} %` : '—')} />
+            <Stat label="Revenus" value={formatXaf(revenue)} />
+          </StatGrid>
+        </Panel>
         <Panel
           title="Vos offres"
           count={visible.length}
@@ -71,7 +84,14 @@ export const ListingsPage: React.FC = () => {
                     to={ROUTES.seller.listing(listing.id)}
                     leading={<ListingThumb src={listing.coverImage} category={listing.category} size="md" />}
                     title={listing.title}
-                    subtitle={`${KIND_LABEL[listing.kind]} · ${plural(m.sales, 'vente')} · modifiée le ${formatDate(listing.updatedAt)}`}
+                    subtitle={[
+                      KIND_LABEL[listing.kind],
+                      plural(m.sales, 'vente'),
+                      insights && `${plural(insights.get(listing.id)?.views ?? 0, 'vue')} · ${plural(insights.get(listing.id)?.clicks ?? 0, 'clic')}`,
+                      `modifiée le ${formatDate(listing.updatedAt)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                     meta={
                       <Badge tone={published ? 'success' : 'neutral'} dot>
                         {published ? 'En ligne' : 'Brouillon'}
@@ -117,6 +137,7 @@ export const ListingsPage: React.FC = () => {
             </List>
           )}
         </Panel>
+        </div>
       )}
 
       {toDelete && (

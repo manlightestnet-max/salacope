@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessagesSquare, Receipt } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, DescriptionList, Page } from '@/shared/ui';
 import { formatDateTime, formatXaf } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
@@ -16,7 +16,8 @@ import { DeliveryCard } from './DeliveryCard';
 import { BriefCard } from './BriefCard';
 import { DigitalPurchaseView } from './DigitalPurchaseView';
 import { ServiceDesk } from './ServiceDesk';
-import { OrderActivity } from './OrderActivity';
+import { ChatPreviewCard } from './chat/ChatPreviewCard';
+import { OrderTimeline } from './OrderTimeline';
 import { OrderReceipt } from './OrderReceipt';
 
 const FUNDS_LABEL = {
@@ -49,9 +50,6 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
       actions={
         <>
           {isSeller && <SellerOrderTools order={order} knownTags={knownTags} />}
-          <Button size="sm" variant="ghost" icon={<MessagesSquare className="w-3.5 h-3.5" />} to={ROUTES.account.chat(order.id)}>
-            Discussion
-          </Button>
           <Button size="sm" icon={<Receipt className="w-3.5 h-3.5" />} onClick={() => setReceiptOpen(true)}>
             Reçu
           </Button>
@@ -72,10 +70,11 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
           <OrderReviewCard order={order} isBuyer={!isSeller} userId={userId} />
           <BriefCard order={order} perspective={perspective} />
           <DeliveryCard order={order} perspective={perspective} />
-          <OrderActivity order={order} userId={userId} users={users} />
         </div>
 
         <div className="space-y-4">
+          <ChatPreviewCard order={order} perspective={perspective} userId={userId} users={users} />
+          <OrderTimeline order={order} users={users} />
           <Card>
             <CardHeader title="Paiement" />
             <CardBody className="pt-0">

@@ -8,6 +8,7 @@ import { formatMonthYear } from '@/shared/lib';
 import { FollowButton } from '@/features/library';
 import { RatingSummary, useSellerStat } from '@/features/reviews';
 import { displayName } from '@/features/session';
+import { storeHref } from '../model';
 
 /** Who sells this: identity, trust signal, follow. */
 export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: number }> = ({ seller, salesCount }) => {
@@ -21,7 +22,7 @@ export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: numbe
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <Link
-            to={inApp ? ROUTES.account.store(seller.id) : ROUTES.store(seller.id)}
+            to={inApp ? ROUTES.account.store(seller.id) : storeHref(seller)}
             className="text-sm font-medium text-gray-900 truncate hover:underline underline-offset-2"
           >
             {displayName(seller)}

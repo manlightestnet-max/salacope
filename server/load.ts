@@ -67,7 +67,7 @@ export const loadNotifications = async (userId: string, where = 'TRUE', params: 
   ).map(notificationView);
 
 export const loadListing = async (id: string, q: Query = query) => {
-  const [row] = await q('SELECT * FROM listings WHERE id = $1', [id]);
+  const [row] = await q('SELECT *, jsonb_array_length(gallery) AS gallery_count FROM listings WHERE id = $1', [id]);
   return row ? listingView(row) : undefined;
 };
 

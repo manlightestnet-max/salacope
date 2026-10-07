@@ -15,7 +15,7 @@ import { isAdminUid } from './compliance.js';
 
 export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest, u.firebase_uid,
   u.blocked_at, u.blocked_reason, m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id,
-  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason, m.logo,
+  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason, m.logo, m.handle,
   (SELECT COALESCE(array_agg(b.blocked_id), '{}') FROM user_blocks b WHERE b.blocker_id = u.id) AS blocks`;
 export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
@@ -38,6 +38,7 @@ export const userView = (r: any, self: boolean): User => ({
         headline: r.headline,
         city: r.city,
         logo: opt(r.logo),
+        handle: opt(r.handle),
         verified: r.verified,
         activatedAt: r.activated_at,
         lightpayConnected: self ? Boolean(r.lightpay_connection_id) : undefined,
@@ -59,6 +60,7 @@ export const listingView = (r: any): Listing => ({
   features: r.features ?? [],
   priceXaf: r.price_xaf,
   compareAtXaf: opt(r.compare_at_xaf),
+  galleryCount: r.gallery_count ? Number(r.gallery_count) : undefined,
   coverImage: r.cover_image,
   deliveryDays: opt(r.delivery_days),
   revisions: opt(r.revisions),

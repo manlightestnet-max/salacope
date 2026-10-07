@@ -1,3 +1,4 @@
+import { validateHandle } from '@/shared/domain';
 import { auth, boot, guest, mutate, request } from '@/shared/api';
 import { DomainError, Merchant, db, emptyDatabase } from '@/shared/db';
 
@@ -15,6 +16,27 @@ export async function signIn(email: string, password: string): Promise<void> {
   guest.clear();
   await boot();
 }
+
+/** Google account (the same as on LightPay). Resolves `true` when signed in without leaving the page. */
+export async function signInWithGoogle(): Promise<boolean> {
+  if (!(await auth.googleSignIn())) return false; // the page goes to Google and comes back
+  await openSession();
+  return true;
+}
+
+/** Back from Google: finishes the sign-in. `false` when this page load is not a return from Google. */
+export async function finishGoogleSignIn(): Promise<boolean> {
+  if (!(await auth.finishGoogle())) return false;
+  await openSession();
+  return true;
+}
+
+const openSession = async () => {
+  // Purchases made here without an account join it.
+  await request('POST', '/session', {});
+  guest.clear();
+  await boot();
+};
 
 export interface SignUpInput {
   name: string;
@@ -65,6 +87,12 @@ export async function activateMerchant(input: MerchantInput): Promise<void> {
 export async function updateMerchant(input: MerchantInput): Promise<void> {
   validateMerchant(input);
   await mutate('PATCH', '/merchant', input);
+}
+
+/** Verified stores: their address salacope.online/@handle (`null` removes it). */
+export async function setStoreHandle(handle: string | null): Promise<void> {
+  if (handle) validateHandle(handle);
+  await mutate('PUT', '/merchant/handle', { handle });
 }
 
 /** Store photo: `null` removes it. The image is cropped square and reduced in the browser. */

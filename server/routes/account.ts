@@ -1,4 +1,5 @@
 import { DomainError } from '../../src/shared/domain/errors.js';
+import { validateHandle } from '../../src/shared/domain/listings.js';
 import { KYC_DOCUMENTS, KYC_MAX_BYTES, validateKyc } from '../../src/shared/domain/kyc.js';
 import { query, tx } from '../db.js';
 import { route } from '../http.js';
@@ -115,6 +116,23 @@ const kycDocument = (value: unknown, label: string) => {
   if (data.length < 8_000) throw new DomainError(`Photo trop petite pour être lue : ${label}.`);
   return { mime: m[1], data };
 };
+
+/** Verified stores choose their address: salacope.online/@handle. */
+route('PUT', '/merchant/handle', async (ctx) => {
+  const userId = await ctx.accountId();
+  const handle = ctx.body.handle ? validateHandle(ctx.body.handle) : null;
+  await tx(async (q) => {
+    const [m] = await q<{ verified: boolean }>('SELECT verified FROM merchants WHERE user_id = $1 FOR UPDATE', [userId]);
+    if (!m) throw new DomainError('Boutique introuvable.', 404);
+    if (!m.verified) throw new DomainError('L’adresse personnalisée est réservée aux boutiques vérifiées.', 403);
+    if (handle) {
+      const [taken] = await q('SELECT 1 FROM merchants WHERE LOWER(handle) = $1 AND user_id <> $2', [handle, userId]);
+      if (taken) throw new DomainError('Cette adresse est déjà prise.', 409);
+    }
+    await q('UPDATE merchants SET handle = $2 WHERE user_id = $1', [userId, handle]);
+  });
+  return { patch: { users: [await loadSelf(userId)] } };
+});
 
 /** Store photo, square and already reduced by the browser; the type is read from the bytes, never trusted. */
 const LOGO_MAX_BYTES = 80_000;

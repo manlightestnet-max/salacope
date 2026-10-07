@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Check, Download, ImagePlus, Link2, Plus, Trash2, Wrench } from 'lucide-react';
 import { BriefQuestion, Category, Listing, ListingKind } from '@/shared/db';
 import { Button, Field, Input, Panel, Select, Textarea } from '@/shared/ui';
 import { createId, cropImageFile } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
-import { CATEGORIES, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb } from '@/features/catalog';
+import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb, fetchGallery } from '@/features/catalog';
 import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
 
@@ -43,6 +43,8 @@ const fromListing = (l?: Listing): ListingInput => ({
   priceXaf: l?.priceXaf ?? 0,
   compareAtXaf: l?.compareAtXaf,
   coverImage: l?.coverImage ?? '',
+  // Existing offer: loaded from the server below; new offer: none yet.
+  gallery: l?.galleryCount ? undefined : [],
   deliveryDays: l?.deliveryDays ?? 3,
   revisions: l?.revisions ?? 1,
   briefQuestions: l?.briefQuestions ?? [],
@@ -207,6 +209,94 @@ const CoverInput: React.FC<{ value: string; category: Category; onChange: (value
   );
 };
 
+/** Up to LISTING_LIMITS.gallery more images, after the cover, cropped to the same shape. */
+const GalleryInput: React.FC<{ value: string[] | undefined; category: Category; onChange: (value: string[]) => void }> = ({ value, category, onChange }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const format = COVER_FORMAT[category];
+  const images = value ?? [];
+  const room = LISTING_LIMITS.gallery - images.length;
+
+  const onFiles = async (files: File[]) => {
+    setError(undefined);
+    setBusy(true);
+    try {
+      const [w, h] = COVER_SIZE[format];
+      const added = await Promise.all(files.slice(0, room).map((f) => cropImageFile(f, w, h)));
+      onChange([...images, ...added]);
+      if (files.length > room) setError(`${LISTING_LIMITS.gallery} images au maximum en plus de la couverture.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Field
+      label="Autres images"
+      optional
+      action={<span className="ml-auto text-xs text-gray-400 tabular-nums">{images.length} / {LISTING_LIMITS.gallery}</span>}
+      hint="Montrez l’intérieur, un aperçu, un résultat : les clients les font défiler sur la fiche."
+      error={error}
+    >
+      {(id) =>
+        value === undefined ? (
+          <div className="flex gap-2">
+            {[0, 1].map((i) => (
+              <span key={i} className={clsx('w-20 shimmer rounded-lg', COVER_ASPECT[format])} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {images.map((src, i) => (
+              <div key={i} className={clsx('relative w-20 overflow-hidden rounded-lg border border-gray-200', COVER_ASPECT[format])}>
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onChange(images.filter((_, j) => j !== i))}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-canvas/85 flex items-center justify-center text-gray-700 hover:text-gray-900"
+                  aria-label={`Retirer l’image ${i + 2}`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {room > 0 && (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={busy}
+                className={clsx(
+                  'w-20 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700',
+                  COVER_ASPECT[format],
+                  busy && 'shimmer'
+                )}
+              >
+                <ImagePlus className="w-4 h-4" />
+                Ajouter
+              </button>
+            )}
+            <input
+              ref={inputRef}
+              id={id}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void onFiles(Array.from(e.target.files ?? []));
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )
+      }
+    </Field>
+  );
+};
+
 const BriefQuestionsEditor: React.FC<{ value: BriefQuestion[]; onChange: (value: BriefQuestion[]) => void }> = ({ value, onChange }) => {
   const update = (id: string, patch: Partial<BriefQuestion>) => onChange(value.map((q) => (q.id === id ? { ...q, ...patch } : q)));
   return (
@@ -261,6 +351,15 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
   const isNew = !listing;
   const [form, setForm] = useState<ListingInput>(() => fromListing(listing));
   const [featuresText, setFeaturesText] = useState(form.features.join('\n'));
+  // The gallery of an existing offer is not in the catalogue: fetch it to edit it.
+  useEffect(() => {
+    if (!listing?.galleryCount) return;
+    let live = true;
+    void fetchGallery(listing).then((images) => live && setForm((f) => (f.gallery === undefined ? { ...f, gallery: images } : f)));
+    return () => {
+      live = false;
+    };
+  }, [listing]);
   const [step, setStep] = useState(isNew ? 0 : 1);
   const [reached, setReached] = useState(isNew ? 0 : STEPS.length - 1);
   const [error, setError] = useState<string>();
@@ -456,6 +555,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
           {step === 3 && (
             <>
               <CoverInput value={form.coverImage} category={form.category} onChange={(v) => set('coverImage', v)} />
+              <GalleryInput value={form.gallery} category={form.category} onChange={(v) => set('gallery', v)} />
               <Field label="Prix" hint={`Minimum ${PLATFORM.minPriceXaf} FCFA.`}>
                 {(id) => (
                   <Input

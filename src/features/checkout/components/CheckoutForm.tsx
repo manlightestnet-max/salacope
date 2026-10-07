@@ -25,8 +25,9 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const { user } = useSession();
   // A guest (bought here before without an account) is not shown as an account.
   const member = user && !user.guest ? user : null;
-  const [showSignIn, setShowSignIn] = useState(() => new URLSearchParams(location.search).get('g') === '1');
   const location = useLocation();
+  // Retour de Google (?g=1) : le formulaire de connexion s'affiche pour terminer la connexion.
+  const [showSignIn, setShowSignIn] = useState(() => new URLSearchParams(location.search).get('g') === '1');
   const navigate = useNavigate();
   const [brief, setBrief] = useState<Record<string, string>>({});
   const [showInvoice, setShowInvoice] = useState(false);

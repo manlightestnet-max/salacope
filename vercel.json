@@ -14,6 +14,26 @@
       "destination": "/api?__path=:path*"
     },
     {
+      "source": "/p/:id",
+      "destination": "/api?__path=/share/p/:id"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/api?__path=/share/s/:id"
+    },
+    {
+      "source": "/@:handle",
+      "destination": "/api?__path=/share/h/:handle"
+    },
+    {
+      "source": "/ac/p/:id",
+      "destination": "/api?__path=/share/p/:id"
+    },
+    {
+      "source": "/ac/s/:id",
+      "destination": "/api?__path=/share/s/:id"
+    },
+    {
       "source": "/((?!api/|api$|__/).*)",
       "destination": "/index.html"
     }

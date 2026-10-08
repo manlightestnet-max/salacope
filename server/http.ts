@@ -127,6 +127,7 @@ export async function handle(request: Request): Promise<Response> {
       viewerId: async () => (await getViewer())?.id ?? null,
       accountId: getAccountId,
     });
+    if (result instanceof Response) return result;
     return reply(200, result ?? { ok: true });
   } catch (err) {
     if (err instanceof DomainError) return reply(err.status, { error: err.message });

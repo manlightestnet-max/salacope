@@ -7,5 +7,6 @@ import './routes/chat.js';
 import './routes/support.js';
 import './routes/lightpay.js';
 import './routes/admin.js';
+import './routes/share.js';
 
 export { handle } from './http.js';

@@ -6,7 +6,8 @@ import { Banner, useBanners } from '../banners';
 import { LoadingImage } from './ListingCover';
 
 const EVERY = 5500;
-const SHAPE = 'aspect-[16/8] sm:aspect-[16/6]';
+// The stored image is 1200×450 (8:3): same shape on every screen, so nothing is cropped on a phone.
+const SHAPE = 'aspect-[8/3]';
 
 const Slide: React.FC<{ banner: Banner }> = ({ banner }) => {
   const external = banner.link.startsWith('https://');
@@ -16,7 +17,7 @@ const Slide: React.FC<{ banner: Banner }> = ({ banner }) => {
       <LoadingImage src={banner.image} alt={banner.title} className="absolute inset-0 w-full h-full object-cover" />
       <span className="absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-gray-950/[0.06]" />
       {banner.title && (
-        <span className="absolute left-3 bottom-3 sm:left-4 sm:bottom-4 max-w-[min(100%,22rem)] truncate rounded-xl bg-canvas/85 backdrop-blur px-3 py-2 text-sm font-semibold text-gray-900">
+        <span className="absolute left-2 bottom-2 sm:left-4 sm:bottom-4 max-w-[min(85%,22rem)] truncate rounded-lg sm:rounded-xl bg-canvas/85 backdrop-blur px-2 py-1 sm:px-3 sm:py-2 text-[11px] sm:text-sm font-semibold text-gray-900">
           {banner.title}
         </span>
       )}
@@ -82,7 +83,7 @@ export const ShopBanner: React.FC<{ className?: string }> = ({ className }) => {
         ))}
       </div>
       {count > 1 && (
-        <div className="absolute right-4 top-4 flex gap-1.5 rounded-full bg-canvas/75 backdrop-blur px-2 py-1.5">
+        <div className="absolute right-2 top-2 sm:right-4 sm:top-4 flex gap-1.5 rounded-full bg-canvas/75 backdrop-blur px-1.5 py-1 sm:px-2 sm:py-1.5">
           {banners.map((b, i) => (
             <button
               key={b.position}

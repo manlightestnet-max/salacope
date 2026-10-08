@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
 import { ScrollArrows, useHorizontalScroll } from '@/shared/ui';
@@ -10,9 +10,15 @@ import { ListingCard } from './ListingCard';
 const RAIL_WIDTH: Record<CoverFormat, string> = {
   portrait: 'w-[148px] sm:w-[180px]',
   square: 'w-[160px] sm:w-[188px]',
-  landscape: 'w-[240px] sm:w-[280px]',
-  video: 'w-[250px] sm:w-[300px]',
+  // Services and videos are wide: on a phone a card takes most of the width (the next one peeks), never more than the screen.
+  landscape: 'w-[min(78vw,260px)] sm:w-[280px]',
+  video: 'w-[min(80vw,270px)] sm:w-[300px]',
 };
+
+/** A section never lists more than this many offers (the rest is behind "Voir tout"); they load as the row is scrolled. */
+export const SECTION_MAX = 20;
+const FIRST = 8;
+const STEP = 6;
 
 export interface ListingRailProps {
   title: string;
@@ -28,7 +34,19 @@ export interface ListingRailProps {
 
 /** Horizontal row of listings with snap scrolling; arrows appear only when the cards overflow. */
 export const ListingRail: React.FC<ListingRailProps> = ({ title, views, onViewAll, variant = 'plain' }) => {
-  const scroll = useHorizontalScroll(views.length);
+  const all = views.slice(0, SECTION_MAX);
+  const [shown, setShown] = useState(FIRST);
+  const visible = all.slice(0, shown);
+  const scroll = useHorizontalScroll(visible.length);
+
+  // Infinite scroll, sideways: nearing the end of the row brings the next offers, up to the section's maximum.
+  const more = () => setShown((n) => Math.min(all.length, n + STEP));
+  const nearEnd = (el: HTMLElement) => el.scrollLeft + el.clientWidth >= el.scrollWidth - 320;
+  useEffect(() => {
+    const el = scroll.ref.current;
+    if (el && shown < all.length && nearEnd(el)) more();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown, all.length]);
 
   if (views.length === 0) return null;
   const width = RAIL_WIDTH[COVER_FORMAT[views[0].listing.category]];
@@ -45,7 +63,7 @@ export const ListingRail: React.FC<ListingRailProps> = ({ title, views, onViewAl
       <div className={clsx('flex items-center justify-between gap-4', panel ? 'mb-5' : 'mb-4')}>
         <div className="flex items-baseline gap-2.5 min-w-0">
           <h2 className={clsx('font-semibold tracking-tight text-gray-900 truncate', panel ? 'text-lg' : 'text-lg sm:text-xl')}>{title}</h2>
-          {panel && <span className="shrink-0 text-[12.5px] text-gray-500">{plural(views.length, 'offre')}</span>}
+          {panel && <span className="shrink-0 text-[12.5px] text-gray-500">{plural(all.length, 'offre')}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {onViewAll && (
@@ -63,10 +81,13 @@ export const ListingRail: React.FC<ListingRailProps> = ({ title, views, onViewAl
       </div>
       <div
         ref={scroll.ref}
-        onScroll={scroll.onScroll}
+        onScroll={(e) => {
+          scroll.onScroll();
+          if (shown < all.length && nearEnd(e.currentTarget)) more();
+        }}
         className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-px-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:scroll-px-0"
       >
-        {views.map((v) => (
+        {visible.map((v) => (
           <div key={v.listing.id} className={clsx('shrink-0 snap-start', width)}>
             <ListingCard view={v} />
           </div>

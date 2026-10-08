@@ -48,8 +48,8 @@ const StorePromises: React.FC = () => {
   const [shown, setShown] = useState(PROMISES[0]);
 
   return (
-    <div>
-      <div className="flex flex-wrap gap-2">
+    <div className="min-w-0">
+      <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
         {PROMISES.map((p) => {
           const active = open === p.id;
           return (
@@ -63,7 +63,7 @@ const StorePromises: React.FC = () => {
                 setOpen(active ? null : p.id);
               }}
               className={clsx(
-                'h-9 inline-flex items-center gap-2 rounded-full border pl-1.5 pr-3 text-[13px] font-medium transition-colors',
+                'h-9 shrink-0 inline-flex items-center gap-2 rounded-full border pl-1.5 pr-3 text-[13px] font-medium transition-colors',
                 active
                   ? 'border-primary-600/40 bg-primary-50 text-gray-900'
                   : 'border-gray-200 bg-surface text-gray-600 hover:text-gray-900 hover:border-gray-300'
@@ -113,7 +113,7 @@ const FeaturedListing: React.FC<{ view: ListingView }> = ({ view: { listing, sel
   const to = useQuickViewTo(listing.id);
 
   return (
-    <article className="rounded-[26px] border border-gray-200/60 bg-surface p-3 sm:p-3.5 shadow-sm">
+    <article className="min-w-0 rounded-[26px] border border-gray-200/60 bg-surface p-3 sm:p-3.5 shadow-sm">
       <Link to={to} preventScrollReset className="group relative block" aria-label={listing.title}>
         <ListingCover bare src={listing.coverImage} category={listing.category} imageClassName="transition-transform duration-700 group-hover:scale-[1.02]" />
         <span className="absolute left-3 top-3 h-7 px-3 rounded-full bg-canvas/75 backdrop-blur text-xs font-medium text-gray-900 flex items-center">
@@ -154,10 +154,10 @@ export const StorefrontHero: React.FC<{ views: ListingView[]; catalogueId: strin
   const featured = useMemo(() => pickFeatured(views), [views]);
 
   return (
-    <section className="grid items-start gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] pt-2 pb-12 sm:pt-4 lg:pt-6 lg:pb-14">
-      <div>
+    <section className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 sm:gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] pt-2 pb-12 sm:pt-4 lg:pt-6 lg:pb-14">
+      <div className="min-w-0">
         <StorePromises />
-        <ShopBanner className="mt-5 max-w-[640px]" />
+        <ShopBanner className="mt-4 sm:mt-5 max-w-[640px]" />
         <h1 className="mt-7 max-w-[720px] text-[38px] sm:text-5xl xl:text-[62px] font-semibold leading-[1.03] tracking-[-0.035em] text-gray-900">
           Formations, e-books et services de{' '}
           <span className="font-serif italic font-normal tracking-[-0.01em] text-primary-700">créateurs du Congo</span>.

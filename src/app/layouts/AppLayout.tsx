@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
 import { useDb } from '@/shared/db';
-import { shortcutLabel, useFocusShortcut, useTrackHistory } from '@/shared/hooks';
+import { shortcutLabel, useFocusShortcut, useTrackHistory, useVisualViewportHeight } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { needsAction, useUnreadCount } from '@/features/orders';
@@ -237,6 +237,7 @@ const TopBarSearch: React.FC = () => {
  */
 export const AppLayout: React.FC = () => {
   useTrackHistory();
+  useVisualViewportHeight();
   const user = useCurrentUser();
   const [pinned, setPinned] = useState(readPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -254,11 +255,15 @@ export const AppLayout: React.FC = () => {
   useEffect(() => setDrawerOpen(false), [pathname]);
 
   const PinIcon = pinned ? PanelLeftClose : PanelLeftOpen;
+  // A conversation on a phone takes the whole screen: its own header replaces the app bar, nothing else on screen.
+  const inRoom = /^\/ac\/messages\/[^/]+/.test(pathname);
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden bg-surface">
-      <LaunchBanner />
-      <header className="shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30">
+    <div className="flex flex-col overflow-hidden bg-surface" style={{ height: 'var(--vvh, 100dvh)' }}>
+      <div className={clsx('shrink-0', inRoom && 'max-lg:hidden')}>
+        <LaunchBanner />
+      </div>
+      <header className={clsx('shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30', inRoom && 'max-lg:hidden')}>
         <button
           type="button"
           onClick={() => setPinned((v) => !v)}

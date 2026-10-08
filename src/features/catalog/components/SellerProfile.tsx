@@ -99,7 +99,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       </section>
 
       {/* Pinned under the header while the page scrolls; the profile card above scrolls away and comes back at the top. */}
-      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 py-3 mt-3 mb-4 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
+      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-0 pb-3 mt-6 mb-4 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
         <div className="flex items-center gap-3">
         <Tabs
           className="shrink-0"

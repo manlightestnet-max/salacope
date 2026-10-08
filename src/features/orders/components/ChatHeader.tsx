@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Ban, MoreVertical, ReceiptText, Timer } from 'lucide-react';
+import { ArrowLeft, Ban, MoreVertical, ReceiptText, Timer } from 'lucide-react';
 import { Order, User, useDb } from '@/shared/db';
 import { Avatar, ConfirmDialog, Menu, MenuItem } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
@@ -17,11 +17,12 @@ import { CounterpartSheet } from './chat/CounterpartSheet';
  * details; the buyer sees the store and controls the chat (ephemeral messages, block).
  * `withOrder`: the room is shown on its own (Messages), so it links back to the order.
  */
-export const ChatHeader: React.FC<{ order: Order; perspective: Perspective; seller: User | undefined; withOrder?: boolean }> = ({
+export const ChatHeader: React.FC<{ order: Order; perspective: Perspective; seller: User | undefined; withOrder?: boolean; backTo?: string }> = ({
   order,
   perspective,
   seller,
   withOrder,
+  backTo,
 }) => {
   const me = useCurrentUser();
   const run = useServiceAction();
@@ -60,7 +61,12 @@ export const ChatHeader: React.FC<{ order: Order; perspective: Perspective; sell
   ];
 
   return (
-    <div className="shrink-0 h-14 px-4 sm:px-5 flex items-center gap-3 border-b border-gray-100">
+    <div className="shrink-0 h-14 px-2 lg:px-5 flex items-center gap-2 lg:gap-3 border-b border-gray-100">
+      {backTo && (
+        <Link to={backTo} aria-label="Retour aux messages" className="lg:hidden w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+      )}
       <button type="button" onClick={() => setSheet(true)} className="shrink-0 rounded-full" aria-label={`Vos commandes avec ${name}`}>
         <Avatar name={name} src={isBuyer ? seller?.merchant?.logo : undefined} />
       </button>

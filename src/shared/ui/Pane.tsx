@@ -35,6 +35,8 @@ export interface PageProps {
   width?: keyof typeof WIDTHS;
   /** The body takes the pane's height and never scrolls; its children scroll inside (compact bar). */
   fill?: boolean;
+  /** Phones only: no pinned bar and no side padding, the body goes edge to edge (a conversation brings its own header). */
+  immersive?: boolean;
   children: React.ReactNode;
 }
 
@@ -42,7 +44,7 @@ export interface PageProps {
  * Back-office page: a pinned header that never scrolls (breadcrumb, title, actions, toolbar),
  * aligned on the content column, above the only scrolling area of the app.
  */
-export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, toolbar, width = 'default', fill, children }) => {
+export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, toolbar, width = 'default', fill, immersive, children }) => {
   const trail = useContext(PageTrailContext);
   const column = clsx('mx-auto w-full px-4 sm:px-6', WIDTHS[width]);
   const backClick = back?.onClick && ((e: React.MouseEvent) => (e.preventDefault(), back.onClick!()));
@@ -58,7 +60,7 @@ export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, to
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <header className="relative z-10 shrink-0 bg-canvas/85 backdrop-blur border-b border-gray-200/70">
+      <header className={clsx('relative z-10 shrink-0 bg-canvas/85 backdrop-blur border-b border-gray-200/70', immersive && 'max-lg:hidden')}>
         {fill ? (
           <div className={clsx(column, 'h-12 flex items-center gap-2 min-w-0')}>
             {crumb && (
@@ -91,7 +93,7 @@ export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, to
         )}
       </header>
       <div className={clsx('flex-1 min-h-0', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
-        <div className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6')}>{children}</div>
+        <div className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6', immersive && 'max-lg:!px-0 max-lg:!py-0')}>{children}</div>
       </div>
     </div>
   );

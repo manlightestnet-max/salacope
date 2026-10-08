@@ -135,6 +135,16 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   useEffect(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [order.messages.length]);
+  // The keyboard opening or closing resizes the screen: the feed stays on its last message.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !fill) return;
+    const stick = () => {
+      if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    };
+    vv.addEventListener('resize', stick);
+    return () => vv.removeEventListener('resize', stick);
+  }, [fill]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +160,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   const content = (
     <>
       {!bare && <h2 className="px-5 pt-4 pb-2 text-sm font-semibold text-gray-900">Activité</h2>}
-      <ul ref={feedRef} className={clsx('px-4 sm:px-5 py-4 space-y-4 overflow-y-auto scrollbar-none', fill ? 'flex-1 min-h-0' : 'max-h-[560px]')}>
+      <ul ref={feedRef} className={clsx('px-3 sm:px-5 py-4 space-y-4 overflow-y-auto overscroll-contain scrollbar-none', fill ? 'flex-1 min-h-0' : 'max-h-[560px]')}>
         {order.chat?.ephemeral && (
           <li className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <Timer className="w-3.5 h-3.5" /> Messages éphémères : effacés à la clôture de la commande.
@@ -192,7 +202,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
       </ul>
 
       {canMessage && (
-        <form onSubmit={submit} className="shrink-0 p-3 border-t border-gray-100">
+        <form onSubmit={submit} className="shrink-0 p-2 sm:p-3 border-t border-gray-100">
           <div className="rounded-2xl border border-gray-200 bg-canvas focus-within:border-gray-400 transition-colors">
             {attachments.files.length > 0 && (
               <div className="px-3 pt-3">
@@ -240,7 +250,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
               </button>
             </div>
           </div>
-          <p className={clsx('mt-1.5 px-2 text-[11px]', blocked ? 'text-red-600' : 'text-gray-400')}>
+          <p className={clsx('mt-1.5 px-2 text-[11px]', blocked ? 'text-red-600' : 'text-gray-400 max-sm:hidden')}>
             {blocked ? CONTACT_BLOCKED : 'Entrée pour envoyer · Maj + Entrée pour aller à la ligne'}
           </p>
         </form>

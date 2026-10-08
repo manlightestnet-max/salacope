@@ -15,7 +15,7 @@ const KINDS: { value: ListingKind; label: string; param: string }[] = [
 ];
 
 /**
- * `/compte/messages[/:orderId]`: every conversation, digital products and services apart.
+ * `/ac/messages[/:orderId]`: every conversation, digital products and services apart.
  * One room per order (never duplicated); a person with several orders asks which one.
  * Desktop: list + room side by side. Phone: the list, then the room on its own.
  */

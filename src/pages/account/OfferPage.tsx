@@ -7,7 +7,7 @@ import { displayName } from '@/features/session';
 import { ListingDetail, ListingSections, useListingView, useSellerListings } from '@/features/catalog';
 
 /**
- * `/compte/explorer/offre/:id`: an offer opened from anywhere in the back-office except the
+ * `/ac/explorer/offre/:id`: an offer opened from anywhere in the back-office except the
  * Explorer (which keeps its quick view). Back returns to where the user came from.
  */
 export const OfferPage: React.FC = () => {

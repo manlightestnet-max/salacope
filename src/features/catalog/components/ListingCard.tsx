@@ -2,10 +2,10 @@ import React from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { Reveal, usePane } from '@/shared/ui';
+import { Pending, Reveal, usePane } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { FavoriteButton } from '@/features/library';
-import { COVER_FORMAT, CoverFormat, ListingView, cardBreadcrumb } from '../model';
+import { COVER_ASPECT, COVER_FORMAT, CoverFormat, ListingView, cardBreadcrumb, isPlaceholder } from '../model';
 import { SellerLink } from './SellerLink';
 import { ListingCover } from './ListingCover';
 import { ListingPrice } from './ListingPrice';
@@ -37,8 +37,27 @@ export const CardBreadcrumb: React.FC<{ listing: ListingView['listing']; classNa
   );
 };
 
+const PendingCard: React.FC<{ listing: ListingView['listing'] }> = ({ listing }) => (
+  <div aria-hidden className="block">
+    <div className={clsx('relative overflow-hidden rounded-xl shimmer', COVER_ASPECT[COVER_FORMAT[listing.category]])} />
+    <div className="pt-3">
+      <CardBreadcrumb listing={listing} />
+      <h3 className="mt-1 text-sm font-semibold leading-snug line-clamp-2">
+        <Pending>{listing.title}</Pending>
+      </h3>
+      <p className="mt-1 text-[12.5px]">
+        <Pending>Nom de la boutique</Pending>
+      </p>
+      <p className="mt-2 text-sm font-semibold">
+        <Pending>15 000 FCFA</Pending>
+      </p>
+    </div>
+  </div>
+);
+
 export const ListingCard: React.FC<{ view: ListingView }> = ({ view: { listing, seller } }) => {
   const to = useQuickViewTo(listing.id);
+  if (isPlaceholder(listing)) return <PendingCard listing={listing} />;
 
   return (
     <Link to={to} className="group block" preventScrollReset>

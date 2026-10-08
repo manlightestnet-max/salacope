@@ -9,7 +9,7 @@ import { CheckoutForm } from '@/features/checkout';
 import { useSession } from '@/features/session';
 
 /**
- * `/checkout/:id` (visitors, minimal chrome) and `/compte/checkout/:id` (inside the back-office).
+ * `/checkout/:id` (visitors, minimal chrome) and `/ac/checkout/:id` (inside the back-office).
  */
 export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) => {
   const { id = '' } = useParams<{ id: string }>();

@@ -141,3 +141,32 @@ export const queryListings = (views: ListingView[], query: CatalogQuery): Listin
 /** Public address of a store: its own @handle once verified, else its id. */
 export const storeHref = (seller: Pick<User, 'id' | 'merchant'>) =>
   seller.merchant?.verified && seller.merchant.handle ? ROUTES.storeHandle(seller.merchant.handle) : ROUTES.store(seller.id);
+
+/**
+ * Stand-ins for offers that have not arrived yet: the catalogue draws its real blocks (category titles, card shapes)
+ * and these cards, whose values are painted as shimmer. Never sent anywhere, never clickable.
+ */
+const PENDING = 'pending-';
+export const isPlaceholder = (listing: Pick<Listing, 'id'>) => listing.id.startsWith(PENDING);
+export const placeholderViews = (categories: Category[] = CATEGORIES.map((c) => c.id), perCategory = 4): ListingView[] =>
+  categories.flatMap((category) =>
+    Array.from({ length: perCategory }, (_, i) => ({
+      listing: {
+        id: `${PENDING}${category}-${i}`,
+        sellerId: '',
+        kind: categoryConfig(category).kind,
+        category,
+        title: 'Titre de l’offre sur deux lignes',
+        summary: '',
+        description: '',
+        features: [],
+        priceXaf: 15000,
+        coverImage: '',
+        status: 'published' as const,
+        createdAt: '',
+        updatedAt: '',
+      },
+      seller: undefined,
+      salesCount: 0,
+    }))
+  );

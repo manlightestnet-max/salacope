@@ -6,7 +6,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { PaymentAttemptList, TicketList, useSupportReferences, useTickets } from '@/features/support';
 
-/** `/compte/support`: the user's tickets and latest payment attempts (with their codes). */
+/** `/ac/support`: the user's tickets and latest payment attempts (with their codes). */
 export const SupportPage: React.FC = () => {
   const user = useCurrentUser();
   const tickets = useTickets(user.id);

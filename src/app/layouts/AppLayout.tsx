@@ -181,7 +181,7 @@ const trailOf = (pathname: string, storeName?: string): string | null => {
   if (pathname.startsWith('/dashboard') || pathname.startsWith(ROUTES.lightpayCallback)) return storeName ?? 'Boutique';
   if (pathname.startsWith(ROUTES.account.explorer)) return 'Catalogue';
   if (pathname.startsWith(ROUTES.account.messages)) return 'Messages';
-  if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/compte/checkout'].some((p) => pathname.startsWith(p))) {
+  if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/ac/checkout'].some((p) => pathname.startsWith(p))) {
     return 'Achats';
   }
   if ([ROUTES.account.support, ROUTES.account.settings, ROUTES.account.openStore].some((p) => pathname.startsWith(p))) return 'Compte';

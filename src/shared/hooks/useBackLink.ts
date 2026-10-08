@@ -28,17 +28,17 @@ const { account, seller } = ROUTES;
 
 /** Name of the screen a path belongs to, for the breadcrumb of the back arrow. */
 const LABELS: [string, string][] = [
-  ['/compte/achats/', 'Commande'],
+  ['/ac/achats/', 'Commande'],
   ['/dashboard/ventes/', 'Vente'],
   [account.messages, 'Messages'],
   [account.favorites, 'Favoris'],
   [account.following, 'Abonnements'],
   [account.orders, 'Mes achats'],
   [account.support, 'Support'],
-  ['/compte/s/', 'Boutique'],
-  ['/compte/p/', 'Offre'],
+  ['/ac/s/', 'Boutique'],
+  ['/ac/p/', 'Offre'],
   [account.explorer, 'Explorer'],
-  ['/compte/checkout/', 'Paiement'],
+  ['/ac/checkout/', 'Paiement'],
   [seller.listings, 'Offres'],
   [seller.sales, 'Ventes'],
   [seller.customers, 'Clients'],

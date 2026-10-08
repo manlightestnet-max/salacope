@@ -7,7 +7,7 @@ import { useBackLink } from '@/shared/hooks';
 import { displayName } from '@/features/session';
 import { SellerProfile } from '@/features/catalog';
 
-/** `/compte/explorer/boutique/:id`: a store's page inside the back-office. */
+/** `/ac/explorer/boutique/:id`: a store's page inside the back-office. */
 export const StorePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const seller = useDb((s) => s.users.find((u) => u.id === id && u.merchant), [id]);

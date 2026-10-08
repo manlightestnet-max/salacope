@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Button, EmptyState } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { isAdminHost } from '@/shared/config/hosts';
@@ -51,13 +51,20 @@ const NotFound = () => (
 /** Old address of an offer or store → the short one, same id. */
 const RedirectParam = ({ to }: { to: (id: string) => string }) => <Navigate to={to(useParams().id ?? '')} replace />;
 
+/** Old `/compte/…` addresses (bookmarks, notifications already sent) → `/ac/…`, same rest of the path and query. */
+const RedirectAccount = () => {
+  const { search, hash } = useLocation();
+  const rest = useParams()['*'] ?? '';
+  return <Navigate to={`${ROUTES.account.root}${rest ? `/${rest}` : ''}${search}${hash}`} replace />;
+};
+
 const RedirectOrder = () => <Navigate to={ROUTES.seller.sale(useParams().id ?? '')} replace />;
 
 /** Previous URLs kept working after the redesign. */
 const LEGACY_REDIRECTS: [string, string][] = [
   ['/pesquisa', ROUTES.search],
-  ['/compte/following', ROUTES.account.following],
-  ['/compte/profil', ROUTES.account.settings],
+  ['/ac/following', ROUTES.account.following],
+  ['/ac/profil', ROUTES.account.settings],
   ['/dashboard/services', ROUTES.seller.listings],
   ['/dashboard/produits', ROUTES.seller.listings],
   ['/dashboard/services/nouveau', ROUTES.seller.newListing],
@@ -95,6 +102,8 @@ export const router = createBrowserRouter([
           { path: 'lutte-anti-blanchiment', element: <AmlPolicy /> },
         ],
       },
+      { path: '/compte', element: <RedirectAccount /> },
+      { path: '/compte/*', element: <RedirectAccount /> },
       ...LEGACY_REDIRECTS.map(([from, to]) => ({ path: from, element: <Navigate to={to} replace /> })),
       { path: '/dashboard/commandes/:id', element: <RedirectOrder /> },
       // salacope.online/@handle (verified stores); other one-segment addresses show "not found".
@@ -117,24 +126,24 @@ export const router = createBrowserRouter([
         children: [
           { path: ROUTES.account.root, element: <Navigate to={ROUTES.account.explorer} replace /> },
           { path: ROUTES.account.explorer, element: <ExplorerPage /> },
-          { path: '/compte/s/:id', element: <StorePage /> },
-          { path: '/compte/p/:id', element: <OfferPage /> },
-          { path: '/compte/explorer/boutique/:id', element: <RedirectParam to={ROUTES.account.store} /> },
-          { path: '/compte/explorer/offre/:id', element: <RedirectParam to={ROUTES.account.offer} /> },
-          { path: '/compte/checkout/:id', element: <CheckoutPage inApp /> },
+          { path: '/ac/s/:id', element: <StorePage /> },
+          { path: '/ac/p/:id', element: <OfferPage /> },
+          { path: '/ac/explorer/boutique/:id', element: <RedirectParam to={ROUTES.account.store} /> },
+          { path: '/ac/explorer/offre/:id', element: <RedirectParam to={ROUTES.account.offer} /> },
+          { path: '/ac/checkout/:id', element: <CheckoutPage inApp /> },
           { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },
           { path: ROUTES.lightpayCallback, element: <LightPayCallbackPage /> },
           { path: ROUTES.account.openStore, element: <OpenStorePage /> },
           { path: ROUTES.account.messages, element: <MessagesPage /> },
-          { path: '/compte/messages/:id', element: <MessagesPage /> },
+          { path: '/ac/messages/:id', element: <MessagesPage /> },
           { path: ROUTES.account.orders, element: <OrdersPage /> },
-          { path: '/compte/achats/:id', element: <OrderPage as="buyer" /> },
+          { path: '/ac/achats/:id', element: <OrderPage as="buyer" /> },
           { path: ROUTES.account.favorites, element: <FavoritesPage /> },
           { path: ROUTES.account.following, element: <FollowingPage /> },
           { path: ROUTES.account.settings, element: <SettingsPage /> },
           { path: ROUTES.account.support, element: <SupportPage /> },
           { path: ROUTES.account.newTicket, element: <NewTicketPage /> },
-          { path: '/compte/support/:id', element: <TicketPage /> },
+          { path: '/ac/support/:id', element: <TicketPage /> },
           {
             element: <RequireMerchant />,
             children: [

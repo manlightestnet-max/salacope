@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { SearchX } from 'lucide-react';
-import { Button, EmptyState, SkeletonCards } from '@/shared/ui';
+import { Button, EmptyState, Pending, SkeletonCards, useBooting } from '@/shared/ui';
 import { useHideFooter, useInfiniteList } from '@/shared/hooks';
 import { plural } from '@/shared/lib';
-import { ListingView, categoryLabel, queryListings } from '../model';
+import { ListingView, categoryLabel, placeholderViews, queryListings } from '../model';
 import { useCatalogQuery, usePublishedListings } from '../hooks';
 import { SortSelect } from './CatalogFilters';
 import { ListingGrid } from './ListingCard';
@@ -50,7 +50,14 @@ export interface CatalogBrowserProps {
 export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbarExtra, anchorId, alwaysGrid = false }) => {
   const views = usePublishedListings();
   const { query, setQuery, hasFilters } = useCatalogQuery();
-  const results = useMemo(() => queryListings(views, query), [views, query]);
+  const booting = useBooting();
+  const found = useMemo(() => queryListings(views, query), [views, query]);
+  // Before the offers arrive the same blocks are drawn with stand-in cards painted as shimmer.
+  const pending = booting && found.length === 0;
+  const results = useMemo(
+    () => (pending ? placeholderViews(query.category ? [query.category] : undefined, query.category ? 12 : 4) : found),
+    [pending, found, query.category]
+  );
   const topRef = useRef<HTMLDivElement>(null);
 
   const filtered = Boolean(query.text || query.minPrice || query.maxPrice);
@@ -89,7 +96,7 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight text-gray-900 truncate">{title}</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              {plural(results.length, 'offre')}
+              {pending ? <Pending>12 offres</Pending> : plural(results.length, 'offre')}
               {hasFilters && (
                 <>
                   {' · '}

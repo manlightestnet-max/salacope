@@ -6,7 +6,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { TICKET_TOPICS, TicketForm } from '@/features/support';
 
-/** `/compte/support/nouveau?ref=TX-…&sujet=payment` */
+/** `/ac/support/nouveau?ref=TX-…&sujet=payment` */
 export const NewTicketPage: React.FC = () => {
   const user = useCurrentUser();
   const [params] = useSearchParams();

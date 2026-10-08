@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/features/session';
 import { OrderWorkspace, Perspective, perspectiveOf, useOrderView } from '@/features/orders';
 
 /**
- * One page component for `/compte/achats/:id` (buyer) and `/dashboard/ventes/:id` (seller).
+ * One page component for `/ac/achats/:id` (buyer) and `/dashboard/ventes/:id` (seller).
  * A party opening the other side's URL is redirected to its own view.
  */
 export const OrderPage: React.FC<{ as: Perspective }> = ({ as }) => {

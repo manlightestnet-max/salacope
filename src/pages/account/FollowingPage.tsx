@@ -123,7 +123,7 @@ const FollowRow: React.FC<{
 };
 
 /**
- * `/compte/abonnements`: followed stores in rows (offers, sales, rating, what's new).
+ * `/ac/abonnements`: followed stores in rows (offers, sales, rating, what's new).
  * A row opens on its new publications and marks them as seen. `?boutique=` opens one
  * directly (link of the "new offer" notification).
  */

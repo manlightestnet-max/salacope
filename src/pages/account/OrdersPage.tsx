@@ -22,7 +22,7 @@ import {
 } from '@/features/orders';
 
 /**
- * `/compte/achats`: every purchase in a table (order, offer, type, status, next step, amount),
+ * `/ac/achats`: every purchase in a table (order, offer, type, status, next step, amount),
  * filtered by status and by kind: digital products apart from services.
  */
 export const OrdersPage: React.FC = () => {

@@ -32,7 +32,7 @@ const readView = (): View => {
   }
 };
 
-/** `/compte/favoris`: saved offers as covers or as a table (type, price, date saved, buy). */
+/** `/ac/favoris`: saved offers as covers or as a table (type, price, date saved, buy). */
 export const FavoritesPage: React.FC = () => {
   const user = useCurrentUser();
   const favorites = useDb((s) => s.favorites.filter((f) => f.userId === user.id), [user.id]);

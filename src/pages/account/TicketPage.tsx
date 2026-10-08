@@ -5,7 +5,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { TicketStatusBadge, TicketThread, topicLabel, useTicket } from '@/features/support';
 
-/** `/compte/support/:id` */
+/** `/ac/support/:id` */
 export const TicketPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const user = useCurrentUser();

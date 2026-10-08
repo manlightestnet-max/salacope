@@ -5,6 +5,9 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 // The first screen of a visit shows as it is; only moving from one screen to another has a direction.
 let moved = false;
 
+/** True once this visit has opened a screen from another one (so a back navigation is a real return, not the first load). */
+export const hasNavigated = () => moved;
+
 /**
  * Wraps a screen so opening one from another has a direction: it slides in from the right. Nothing else moves: the
  * first load, going back (the screen is shown as it was left, scroll included) and replacements appear as they are.

@@ -23,18 +23,30 @@ export const ListingThumb: React.FC<{ src: string; category: Category; size?: 's
   </span>
 );
 
-/** Image that fades in over a shimmer of its own shape once loaded. */
+// Images already shown during this visit: coming back to a page (the browser has them) shows them as they are,
+// with no shimmer and no fade, so the page does not look like it reloads.
+const seen = new Set<string>();
+
+/** Image that fades in over a shimmer of its own shape the first time it loads; afterwards it is simply there. */
 export const LoadingImage: React.FC<{ src: string; alt?: string; className?: string }> = ({ src, alt = '', className }) => {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(() => seen.has(src));
+  const done = () => {
+    seen.add(src);
+    setLoaded(true);
+  };
   return (
     <>
       {!loaded && <span aria-hidden className="absolute inset-0 shimmer" />}
       <img
+        // Already in the browser's cache (complete before React attached its handler): no waiting state at all.
+        ref={(el) => {
+          if (el?.complete && el.naturalWidth > 0 && !loaded) done();
+        }}
         src={src}
         alt={alt}
         loading="lazy"
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
+        onLoad={done}
+        onError={done}
         className={clsx(className, 'transition-opacity duration-300 motion-reduce:transition-none', loaded ? 'opacity-100' : 'opacity-0')}
       />
     </>

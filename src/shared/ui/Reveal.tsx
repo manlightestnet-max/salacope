@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import { useNavigationType } from 'react-router-dom';
+import { hasNavigated } from './RouteTransition';
 
 /** A single observer for every revealed element. */
 let observer: IntersectionObserver | null = null;
@@ -17,11 +19,13 @@ const getObserver = () =>
 /** Fades and lifts its content in the first time it scrolls into view (instant with reduced motion). */
 export const Reveal: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({ children, delay = 0, className }) => {
   const ref = useRef<HTMLDivElement>(null);
+  // Coming back to a page: what was already seen is shown as it was left, nothing rises again.
+  const returning = useRef(useNavigationType() === 'POP' && hasNavigated()).current;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
+    if (returning || typeof IntersectionObserver === 'undefined') {
       el.dataset.shown = '';
       return;
     }
@@ -33,6 +37,7 @@ export const Reveal: React.FC<{ children: React.ReactNode; delay?: number; class
   return (
     <div
       ref={ref}
+      data-shown={returning ? '' : undefined}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       className={clsx(
         'opacity-0 translate-y-4 transition duration-700 ease-[cubic-bezier(.2,.7,.2,1)]',

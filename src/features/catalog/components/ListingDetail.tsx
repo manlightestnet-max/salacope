@@ -11,6 +11,7 @@ import { FavoriteButton } from '@/features/library';
 import { useSession } from '@/features/session';
 import { COVER_ASPECT, COVER_FORMAT, ListingView, categoryLabel, deliveryLabel } from '../model';
 import { ListingGallery } from './ListingGallery';
+import { ShareButton } from './ShareButton';
 import { trackListing, useListingStats } from '../api';
 import { ListingPrice } from './ListingPrice';
 import { SellerCard } from './SellerCard';
@@ -171,7 +172,7 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
                 {pending ? (
                   <Skeleton className={clsx('-mx-4 sm:mx-0 rounded-xl', COVER_ASPECT[format])} />
                 ) : (
-                  <ListingGallery listing={listing} className="-mx-4 sm:mx-0" />
+                  <ListingGallery listing={listing} thumbs="side" className="-mx-4 sm:mx-0" />
                 )}
               </div>
               {heading}
@@ -209,7 +210,14 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
             <P><ListingPrice listing={listing} className="text-2xl font-semibold text-gray-900" /></P>
 
             {buy}
-            {pending ? <Skeleton className="h-10 w-full rounded-lg" /> : <FavoriteButton listingId={listing.id} variant="button" className="w-full" />}
+            {pending ? (
+              <Skeleton className="h-10 w-full rounded-lg" />
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <FavoriteButton listingId={listing.id} variant="button" className="w-full" />
+                <ShareButton listing={listing} className="w-full" />
+              </div>
+            )}
 
             <ul className="space-y-2.5 text-sm text-gray-600 pt-1">
               <li className="flex gap-2">

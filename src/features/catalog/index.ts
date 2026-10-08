@@ -9,6 +9,7 @@ export * from './components/ListingSections';
 export * from './components/CatalogBrowser';
 export * from './components/CatalogFilters';
 export * from './components/SearchView';
+export * from './components/ShareButton';
 export * from './components/SellerCard';
 export * from './components/SellerProfile';
 export * from './components/ListingDetail';

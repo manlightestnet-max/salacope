@@ -60,7 +60,7 @@ const Header: React.FC = () => {
   const next = encodeURIComponent(pathname + search);
 
   return (
-    <header className="sticky top-0 z-30 bg-canvas/75 backdrop-blur-xl border-b border-gray-200/60">
+    <header className="sticky top-0 z-30 bg-canvas sm:bg-canvas/75 sm:backdrop-blur-xl border-b border-gray-200/60">
       <Container className="h-16 flex items-center gap-4 lg:gap-7">
         <Logo className="shrink-0" />
         <HeaderSearch className="hidden md:block flex-1 max-w-[460px]" />

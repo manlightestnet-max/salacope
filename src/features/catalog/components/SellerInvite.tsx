@@ -22,7 +22,7 @@ const PaymentNotice: React.FC<{
     <div className={clsx('rounded-[18px] border border-gray-200/70 bg-gray-50 px-4 py-3.5 flex items-center gap-3.5', className)}>
       <OperatorLogo channel={channel} className="w-10 h-10 rounded-xl" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-sm font-semibold text-gray-900 truncate">{title}</p>
         <p className="text-[12.5px] text-gray-500 truncate">{subject}</p>
       </div>
       <div className="text-right shrink-0">
@@ -41,11 +41,11 @@ export const SellerInvite: React.FC<{ views: ListingView[]; className?: string }
   return (
     <section
       className={clsx(
-        'rounded-[28px] border border-gray-200/60 bg-surface p-6 sm:p-10 lg:p-14 grid items-center gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]',
+        'rounded-[28px] border border-gray-200/60 bg-surface p-6 sm:p-10 lg:p-14 grid grid-cols-[minmax(0,1fr)] items-center gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]',
         className
       )}
     >
-      <div>
+      <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary-700">Pour les créateurs</p>
         <h2 className="mt-3 text-[27px] sm:text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-900">
           Vendez vos formations et services, encaissez en{' '}
@@ -60,7 +60,7 @@ export const SellerInvite: React.FC<{ views: ListingView[]; className?: string }
         </Button>
       </div>
       {(sale || order) && (
-        <div aria-hidden className="flex flex-col gap-3">
+        <div aria-hidden className="flex flex-col gap-3 min-w-0">
           {sale && (
             <PaymentNotice
               channel="MTN_MOMO_COG"

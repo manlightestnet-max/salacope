@@ -13,6 +13,13 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* A stray element wider than the screen must never widen the page: on a phone the browser then enlarges the layout
+     viewport and sticky bars drift as you scroll. `clip` (unlike `hidden`) keeps position: sticky working. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   body {
     min-height: 100dvh;
     margin: 0;

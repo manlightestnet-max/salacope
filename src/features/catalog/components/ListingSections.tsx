@@ -28,7 +28,7 @@ export const ListingSections: React.FC<ListingSectionsProps> = ({ views, mode, o
       (a, b) => PANEL_ORDER.indexOf(COVER_FORMAT[a.config.id]) - PANEL_ORDER.indexOf(COVER_FORMAT[b.config.id])
     );
     return (
-      <div className="flex flex-wrap gap-x-4 gap-y-10 sm:gap-y-4">
+      <div className="flex flex-col gap-10 sm:gap-6">
         {ordered.map(({ config, items }) => (
           <ListingRail
             key={config.id}

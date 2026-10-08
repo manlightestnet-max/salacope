@@ -39,9 +39,9 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
   return (
     <div>
       <section className="rounded-3xl border border-gray-200/70 bg-surface p-5 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 sm:gap-x-5">
           <span
-            className={clsx('w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full overflow-hidden select-none flex items-center justify-center text-2xl sm:text-3xl font-semibold', creatorTint(seller.id))}
+            className={clsx('w-20 h-20 sm:w-24 sm:h-24 shrink-0 sm:row-span-2 rounded-full overflow-hidden select-none flex items-center justify-center text-2xl sm:text-3xl font-semibold', creatorTint(seller.id))}
             onContextMenu={(e) => e.preventDefault()}
           >
             {m?.logo ? (
@@ -52,19 +52,21 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
               getInitials(name)
             )}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">{name}</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 break-words">{name}</h2>
               {m?.verified && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-700">
                   <BadgeCheck className="w-4 h-4" /> Vérifié
                 </span>
               )}
-              <span className="sm:ml-auto">
+              <span className="w-full sm:w-auto sm:ml-auto">
                 <FollowButton sellerId={seller.id} size="md" />
               </span>
             </div>
-            <div className="mt-3 grid grid-cols-5 gap-3 sm:gap-6 max-w-lg">
+          </div>
+          <div className="col-span-2 sm:col-span-1 min-w-0">
+            <div className="grid grid-cols-5 gap-2 sm:gap-6 max-w-lg">
               <Figure value={formatNumber(listings.length)} label="offres" />
               <Figure value={formatNumber(stats?.completedSales ?? 0)} label="ventes" />
               <Figure
@@ -97,7 +99,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       </section>
 
       {/* Pinned under the header while the page scrolls; the profile card above scrolls away and comes back at the top. */}
-      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 py-3 mt-3 mb-4 bg-canvas/80 backdrop-blur-xl border-b border-gray-200/60">
+      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 py-3 mt-3 mb-4 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
         <div className="flex items-center gap-3">
         <Tabs
           className="shrink-0"
@@ -109,7 +111,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
           ]}
         />
         {tab === 'offers' && listings.length > 0 && (
-          <SearchField value={q} onChange={setQ} placeholder={`Rechercher chez ${name}`} className="flex-1 min-w-0 sm:ml-auto sm:max-w-xs" />
+          <SearchField value={q} onChange={setQ} placeholder="Rechercher" className="flex-1 min-w-0 sm:ml-auto sm:max-w-xs" />
         )}
         </div>
       </div>

@@ -112,7 +112,7 @@ export const CompactOrderList: React.FC<{
     <PhoneRow key={o.id} order={o} perspective={typeof perspective === 'function' ? perspective(o) : perspective} href={hrefFor(o)} fallback={counterpartyName?.(o)} />
   );
   return (
-    <ul className={clsx('divide-y divide-gray-100', className)}>
+    <ul className={clsx('stagger divide-y divide-gray-100', className)}>
       {open.map(row)}
       {done.length > 0 && open.length > 0 && (
         <li aria-hidden className="px-4 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">

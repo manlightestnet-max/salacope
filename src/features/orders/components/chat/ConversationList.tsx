@@ -58,7 +58,7 @@ export const ConversationList: React.FC<{
   hrefFor: (c: Conversation) => string;
   isSelected: (c: Conversation) => boolean;
 }> = ({ conversations, userId, hrefFor, isSelected }) => (
-  <ul className="divide-y divide-gray-100">
+  <ul className="stagger divide-y divide-gray-100">
     {conversations.map((c) => (
       <Row key={c.counterpartId} conversation={c} userId={userId} href={hrefFor(c)} selected={isSelected(c)} />
     ))}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { HelpTip } from './HelpTip';
+import { RouteTransition } from './RouteTransition';
 
 /**
  * The scrollable right-hand pane of the back-office shell.
@@ -91,7 +92,7 @@ export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, to
         )}
       </header>
       <div className={clsx('flex-1 min-h-0', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
-        <div className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6')}>{children}</div>
+        <RouteTransition className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6')}>{children}</RouteTransition>
       </div>
     </div>
   );

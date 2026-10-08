@@ -81,9 +81,30 @@ export default {
           from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'none' },
         },
+        // A screen opened from another one comes in from the right; going back, from the left.
+        'route-push': {
+          from: { opacity: '0', transform: 'translateX(var(--route-shift))' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'route-pop': {
+          from: { opacity: '0', transform: 'translateX(calc(var(--route-shift) * -1))' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        pop: {
+          from: { opacity: '0', transform: 'scale(0.94)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        rise: {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
       },
       animation: {
-        'fade-up': 'fade-up .45s cubic-bezier(.2,.7,.2,1) both',
+        'fade-up': 'fade-up var(--dur-slow) var(--ease-out) both',
+        'route-push': 'route-push var(--dur) var(--ease-out) backwards',
+        'route-pop': 'route-pop var(--dur) var(--ease-out) backwards',
+        pop: 'pop var(--dur) var(--ease-spring) backwards',
+        rise: 'rise var(--dur) var(--ease-out) backwards',
       },
       boxShadow: {
         xs: 'var(--shadow-xs)',

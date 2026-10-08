@@ -117,7 +117,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       </div>
 
       {/* Both panels stay mounted: going back to a tab shows it as it was (no reload, no replayed entrance); the server's patches update it in place. */}
-      <div hidden={tab !== 'offers'} className="pt-4">
+      <div hidden={tab !== 'offers'} className="pt-4 animate-fade-up motion-reduce:animate-none">
         {found.length ? (
           <ListingSections views={found} mode="grids" />
         ) : listings.length ? (
@@ -126,7 +126,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
           <EmptyState icon={Package} title="Aucune offre en ligne" />
         )}
       </div>
-      <div hidden={tab !== 'reviews'} className="pt-4">
+      <div hidden={tab !== 'reviews'} className="pt-4 animate-fade-up motion-reduce:animate-none">
         {reviews.length ? (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-6 items-start">
           <div className="rounded-2xl border border-gray-200/70 bg-surface p-5">

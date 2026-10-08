@@ -77,18 +77,24 @@ const PhoneRow: React.FC<{ order: Order; perspective: Perspective; href: string;
   );
 };
 
-/** Phones: open orders first, finished ones apart in their own block (dimmed, titles struck through). */
-const PhoneList: React.FC<{ orders: Order[]; perspective: Perspective; hrefFor: (o: Order) => string; counterpartyName?: (o: Order) => string }> = ({
-  orders,
-  perspective,
-  hrefFor,
-  counterpartyName,
-}) => {
+/**
+ * Compact rows: open orders first, finished ones apart in their own block (dimmed, titles struck through).
+ * Phones in the order lists (`className="sm:hidden"`), every screen in the chat's order picker.
+ */
+export const CompactOrderList: React.FC<{
+  orders: Order[];
+  perspective: Perspective | ((o: Order) => Perspective);
+  hrefFor: (o: Order) => string;
+  counterpartyName?: (o: Order) => string;
+  className?: string;
+}> = ({ orders, perspective, hrefFor, counterpartyName, className }) => {
   const open = orders.filter((o) => o.status !== 'completed');
   const done = orders.filter((o) => o.status === 'completed');
-  const row = (o: Order) => <PhoneRow key={o.id} order={o} perspective={perspective} href={hrefFor(o)} fallback={counterpartyName?.(o)} />;
+  const row = (o: Order) => (
+    <PhoneRow key={o.id} order={o} perspective={typeof perspective === 'function' ? perspective(o) : perspective} href={hrefFor(o)} fallback={counterpartyName?.(o)} />
+  );
   return (
-    <ul className="sm:hidden divide-y divide-gray-100">
+    <ul className={clsx('divide-y divide-gray-100', className)}>
       {open.map(row)}
       {done.length > 0 && open.length > 0 && (
         <li aria-hidden className="px-4 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
@@ -105,7 +111,7 @@ export const OrderList: React.FC<OrderListProps> = ({ orders, perspective, count
   const isSeller = perspective === 'seller';
   return (
     <>
-      <PhoneList orders={orders} perspective={perspective} hrefFor={hrefFor} counterpartyName={counterpartyName} />
+      <CompactOrderList className="sm:hidden" orders={orders} perspective={perspective} hrefFor={hrefFor} counterpartyName={counterpartyName} />
       <List className="max-sm:hidden" columns={columns ? { main: 'Commande', meta: 'Statut', trailing: isSeller ? 'Net pour vous' : 'Total' } : undefined}>
         {orders.map((o) => (
           <ListRow

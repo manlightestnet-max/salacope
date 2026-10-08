@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { EmptyState, Page } from '@/shared/ui';
+import { Navigate, useParams } from 'react-router-dom';
+import { EmptyState, Page, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
 import { useBackLink } from '@/shared/hooks';
@@ -13,6 +13,15 @@ export const StorePage: React.FC = () => {
   const seller = useDb((s) => s.users.find((u) => u.id === id && u.merchant), [id]);
   const back = useBackLink({ to: ROUTES.account.explorer, label: 'Explorer' });
 
+  const booting = useBooting();
+  if (booting && !seller) {
+    return (
+      <Page title="Boutique" back={back}>
+        <SkeletonStore className="p-4" />
+      </Page>
+    );
+  }
+
   if (!seller) {
     return (
       <Page title="Boutique introuvable" back={back}>
@@ -20,6 +29,9 @@ export const StorePage: React.FC = () => {
       </Page>
     );
   }
+
+  // A store with a verified @name has one address: salacope.online/@name.
+  if (seller.merchant?.verified && seller.merchant.handle) return <Navigate to={ROUTES.storeHandle(seller.merchant.handle)} replace />;
 
   return (
     <Page title={displayName(seller)} back={back}>

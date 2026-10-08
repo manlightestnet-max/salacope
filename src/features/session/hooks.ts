@@ -1,4 +1,8 @@
 import { User, useDb } from '@/shared/db';
+import { useBooting } from '@/shared/ui';
+
+/** Stands in for the account until the first answer: the screen draws, its values wait. */
+const PENDING_USER: User = { id: '', name: '', email: '', phone: '', createdAt: '' };
 
 export interface Session {
   user: User | null;
@@ -17,6 +21,8 @@ export function useSession(): Session {
 /** For screens behind `RequireAuth`: the user is guaranteed. */
 export function useCurrentUser(): User {
   const { user } = useSession();
+  const booting = useBooting();
+  if (!user && booting) return PENDING_USER;
   if (!user) throw new Error('useCurrentUser used outside of RequireAuth');
   return user;
 }

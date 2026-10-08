@@ -2,23 +2,37 @@ import React from 'react';
 import { BadgeCheck } from 'lucide-react';
 import { User } from '@/shared/db';
 import { Link } from 'react-router-dom';
-import { Avatar, usePane } from '@/shared/ui';
+import { Pending, Skeleton, usePane } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { formatMonthYear } from '@/shared/lib';
 import { FollowButton } from '@/features/library';
 import { RatingSummary, useSellerStat } from '@/features/reviews';
 import { displayName } from '@/features/session';
 import { storeHref } from '../model';
+import { SellerAvatar } from './SellerLink';
 
 /** Who sells this: identity, trust signal, follow. */
-export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: number }> = ({ seller, salesCount }) => {
+export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: number; pending?: boolean }> = ({ seller, salesCount, pending }) => {
   const stats = useSellerStat(seller?.id);
   const inApp = Boolean(usePane());
+  if (pending) {
+    return (
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium"><Pending>Nom de la boutique</Pending></p>
+          <p className="text-sm"><Pending>Accroche · Ville</Pending></p>
+          <p className="text-xs mt-0.5"><Pending>Vendeur depuis janvier 2025</Pending></p>
+        </div>
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+    );
+  }
   if (!seller) return null;
   const m = seller.merchant;
   return (
     <div className="flex items-start gap-3">
-      <Avatar name={displayName(seller)} src={m?.logo} size="lg" />
+      <SellerAvatar seller={seller} size="lg" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <Link

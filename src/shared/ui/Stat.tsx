@@ -2,6 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { HelpTip } from './HelpTip';
 import { useInPanel } from './Panel';
+import { Skeleton, useBooting } from './Skeleton';
 
 export interface StatProps {
   label: string;
@@ -13,18 +14,21 @@ export interface StatProps {
 }
 
 /** One figure of a `StatGrid`: small label, large value. */
-export const Stat: React.FC<StatProps> = ({ label, value, hint, help, emphasis }) => (
+export const Stat: React.FC<StatProps> = ({ label, value, hint, help, emphasis }) => {
+  const booting = useBooting();
+  return (
   <div className="min-w-0">
     <div className="flex items-center gap-1.5 text-xs text-gray-500">
       <span className="truncate">{label}</span>
       {help && <HelpTip text={help} />}
     </div>
     <div className={clsx('mt-1.5 text-2xl font-semibold tracking-tight tabular-nums truncate', emphasis ? 'text-primary-700' : 'text-gray-900')}>
-      {value}
+      {booting ? <Skeleton className="h-7 w-24" /> : value}
     </div>
-    {hint && <div className="mt-1 text-xs text-gray-500 truncate">{hint}</div>}
+    {hint && !booting && <div className="mt-1 text-xs text-gray-500 truncate">{hint}</div>}
   </div>
-);
+  );
+};
 
 /**
  * Key figures side by side on a slightly raised well. Inside a `Panel` it sits in the

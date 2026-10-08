@@ -30,7 +30,10 @@ const save = (c: Credentials | null) => {
   current = c;
   try {
     if (c) localStorage.setItem(KEY, JSON.stringify(c));
-    else localStorage.removeItem(KEY);
+    else {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem('salacope.snapshot'); // the last view of the data goes with the session
+    }
   } catch {
     // private window: the session lasts for this tab
   }
@@ -136,6 +139,7 @@ const fromSignIn = (d: any): Credentials => ({
 export const auth = {
   signedIn: () => Boolean(current),
   email: () => current?.email ?? null,
+  uid: () => current?.uid ?? null,
 
   async signIn(email: string, password: string) {
     save(fromSignIn(await identity('accounts:signInWithPassword', { email: email.trim(), password, returnSecureToken: true })));

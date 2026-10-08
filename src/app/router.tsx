@@ -42,10 +42,14 @@ import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
 import { AdminSellersPage } from '@/pages/admin/AdminSellersPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
+import { AdminBannersPage } from '@/pages/admin/AdminBannersPage';
 
 const NotFound = () => (
   <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />
 );
+
+/** Old address of an offer or store → the short one, same id. */
+const RedirectParam = ({ to }: { to: (id: string) => string }) => <Navigate to={to(useParams().id ?? '')} replace />;
 
 const RedirectOrder = () => <Navigate to={ROUTES.seller.sale(useParams().id ?? '')} replace />;
 
@@ -74,8 +78,10 @@ export const router = createBrowserRouter([
     children: [
       { path: ROUTES.home, element: isAdminHost() ? <Navigate to={ROUTES.admin.root} replace /> : <HomePage /> },
       { path: ROUTES.search, element: <SearchPage /> },
-      { path: '/produit/:id', element: <ListingPage /> },
-      { path: '/boutique/:id', element: <PublicStorePage /> },
+      { path: '/p/:id', element: <ListingPage /> },
+      { path: '/produit/:id', element: <RedirectParam to={ROUTES.listing} /> },
+      { path: '/s/:id', element: <PublicStorePage /> },
+      { path: '/boutique/:id', element: <RedirectParam to={ROUTES.store} /> },
       { path: ROUTES.sell, element: <SellPage /> },
       {
         path: ROUTES.legal.root,
@@ -111,8 +117,10 @@ export const router = createBrowserRouter([
         children: [
           { path: ROUTES.account.root, element: <Navigate to={ROUTES.account.explorer} replace /> },
           { path: ROUTES.account.explorer, element: <ExplorerPage /> },
-          { path: '/compte/explorer/boutique/:id', element: <StorePage /> },
-          { path: '/compte/explorer/offre/:id', element: <OfferPage /> },
+          { path: '/compte/s/:id', element: <StorePage /> },
+          { path: '/compte/p/:id', element: <OfferPage /> },
+          { path: '/compte/explorer/boutique/:id', element: <RedirectParam to={ROUTES.account.store} /> },
+          { path: '/compte/explorer/offre/:id', element: <RedirectParam to={ROUTES.account.offer} /> },
           { path: '/compte/checkout/:id', element: <CheckoutPage inApp /> },
           { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },
           { path: ROUTES.lightpayCallback, element: <LightPayCallbackPage /> },
@@ -149,6 +157,7 @@ export const router = createBrowserRouter([
               { path: '/admin/vendeurs/:id', element: <AdminSellersPage /> },
               { path: ROUTES.admin.users, element: <AdminUsersPage /> },
               { path: ROUTES.admin.audit, element: <AdminAuditPage /> },
+              { path: ROUTES.admin.banners, element: <AdminBannersPage /> },
             ],
           },
         ],

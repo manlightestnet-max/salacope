@@ -1,6 +1,20 @@
 import React from 'react';
 import clsx from 'clsx';
 
+/** True until the first data arrives: the real screen is drawn, only what waits for data shimmers. */
+export const BootingContext = React.createContext(false);
+export const useBooting = () => React.useContext(BootingContext);
+
+/**
+ * A value that is not known yet, drawn with the real layout: the placeholder text takes its real typography and
+ * size, but is painted as shimmer (per line, like text) so the page keeps its exact shape.
+ */
+export const Pending: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <span aria-hidden className={clsx('shimmer rounded text-transparent select-none pointer-events-none [box-decoration-break:clone] [&_*]:text-transparent', className)}>
+    {children}
+  </span>
+);
+
 /** A block in the shape of what is loading. */
 export const Skeleton: React.FC<{ className?: string }> = ({ className }) => <span aria-hidden className={clsx('block shimmer rounded-md', className)} />;
 
@@ -18,6 +32,20 @@ export const SkeletonRows: React.FC<{ rows?: number; className?: string }> = ({ 
       </li>
     ))}
   </ul>
+);
+
+/** A store page while it loads: identity block, then its offers. */
+export const SkeletonStore: React.FC<{ className?: string }> = ({ className }) => (
+  <div aria-busy="true" aria-label="Chargement de la boutique" className={clsx('space-y-6', className)}>
+    <div className="flex items-center gap-4">
+      <Skeleton className="w-16 h-16 rounded-2xl shrink-0" />
+      <span className="flex-1 space-y-2.5">
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-3 w-1/2" />
+      </span>
+    </div>
+    <SkeletonCards count={4} />
+  </div>
 );
 
 /** Catalogue cards while more results load. */

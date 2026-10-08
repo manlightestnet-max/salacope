@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { LucideIcon } from 'lucide-react';
+import { SkeletonRows, useBooting } from './Skeleton';
 
 export interface EmptyStateProps {
   icon?: LucideIcon;
@@ -10,7 +11,10 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, title, description, action, className }) => (
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, title, description, action, className }) => {
+  // Nothing is "empty" before the data has arrived: the list shows its shape instead.
+  if (useBooting()) return <SkeletonRows rows={5} className={className} />;
+  return (
   <div className={clsx('flex flex-col items-center justify-center text-center px-6 py-12', className)}>
     {Icon && (
       <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center mb-3">
@@ -21,4 +25,5 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, title, descr
     {description && <p className="text-sm text-gray-500 mt-1 max-w-sm">{description}</p>}
     {action && <div className="mt-4">{action}</div>}
   </div>
-);
+  );
+};

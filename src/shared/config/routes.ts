@@ -1,8 +1,8 @@
 export const ROUTES = {
   home: '/',
   search: '/recherche',
-  listing: (id: string) => `/produit/${id}`,
-  store: (sellerId: string) => `/boutique/${sellerId}`,
+  listing: (id: string) => `/p/${id}`,
+  store: (sellerId: string) => `/s/${sellerId}`,
   /** Verified stores: salacope.online/@handle. */
   storeHandle: (handle: string) => `/@${handle}`,
   checkout: (id: string) => `/checkout/${id}`,
@@ -16,8 +16,8 @@ export const ROUTES = {
   account: {
     root: '/compte',
     explorer: '/compte/explorer',
-    store: (sellerId: string) => `/compte/explorer/boutique/${sellerId}`,
-    offer: (listingId: string) => `/compte/explorer/offre/${listingId}`,
+    store: (sellerId: string) => `/compte/s/${sellerId}`,
+    offer: (listingId: string) => `/compte/p/${listingId}`,
     checkout: (id: string) => `/compte/checkout/${id}`,
     messages: '/compte/messages',
     chat: (orderId: string) => `/compte/messages/${orderId}`,
@@ -51,6 +51,7 @@ export const ROUTES = {
     seller: (id: string) => `/admin/vendeurs/${id}`,
     users: '/admin/comptes',
     audit: '/admin/journal',
+    banners: '/admin/publicite',
   },
 
   legal: {

@@ -6,3 +6,4 @@ export * from './useInfiniteList';
 export * from './useFooterVisibility';
 export * from './useBackLink';
 export * from './useNow';
+export * from './useScrollTop';

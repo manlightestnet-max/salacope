@@ -2,12 +2,14 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/shared/config/routes';
 import { ADMIN_HOST, isPublicHost } from '@/shared/config/hosts';
+import { useBooting } from '@/shared/ui';
 import { useSession } from './hooks';
 
 /** Redirects to sign-in, then back to the requested page. */
 export const RequireAuth: React.FC = () => {
   const { isAuthenticated } = useSession();
   const location = useLocation();
+  if (useBooting()) return <Outlet />; // the real screen draws now; the answer decides afterwards
   if (!isAuthenticated) {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`${ROUTES.signIn}?next=${next}`} replace />;
@@ -19,6 +21,7 @@ export const RequireAuth: React.FC = () => {
 export const RequireAdmin: React.FC = () => {
   const { user } = useSession();
   const location = useLocation();
+  if (useBooting()) return <Outlet />;
   // On the public site, the administration lives at its own address.
   if (isPublicHost()) {
     window.location.replace(`https://${ADMIN_HOST}${location.pathname}${location.search}`);
@@ -31,6 +34,7 @@ export const RequireAdmin: React.FC = () => {
 /** Seller area: accounts without a store are sent to store onboarding (inside the back-office). */
 export const RequireMerchant: React.FC = () => {
   const { isMerchant } = useSession();
+  if (useBooting()) return <Outlet />;
   if (!isMerchant) return <Navigate to={ROUTES.account.openStore} replace />;
   return <Outlet />;
 };

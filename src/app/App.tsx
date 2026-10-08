@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { Button, EmptyState, Skeleton, SkeletonCards, ToastProvider } from '@/shared/ui';
-import { boot, useBootStatus, useLiveSync } from '@/shared/api';
+import { BootingContext, Button, EmptyState, ToastProvider } from '@/shared/ui';
+import { boot, showSnapshot, useBootStatus, useLiveSync } from '@/shared/api';
 import { router } from './router';
+
+// The real page at once with the last known data (signed-in accounts); the server then refreshes it in place.
+showSnapshot();
 
 /** Nothing renders before the first load: guards and pages read the data synchronously. */
 const BootGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -12,8 +15,8 @@ const BootGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
   useLiveSync();
 
-  if (status === 'ready') return <>{children}</>;
-  if (status === 'offline') {
+  if (status !== 'offline') return <BootingContext.Provider value={status === 'loading'}>{children}</BootingContext.Provider>;
+  {
     return (
       <EmptyState
         className="py-24"
@@ -23,20 +26,7 @@ const BootGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       />
     );
   }
-  // The shape of the site while the first data arrives: header, then a grid of cards.
-  return (
-    <div className="flex-1" aria-busy="true" aria-label="Chargement de Salacope">
-      <div className="h-16 border-b border-gray-200/60 px-4 sm:px-6 flex items-center gap-4">
-        <Skeleton className="h-7 w-28" />
-        <Skeleton className="hidden md:block h-10 flex-1 max-w-[460px] rounded-full" />
-        <Skeleton className="ml-auto h-9 w-9 rounded-full" />
-      </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <SkeletonCards count={8} />
-      </div>
-    </div>
-  );
+  return null;
 };
 
 export const App: React.FC = () => (

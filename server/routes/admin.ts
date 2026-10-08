@@ -279,3 +279,69 @@ route('GET', '/admin/audit', async (ctx) => {
   );
   return { log: rows };
 });
+
+// --- Advertising slots of the storefront banner ---------------------------------------------------------------
+const BANNER_IMAGE = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
+const BANNER_MAX_BYTES = 300_000;
+const MAGIC: Record<string, (b: Buffer) => boolean> = {
+  'image/jpeg': (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.subarray(0, 4).toString('hex') === '89504e47',
+  'image/webp': (b) => b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP',
+};
+const slotOf = (v: unknown) => {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || n > 3) throw new DomainError('Emplacement inconnu (1 à 3).', 404);
+  return n;
+};
+
+/** What visitors see: the active slots, in order. */
+route('GET', '/banners', async () => ({
+  banners: await query("SELECT position, image, title, link FROM ad_banners WHERE active ORDER BY position"),
+}));
+
+route('GET', '/admin/banners', async (ctx) => {
+  await requireAdmin(ctx);
+  return { banners: await query('SELECT position, image, title, link, active, updated_at FROM ad_banners ORDER BY position') };
+});
+
+route('PUT', '/admin/banners/:position', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const position = slotOf(ctx.params.position);
+  const title = text(ctx.body.title, 80);
+  const link = String(ctx.body.link ?? '').trim();
+  // A page of the site, or a secure address: nothing else can be opened from the banner.
+  if (!/^\/(?!\/)[^\s]*$/.test(link) && !/^https:\/\/[^\s]+$/.test(link)) {
+    throw new DomainError('Lien invalide : une page du site (/…) ou une adresse https://…');
+  }
+  const active = ctx.body.active !== false;
+  const [current] = await query('SELECT image FROM ad_banners WHERE position = $1', [position]);
+  let image = current?.image as string | undefined;
+  if (ctx.body.image) {
+    const m = String(ctx.body.image).match(BANNER_IMAGE);
+    if (!m) throw new DomainError('Image refusée : JPG, PNG ou WebP uniquement.');
+    const data = Buffer.from(m[2], 'base64');
+    if (!MAGIC[m[1]](data)) throw new DomainError('Ce fichier n’est pas une image valide.');
+    if (data.length > BANNER_MAX_BYTES) throw new DomainError('Image trop lourde après réduction : choisissez-en une autre.');
+    image = String(ctx.body.image);
+  }
+  if (!image) throw new DomainError('Ajoutez l’image de l’emplacement.');
+  await tx(async (q) => {
+    await q(
+      `INSERT INTO ad_banners (position, image, title, link, active) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (position) DO UPDATE SET image = $2, title = $3, link = $4, active = $5, updated_at = NOW()`,
+      [position, image, title, link, active]
+    );
+    await audit(q, admin, 'banner.save', null, { position, title, link, active });
+  });
+  return { banners: await query('SELECT position, image, title, link, active, updated_at FROM ad_banners ORDER BY position') };
+});
+
+route('DELETE', '/admin/banners/:position', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const position = slotOf(ctx.params.position);
+  await tx(async (q) => {
+    await q('DELETE FROM ad_banners WHERE position = $1', [position]);
+    await audit(q, admin, 'banner.remove', null, { position });
+  });
+  return { banners: await query('SELECT position, image, title, link, active, updated_at FROM ad_banners ORDER BY position') };
+});

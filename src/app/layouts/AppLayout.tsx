@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LucideIcon,
+  Megaphone,
   Menu as MenuIcon,
   MessagesSquare,
   Package,
@@ -159,6 +160,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
             {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store })}
             {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
+            {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
             {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
           </NavGroup>
         )}

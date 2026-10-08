@@ -13,6 +13,8 @@ export * from './components/SellerProfile';
 export * from './components/ListingDetail';
 export * from './components/ListingQuickView';
 export * from './components/StorefrontHero';
+export * from './components/ShopBanner';
+export * from './banners';
 export * from './components/CreatorStrip';
 export * from './components/SellerInvite';
 export * from './components/ListingPrice';

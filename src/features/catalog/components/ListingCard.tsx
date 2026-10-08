@@ -1,12 +1,12 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Reveal, usePane } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { FavoriteButton } from '@/features/library';
-import { displayName } from '@/features/session';
 import { COVER_FORMAT, CoverFormat, ListingView, cardBreadcrumb } from '../model';
+import { SellerLink } from './SellerLink';
 import { ListingCover } from './ListingCover';
 import { ListingPrice } from './ListingPrice';
 
@@ -14,21 +14,15 @@ export const QUICK_VIEW_PARAM = 'produit';
 
 /**
  * Storefront card: frameless cover in the shape of its category, then
- * "Type › detail", title, seller and price in the brand colour. Opens the quick view.
+ * "Type › detail", title, seller and price in the brand colour. Opens the offer page.
  */
 /**
- * Where a listing opens. The quick view (dialog) is for browsing the catalogue only: the
- * storefront and the back-office Explorer. Anywhere else in the back-office the offer opens
- * as a page of the shell.
+ * Where a listing opens: its own page. (The dialog is only kept for old ?produit= links.)
  */
 export const useQuickViewTo = (listingId: string) => {
-  const [params] = useSearchParams();
-  const { pathname } = useLocation();
+  // A click opens the offer's own page (the shell's in the back-office, the public one elsewhere), never a dialog.
   const inShell = Boolean(usePane());
-  if (inShell && pathname !== ROUTES.account.explorer) return ROUTES.account.offer(listingId);
-  const next = new URLSearchParams(params);
-  next.set(QUICK_VIEW_PARAM, listingId);
-  return { search: next.toString() };
+  return inShell ? ROUTES.account.offer(listingId) : ROUTES.listing(listingId);
 };
 
 /** "E-book › PDF" line above a listing title. */
@@ -61,7 +55,9 @@ export const ListingCard: React.FC<{ view: ListingView }> = ({ view: { listing, 
         <h3 className="mt-1 text-sm font-semibold text-gray-900 leading-snug line-clamp-2 transition-colors group-hover:text-gray-950">
           {listing.title}
         </h3>
-        <p className="mt-1 text-[12.5px] text-gray-500 truncate">{displayName(seller)}</p>
+        <p className="mt-1 flex text-[12.5px] text-gray-500">
+          <SellerLink seller={seller} />
+        </p>
         <ListingPrice listing={listing} className="mt-2 text-sm font-semibold text-primary-700" />
       </div>
     </Link>

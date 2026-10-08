@@ -92,6 +92,15 @@ export interface AdminUserRow {
   spent: number;
 }
 
+export interface AdminBanner {
+  position: number;
+  image: string;
+  title: string;
+  link: string;
+  active: boolean;
+  updated_at: string;
+}
+
 export type SellerFilter = 'all' | 'pending' | 'approved' | 'unverified' | 'suspended';
 
 const qs = (params: Record<string, string>) => new URLSearchParams(params).toString();
@@ -113,6 +122,10 @@ export const adminApi = {
   users: (filter: 'all' | 'blocked', q: string) => request<{ users: AdminUserRow[] }>('GET', `/admin/users?${qs({ filter, q })}`).then((r) => r.users),
   block: (id: string, reason: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/block`, { reason }),
   unblock: (id: string, note: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/unblock`, { note }),
+  banners: () => request<{ banners: AdminBanner[] }>('GET', '/admin/banners').then((r) => r.banners),
+  saveBanner: (position: number, input: { image?: string; title: string; link: string; active: boolean }) =>
+    request<{ banners: AdminBanner[] }>('PUT', `/admin/banners/${position}`, input).then((r) => r.banners),
+  removeBanner: (position: number) => request<{ banners: AdminBanner[] }>('DELETE', `/admin/banners/${position}`).then((r) => r.banners),
   audit: () => request<{ log: AdminAuditRow[] }>('GET', '/admin/audit').then((r) => r.log),
 };
 
@@ -127,4 +140,6 @@ export const AUDIT_LABEL: Record<string, string> = {
   'listing.unpublish': 'Offre retirée',
   'user.block': 'Compte bloqué',
   'user.unblock': 'Compte débloqué',
+  'banner.save': 'Emplacement publicitaire enregistré',
+  'banner.remove': 'Emplacement publicitaire retiré',
 };

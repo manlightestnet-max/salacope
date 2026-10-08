@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Button, Container, EmptyState } from '@/shared/ui';
+import { Navigate, useParams } from 'react-router-dom';
+import { Button, Container, EmptyState, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
 import { SellerProfile } from '@/features/catalog';
@@ -17,12 +17,19 @@ export const PublicStorePage: React.FC = () => {
     [id, at]
   );
 
+  const booting = useBooting();
+  if (booting && !seller) return <Container size="lg" className="py-8"><SkeletonStore /></Container>;
+
   if (handle && !at) {
     return <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />;
   }
 
   if (!seller) {
     return <EmptyState className="py-24" title="Cette boutique n'existe pas" action={<Button to={ROUTES.home}>Retour au catalogue</Button>} />;
+  }
+  // A store with a verified @name has one address: salacope.online/@name.
+  if (!at && seller.merchant?.verified && seller.merchant.handle) {
+    return <Navigate to={ROUTES.storeHandle(seller.merchant.handle)} replace />;
   }
   return (
     <Container size="lg" className="py-8">

@@ -2,13 +2,15 @@ import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, LucideIcon, ShieldCheck, Smartphone, Zap } from 'lucide-react';
-import { Avatar, Button } from '@/shared/ui';
+import { Button } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { PLATFORM } from '@/shared/config/platform';
-import { displayName, useSession } from '@/features/session';
+import { useSession } from '@/features/session';
 import { COVER_FORMAT, ListingView } from '../model';
 import { CardBreadcrumb, useQuickViewTo } from './ListingCard';
 import { ListingPrice } from './ListingPrice';
+import { SellerAvatar, SellerLink } from './SellerLink';
+import { ShopBanner } from './ShopBanner';
 import { ListingCover } from './ListingCover';
 
 interface BuyerPromise {
@@ -109,7 +111,6 @@ const pickFeatured = (views: ListingView[]) => {
 
 const FeaturedListing: React.FC<{ view: ListingView }> = ({ view: { listing, seller } }) => {
   const to = useQuickViewTo(listing.id);
-  const name = displayName(seller);
 
   return (
     <article className="rounded-[26px] border border-gray-200/60 bg-surface p-3 sm:p-3.5 shadow-sm">
@@ -128,8 +129,8 @@ const FeaturedListing: React.FC<{ view: ListingView }> = ({ view: { listing, sel
         </h2>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Avatar name={name} src={seller?.merchant?.logo} size="sm" />
-            <span className="text-[13.5px] text-gray-500 truncate">{name}</span>
+            <SellerAvatar seller={seller} size="sm" />
+            <SellerLink seller={seller} className="text-[13.5px] text-gray-500" badgeClassName="w-4 h-4" />
           </div>
           <div className="flex items-center gap-3">
             <ListingPrice listing={listing} className="text-lg font-semibold text-primary-700" />
@@ -153,9 +154,10 @@ export const StorefrontHero: React.FC<{ views: ListingView[]; catalogueId: strin
   const featured = useMemo(() => pickFeatured(views), [views]);
 
   return (
-    <section className="grid items-center gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] pt-8 pb-12 sm:pt-12 lg:pt-16 lg:pb-14">
+    <section className="grid items-start gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] pt-2 pb-12 sm:pt-4 lg:pt-6 lg:pb-14">
       <div>
         <StorePromises />
+        <ShopBanner className="mt-5 max-w-[640px]" />
         <h1 className="mt-7 max-w-[720px] text-[38px] sm:text-5xl xl:text-[62px] font-semibold leading-[1.03] tracking-[-0.035em] text-gray-900">
           Formations, e-books et services de{' '}
           <span className="font-serif italic font-normal tracking-[-0.01em] text-primary-700">créateurs du Congo</span>.

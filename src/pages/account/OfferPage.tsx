@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { EmptyState, Page } from '@/shared/ui';
+import { EmptyState, Page, useBooting } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { useBackLink } from '@/shared/hooks';
+import { useBackLink, useScrollTop } from '@/shared/hooks';
 import { displayName } from '@/features/session';
 import { ListingDetail, ListingSections, useListingView, useSellerListings } from '@/features/catalog';
 
@@ -14,7 +14,16 @@ export const OfferPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const view = useListingView(id);
   const sellerListings = useSellerListings(view?.listing.sellerId);
+  const top = useScrollTop<HTMLDivElement>(id);
   const back = useBackLink({ to: ROUTES.account.explorer, label: 'Explorer' });
+
+  if (useBooting() && !view) {
+    return (
+      <Page title="Offre" back={back}>
+        <ListingDetail view={null} />
+      </Page>
+    );
+  }
 
   if (!view || view.listing.status !== 'published') {
     return (
@@ -32,8 +41,8 @@ export const OfferPage: React.FC = () => {
       title={view.listing.title}
       back={back}
     >
-      <div className="space-y-12">
-        <ListingDetail view={view} sellerSales={sales} />
+      <div ref={top} className="space-y-12">
+        <ListingDetail key={id} view={view} sellerSales={sales} />
         {more.length > 0 && (
           <section>
             <h2 className="text-lg font-semibold tracking-tight text-gray-900 mb-4">Aussi chez {displayName(view.seller)}</h2>

@@ -26,6 +26,31 @@ interface BootstrapResponse {
   data: Omit<Database, 'sessionUserId'>;
 }
 
+/**
+ * Last view of the data, kept on this device for signed-in accounts only (removed at sign-out):
+ * the app opens on it at once, the server answer then replaces it in the background.
+ */
+const SNAPSHOT = 'salacope.snapshot';
+const readSnapshot = (): { userId: string; data: Omit<Database, 'sessionUserId'> } | null => {
+  const uid = auth.uid();
+  if (!uid) return null;
+  try {
+    const s = JSON.parse(localStorage.getItem(SNAPSHOT) ?? 'null');
+    return s?.uid === uid && s.userId && s.data ? s : null;
+  } catch {
+    return null;
+  }
+};
+const writeSnapshot = (userId: string | null, data: unknown) => {
+  const uid = auth.uid();
+  try {
+    if (uid && userId) localStorage.setItem(SNAPSHOT, JSON.stringify({ uid, userId, data }));
+    else localStorage.removeItem(SNAPSHOT);
+  } catch {
+    // full or private window: next start simply waits for the server
+  }
+};
+
 /** (Re)loads everything for the current identity. */
 export async function boot(): Promise<void> {
   try {
@@ -40,6 +65,7 @@ export async function boot(): Promise<void> {
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
+    writeSnapshot(res.userId, res.data);
     setStatus('ready');
   } catch (err) {
     if ((err as { status?: number }).status === 401) {
@@ -62,6 +88,16 @@ export async function syncNow(): Promise<void> {
   } catch {
     // next tick
   }
+}
+
+/** Shows the last known data before the server answers (first start only). Returns whether it did. */
+export function showSnapshot(): boolean {
+  if (status !== 'loading') return false;
+  const s = readSnapshot();
+  if (!s) return false;
+  db.load({ ...emptyDatabase(), ...s.data, sessionUserId: s.userId });
+  setStatus('ready');
+  return true;
 }
 
 export const useBootStatus = () => useSyncExternalStore(subscribe, () => status);

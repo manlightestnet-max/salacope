@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { Button, Container, EmptyState, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
+import { useFreshCatalog } from '@/shared/api';
 import { SellerProfile } from '@/features/catalog';
 
 /**
@@ -12,6 +13,7 @@ import { SellerProfile } from '@/features/catalog';
 export const PublicStorePage: React.FC = () => {
   const { id, handle } = useParams<{ id?: string; handle?: string }>();
   const at = handle?.startsWith('@') ? handle.slice(1).toLowerCase() : undefined;
+  useFreshCatalog(true, id ?? handle);
   const seller = useDb(
     (s) => s.users.find((u) => u.merchant && (at ? u.merchant.verified && u.merchant.handle?.toLowerCase() === at : u.id === id)),
     [id, at]

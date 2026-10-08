@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
-import { SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, Input, SearchField, Select } from '@/shared/ui';
+import { useFreshCatalog } from '@/shared/api';
 import { useBodyScrollLock, useKeyPress } from '@/shared/hooks';
 import { CATEGORIES, SORT_OPTIONS, queryListings } from '../model';
 import { useCatalogQuery, usePublishedListings } from '../hooks';
@@ -102,14 +103,28 @@ export const SearchView: React.FC = () => {
   const { pathname } = useLocation();
   const [text, setText] = useState(query.text ?? '');
   const [sheet, setSheet] = useState(false);
+  // A search is answered from the database: checked now, and again each time the words change.
+  useFreshCatalog(true, query.text);
   useEffect(() => setText(query.text ?? ''), [query.text]);
   useBodyScrollLock(sheet);
   useKeyPress('Escape', () => setSheet(false), sheet);
 
   const active = [query.category, query.minPrice, query.maxPrice].filter(Boolean).length;
 
+  // On a phone the search words are required: the screen opens with the field ready to type in, and no results are listed
+  // until there is something to look for (computers can still browse everything with the filters).
+  const field = useRef<HTMLInputElement>(null);
+  const noWords = !query.text;
+  useEffect(() => {
+    if (noWords && window.matchMedia('(max-width: 1023px)').matches) field.current?.focus();
+  }, [noWords]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!text.trim() && window.matchMedia('(max-width: 1023px)').matches) {
+      field.current?.focus();
+      return;
+    }
     const next = new URLSearchParams(params);
     if (text.trim()) next.set('q', text.trim());
     else next.delete('q');
@@ -123,7 +138,7 @@ export const SearchView: React.FC = () => {
       <p className="mt-1 text-sm text-gray-500">Trouvez des formations, des e-books, des services et plus encore.</p>
 
       <form onSubmit={submit} className="mt-4 flex gap-2">
-        <SearchField value={text} onChange={setText} placeholder="Rechercher" className="flex-1 min-w-0" />
+        <SearchField ref={field} value={text} onChange={setText} placeholder="Rechercher" className="flex-1 min-w-0" />
         <Button type="submit" variant="primary" className="shrink-0">
           Rechercher
         </Button>
@@ -149,7 +164,16 @@ export const SearchView: React.FC = () => {
             Filtres
             {active > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-accent text-on-accent text-[11px] font-semibold flex items-center justify-center">{active}</span>}
           </button>
-          <CatalogBrowser alwaysGrid hideControls />
+          {noWords && (
+            <div className="lg:hidden flex flex-col items-center text-center px-6 py-14 text-gray-500">
+              <Search className="w-8 h-8 text-gray-300" />
+              <p className="mt-3 text-sm font-medium text-gray-900">Que cherchez-vous ?</p>
+              <p className="mt-1 text-sm">Saisissez un mot dans le champ ci-dessus : une formation, un e-book, un service.</p>
+            </div>
+          )}
+          <div className={noWords ? 'max-lg:hidden' : undefined}>
+            <CatalogBrowser alwaysGrid hideControls />
+          </div>
         </div>
       </div>
 

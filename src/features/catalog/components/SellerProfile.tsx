@@ -11,6 +11,7 @@ import { useSellerListings } from '../hooks';
 import { queryListings } from '../model';
 import { ListingSections } from './ListingSections';
 import { creatorTint } from './CreatorStrip';
+import { ShareStoreButton } from './ShareButton';
 
 /** One figure of the store, Instagram style: number over a small label. */
 const Figure: React.FC<{ value: React.ReactNode; label: string }> = ({ value, label }) => (
@@ -60,8 +61,9 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
                   <BadgeCheck className="w-4 h-4" /> Vérifié
                 </span>
               )}
-              <span className="w-full sm:w-auto sm:ml-auto">
+              <span className="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
                 <FollowButton sellerId={seller.id} size="md" />
+                <ShareStoreButton seller={seller} name={name} />
               </span>
             </div>
           </div>

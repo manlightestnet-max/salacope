@@ -12,6 +12,10 @@ export type BootStatus = 'loading' | 'ready' | 'offline';
 
 let status: BootStatus = 'loading';
 let lastSync: string | null = null;
+// The catalogue as the server last described it (a fingerprint) and when this device last asked.
+let catalogVersion: string | null = null;
+let catalogAt = 0;
+let catalogRequest: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 const setStatus = (s: BootStatus) => {
@@ -21,6 +25,7 @@ const setStatus = (s: BootStatus) => {
 
 interface BootstrapResponse {
   userId: string | null;
+  catalogVersion?: string;
   needsAccount: boolean;
   serverTime: string;
   data: Omit<Database, 'sessionUserId'>;
@@ -65,6 +70,8 @@ export async function boot(): Promise<void> {
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
+    catalogVersion = res.catalogVersion ?? null;
+    catalogAt = Date.now();
     writeSnapshot(res.userId, res.data);
     setStatus('ready');
   } catch (err) {
@@ -75,6 +82,33 @@ export async function boot(): Promise<void> {
     if (status === 'loading') setStatus('offline');
     throw err;
   }
+}
+
+/**
+ * Brings the catalogue (offers, stores, sales, reviews) up to date with the database. It asks with the fingerprint it
+ * knows, so when nothing changed the answer is a few bytes and nothing is redrawn; otherwise the data is replaced in
+ * place. Called when a screen that shows offers opens (and when the tab comes back), at most every 12 s unless `force`.
+ */
+export function refreshCatalog(force = false): Promise<void> {
+  if (status !== 'ready') return Promise.resolve();
+  if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
+  if (catalogRequest) return catalogRequest;
+  catalogRequest = request<{ unchanged?: boolean; version: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+    'GET',
+    `/catalog${catalogVersion ? `?v=${encodeURIComponent(catalogVersion)}` : ''}`
+  )
+    .then((res) => {
+      catalogAt = Date.now();
+      if (res.unchanged || !res.data) return;
+      catalogVersion = res.version;
+      const { users, listings, stats, reviews } = res.data;
+      db.update((s) => ({ ...s, users, listings, stats, reviews }));
+    })
+    .catch(() => undefined)
+    .finally(() => {
+      catalogRequest = null;
+    });
+  return catalogRequest;
 }
 
 /** Fetches what changed since the last sync (orders, messages, notifications…). */
@@ -111,6 +145,19 @@ const subscribe = (l: () => void) => {
 
 /** When the data was last refreshed from the server (ISO), for "Données à jour à …". */
 export const useLastSync = () => useSyncExternalStore(subscribe, () => lastSync);
+
+/**
+ * Screens that show offers call this: the catalogue is checked against the database when they open (`force`: right now,
+ * for an offer or a search) and when the tab comes back. What is on screen stays until the fresh data replaces it.
+ */
+export function useFreshCatalog(force = false, key?: string) {
+  useEffect(() => {
+    void refreshCatalog(force);
+    const onVisible = () => document.visibilityState === 'visible' && void refreshCatalog();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [force, key]);
+}
 
 /** Keeps data fresh while mounted; `fast` for live screens (order chat). */
 export function useLiveSync(fast = false) {

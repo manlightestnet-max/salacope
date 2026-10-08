@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container } from '@/shared/ui';
+import { useFreshCatalog } from '@/shared/api';
 import {
   CatalogBrowser,
   CategoryTabs,
@@ -19,6 +20,7 @@ const CATALOGUE_ID = 'catalogue';
  */
 export const HomePage: React.FC = () => {
   const { isMerchant } = useSession();
+  useFreshCatalog();
   const views = usePublishedListings();
   const { query, setQuery, hasFilters } = useCatalogQuery();
 

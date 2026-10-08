@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Page } from '@/shared/ui';
+import { useFreshCatalog } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
 import { CatalogBrowser, CategoryTabs, ListingQuickView, useCatalogQuery } from '@/features/catalog';
 
@@ -11,6 +12,7 @@ import { CatalogBrowser, CategoryTabs, ListingQuickView, useCatalogQuery } from 
 export const ExplorerPage: React.FC = () => {
   const { query, setQuery } = useCatalogQuery();
   const { search } = useLocation();
+  useFreshCatalog();
 
   if (query.text || query.minPrice || query.maxPrice) return <Navigate to={`${ROUTES.account.search}${search}`} replace />;
 

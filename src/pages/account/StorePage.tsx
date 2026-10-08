@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { EmptyState, Page, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
+import { useFreshCatalog } from '@/shared/api';
 import { useBackLink } from '@/shared/hooks';
 import { displayName } from '@/features/session';
 import { SellerProfile } from '@/features/catalog';
@@ -10,6 +11,7 @@ import { SellerProfile } from '@/features/catalog';
 /** `/ac/explorer/boutique/:id`: a store's page inside the back-office. */
 export const StorePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  useFreshCatalog(true, id);
   const seller = useDb((s) => s.users.find((u) => u.id === id && u.merchant), [id]);
   const back = useBackLink({ to: ROUTES.account.explorer, label: 'Explorer' });
 

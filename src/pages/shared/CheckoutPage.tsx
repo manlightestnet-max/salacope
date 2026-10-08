@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button, Container, EmptyState, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { useBackLink } from '@/shared/hooks';
+import { useFreshCatalog } from '@/shared/api';
 import { useDb } from '@/shared/db';
 import { useListingView } from '@/features/catalog';
 import { CheckoutForm } from '@/features/checkout';
@@ -14,6 +15,7 @@ import { useSession } from '@/features/session';
  */
 export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) => {
   const { id = '' } = useParams<{ id: string }>();
+  useFreshCatalog(true, id); // the price on this page is the one in the database
   const view = useListingView(id);
   const { user } = useSession();
   // A digital product is bought once: if it is already theirs, there is nothing to pay.

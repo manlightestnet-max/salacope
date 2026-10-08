@@ -20,26 +20,64 @@ import { notify } from '../notify.js';
 import { listingView } from '../views.js';
 import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
 
-/** Everything the app needs at start: the public catalogue, plus the signed-in person's own data. */
-route('GET', '/bootstrap', async (ctx) => {
+/** Who is asking: an account, else a guest who bought without one on this browser, else nobody. */
+async function viewerOf(ctx: { identity(): Promise<{ uid: string } | null>; viewerId(): Promise<string | null> }) {
   const identity = await ctx.identity();
   const [me] = identity ? await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [identity.uid]) : [];
-  // An account, else a guest who bought without one on this browser.
-  const userId = identity ? (me?.id ?? null) : await ctx.viewerId();
-  if (userId) void touchSeller(userId);
+  return { identity, userId: identity ? (me?.id ?? null) : await ctx.viewerId() };
+}
+
+/** What a viewer may see of the catalogue: the published offers of sellable stores, their own offers and what they bought. */
+const VISIBLE_LISTINGS = `(status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1 OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)`;
+
+async function loadCatalog(userId: string | null) {
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId),
     query(
       `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, cover_image, delivery_days,
          revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count
-       FROM listings WHERE (status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1
-         OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)
+       FROM listings WHERE ${VISIBLE_LISTINGS}
        ORDER BY COALESCE(published_at, created_at) DESC`,
       [userId]
     ),
     loadStats(),
     loadReviews(),
   ]);
+  return { users, listings: listings.map(listingView), stats, reviews };
+}
+
+/**
+ * A cheap fingerprint of everything the catalogue shows (offers and their last change, stores, sales per offer, reviews,
+ * followers): the app sends the one it knows, and only gets the data again when something really changed.
+ */
+async function catalogVersion(userId: string | null) {
+  const [row] = await query<{ v: string }>(
+    `SELECT md5(
+       COALESCE((SELECT string_agg(id || ':' || updated_at::text, ',' ORDER BY id) FROM listings WHERE ${VISIBLE_LISTINGS}), '') || '|' ||
+       COALESCE((SELECT string_agg(user_id || ':' || store_name || ':' || COALESCE(headline, '') || ':' || COALESCE(city, '') || ':' || COALESCE(handle, '') || ':' ||
+                 kyc_status || ':' || COALESCE(suspended_at::text, '') || ':' || COALESCE(length(logo), 0), ',' ORDER BY user_id) FROM merchants), '') || '|' ||
+       COALESCE((SELECT string_agg(listing_id || ':' || n, ',' ORDER BY listing_id) FROM (SELECT listing_id, COUNT(*) AS n FROM orders WHERE status <> 'cancelled' GROUP BY listing_id) s), '') || '|' ||
+       COALESCE((SELECT COUNT(*)::text || COALESCE(MAX(created_at)::text, '') FROM reviews), '') || '|' ||
+       COALESCE((SELECT COUNT(*)::text FROM follows), '')
+     ) AS v`,
+    [userId]
+  );
+  return row.v;
+}
+
+/** The catalogue as it is now in the database: answers `{ unchanged }` when the app already has this version. */
+route('GET', '/catalog', async (ctx) => {
+  const { userId } = await viewerOf(ctx);
+  const version = await catalogVersion(userId);
+  if (ctx.search.get('v') === version) return { unchanged: true, version };
+  return { version, data: await loadCatalog(userId) };
+});
+
+/** Everything the app needs at start: the public catalogue, plus the signed-in person's own data. */
+route('GET', '/bootstrap', async (ctx) => {
+  const { identity, userId } = await viewerOf(ctx);
+  if (userId) void touchSeller(userId);
+  const [catalog, version] = await Promise.all([loadCatalog(userId), catalogVersion(userId)]);
   const own = userId
     ? await Promise.all([
         query('SELECT user_id, listing_id, created_at FROM favorites WHERE user_id = $1', [userId]),
@@ -55,11 +93,9 @@ route('GET', '/bootstrap', async (ctx) => {
     /** Signed in with Firebase but no Salacope account yet (finish sign-up). */
     needsAccount: Boolean(identity && !userId),
     serverTime: new Date().toISOString(),
+    catalogVersion: version,
     data: {
-      users,
-      listings: listings.map(listingView),
-      stats,
-      reviews,
+      ...catalog,
       favorites: own?.[0].map((f) => ({ userId: f.user_id, listingId: f.listing_id, createdAt: f.created_at })) ?? [],
       follows: own?.[1].map((f) => ({ userId: f.user_id, sellerId: f.seller_id, createdAt: f.created_at, lastSeenAt: f.last_seen_at })) ?? [],
       orders: own?.[2] ?? [],

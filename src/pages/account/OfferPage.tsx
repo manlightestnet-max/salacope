@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { EmptyState, Page, useBooting } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
+import { useFreshCatalog } from '@/shared/api';
 import { useBackLink, useScrollTop } from '@/shared/hooks';
 import { displayName } from '@/features/session';
 import { ListingDetail, ListingSections, useListingView, useSellerListings } from '@/features/catalog';
@@ -12,6 +13,7 @@ import { ListingDetail, ListingSections, useListingView, useSellerListings } fro
  */
 export const OfferPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  useFreshCatalog(true, id);
   const view = useListingView(id);
   const sellerListings = useSellerListings(view?.listing.sellerId);
   const top = useScrollTop<HTMLDivElement>(id);

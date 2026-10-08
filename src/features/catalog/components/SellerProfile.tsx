@@ -99,7 +99,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       </section>
 
       {/* Pinned under the header while the page scrolls; the profile card above scrolls away and comes back at the top. */}
-      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-0 pb-3 mt-6 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
+      <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 py-2.5 mt-6 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
         <div className="flex items-center gap-3">
         <Tabs
           className="shrink-0"
@@ -117,7 +117,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       </div>
 
       {/* Both panels stay mounted: going back to a tab shows it as it was (no reload, no replayed entrance); the server's patches update it in place. */}
-      <div hidden={tab !== 'offers'}>
+      <div hidden={tab !== 'offers'} className="pt-4">
         {found.length ? (
           <ListingSections views={found} mode="grids" />
         ) : listings.length ? (
@@ -126,7 +126,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
           <EmptyState icon={Package} title="Aucune offre en ligne" />
         )}
       </div>
-      <div hidden={tab !== 'reviews'}>
+      <div hidden={tab !== 'reviews'} className="pt-4">
         {reviews.length ? (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-6 items-start">
           <div className="rounded-2xl border border-gray-200/70 bg-surface p-5">

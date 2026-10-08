@@ -59,7 +59,9 @@ const writeSnapshot = (userId: string | null, data: unknown) => {
 /** (Re)loads everything for the current identity. */
 export async function boot(): Promise<void> {
   try {
-    let res = await request<BootstrapResponse>('GET', '/bootstrap');
+    // A visitor (no account, no guest profile) asks for the copy every visitor shares, which the CDN may keep a few seconds.
+    const visitor = !auth.signedIn() && !guest.key();
+    let res = await request<BootstrapResponse>('GET', visitor ? '/bootstrap?anon=1' : '/bootstrap');
     if (res.needsAccount) {
       // Signed in to LightPay/Firebase but never used Salacope: the account is created now.
       await request('POST', '/session', {});
@@ -95,7 +97,7 @@ export function refreshCatalog(force = false): Promise<void> {
   if (catalogRequest) return catalogRequest;
   catalogRequest = request<{ unchanged?: boolean; version: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
-    `/catalog${catalogVersion ? `?v=${encodeURIComponent(catalogVersion)}` : ''}`
+    `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
   )
     .then((res) => {
       catalogAt = Date.now();

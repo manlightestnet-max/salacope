@@ -2,6 +2,7 @@ import { DomainError } from '../src/shared/domain/errors.js';
 import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
+import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
 
 export interface Context {
   method: string;
@@ -61,6 +62,15 @@ export async function handle(request: Request): Promise<Response> {
 
   const match = routes.find((r) => r.method === method && r.pattern.test(path));
   if (!match) return reply(404, { error: 'Route inconnue.' });
+
+  // One address sending far more than any visitor would: answered at once, before touching the database.
+  const wait = secondsToWait(addressOf(request.headers), bucketOf(method, path));
+  if (wait) {
+    return new Response(JSON.stringify({ error: 'Trop de requêtes. Réessayez dans un instant.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': String(wait), 'Cache-Control': 'no-store' },
+    });
+  }
   const values = path.match(match.pattern)!.slice(1);
 
   const rawBody = method === 'GET' || method === 'HEAD' ? '' : await request.text();

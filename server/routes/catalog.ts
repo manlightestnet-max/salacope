@@ -65,12 +65,25 @@ async function catalogVersion(userId: string | null) {
   return row.v;
 }
 
+/** The same answer for every visitor can be kept for a few seconds by the CDN; anything personal never is. */
+const publicJson = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=60',
+      Vary: 'Authorization, X-Salacope-Guest',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+
 /** The catalogue as it is now in the database: answers `{ unchanged }` when the app already has this version. */
 route('GET', '/catalog', async (ctx) => {
   const { userId } = await viewerOf(ctx);
   const version = await catalogVersion(userId);
-  if (ctx.search.get('v') === version) return { unchanged: true, version };
-  return { version, data: await loadCatalog(userId) };
+  const answer = ctx.search.get('v') === version ? { unchanged: true, version } : { version, data: await loadCatalog(userId) };
+  // Cached only for a visitor who asked for the shared copy (`?anon=1`: its own address, never one a signed-in person uses).
+  return !userId && ctx.search.get('anon') === '1' ? publicJson(answer) : answer;
 });
 
 /** Everything the app needs at start: the public catalogue, plus the signed-in person's own data. */
@@ -88,7 +101,7 @@ route('GET', '/bootstrap', async (ctx) => {
         loadNotifications(userId),
       ])
     : null;
-  return {
+  const answer = {
     userId,
     /** Signed in with Firebase but no Salacope account yet (finish sign-up). */
     needsAccount: Boolean(identity && !userId),
@@ -104,6 +117,8 @@ route('GET', '/bootstrap', async (ctx) => {
       notifications: own?.[5] ?? [],
     },
   };
+  // Only a visitor with no identity at all, asking for the shared copy (`?anon=1`), gets the cacheable answer.
+  return !identity && !userId && ctx.search.get('anon') === '1' ? publicJson(answer) : answer;
 });
 
 const requireMerchant = async (userId: string) => {

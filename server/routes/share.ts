@@ -31,7 +31,7 @@ interface Card {
 
 /** The app's own index.html (what a visitor needs to load), with the preview tags for this page. */
 async function withPreview(origin: string, card: Card | null): Promise<Response> {
-  const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=600' };
+  const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' };
   const base = await fetch(`${origin}/index.html`);
   let html = await base.text();
   if (card) {

@@ -19,6 +19,7 @@ import { OfferPage } from '@/pages/account/OfferPage';
 import { SignInPage } from '@/pages/public/SignInPage';
 import { CheckoutPage } from '@/pages/shared/CheckoutPage';
 import { ExplorerPage } from '@/pages/account/ExplorerPage';
+import { AccountSearchPage } from '@/pages/account/AccountSearchPage';
 import { OpenStorePage } from '@/pages/account/OpenStorePage';
 import { AmlPolicy, CookiePolicy, LegalNotice, PrivacyPolicy, RefundPolicy, Terms } from '@/pages/legal/LegalPages';
 import { OrdersPage } from '@/pages/account/OrdersPage';
@@ -126,6 +127,7 @@ export const router = createBrowserRouter([
         children: [
           { path: ROUTES.account.root, element: <Navigate to={ROUTES.account.explorer} replace /> },
           { path: ROUTES.account.explorer, element: <ExplorerPage /> },
+          { path: ROUTES.account.search, element: <AccountSearchPage /> },
           { path: '/ac/s/:id', element: <StorePage /> },
           { path: '/ac/p/:id', element: <OfferPage /> },
           { path: '/ac/explorer/boutique/:id', element: <RedirectParam to={ROUTES.account.store} /> },

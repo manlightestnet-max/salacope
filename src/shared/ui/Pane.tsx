@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useScrollMemory } from '../hooks/useScrollMemory';
 import clsx from 'clsx';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { HelpTip } from './HelpTip';
@@ -45,6 +46,8 @@ export interface PageProps {
  */
 export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, toolbar, width = 'default', fill, children }) => {
   const trail = useContext(PageTrailContext);
+  const { pathname, search } = useLocation();
+  const scrollRef = useScrollMemory<HTMLDivElement>(fill ? undefined : pathname + search);
   const column = clsx('mx-auto w-full px-4 sm:px-6', WIDTHS[width]);
   const backClick = back?.onClick && ((e: React.MouseEvent) => (e.preventDefault(), back.onClick!()));
 
@@ -91,7 +94,7 @@ export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, to
           </div>
         )}
       </header>
-      <div className={clsx('flex-1 min-h-0', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
+      <div ref={scrollRef} className={clsx('flex-1 min-h-0', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
         <RouteTransition className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6')}>{children}</RouteTransition>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { SignInForm, useSession } from '@/features/session';
 import { ListingThumb } from '@/features/catalog';
 import { startCheckout } from '../api';
 import { loadLightPay, warmLightPay } from '../lightpay';
+import { LightPayLink, LightPayStatus } from './LightPayStatus';
 
 export interface CheckoutFormProps {
   listing: Listing;
@@ -34,6 +35,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const [company, setCompany] = useState({ companyName: '', taxId: '' });
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<LightPayLink>({ step: 'request', attempt: 1 });
 
   useEffect(warmLightPay, []);
 
@@ -48,16 +50,29 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
       return;
     }
     setBusy(true);
+    setLink({ step: 'request', attempt: 1 });
     try {
       const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 400);
+      // Connecting to LightPay: two tries, each one visible; then LightPay's own page takes over.
       let lightpay;
-      try {
-        lightpay = await loadLightPay(checkoutUrl);
-      } catch {
+      for (let attempt = 1; attempt <= 2 && !lightpay; attempt++) {
+        setLink({ step: 'connect', attempt });
+        try {
+          lightpay = await loadLightPay(checkoutUrl);
+        } catch {
+          if (attempt === 2) break;
+          setLink({ step: 'retry', attempt });
+          await new Promise((r) => setTimeout(r, 900));
+        }
+      }
+      if (!lightpay) {
+        setLink({ step: 'redirect', attempt: 2 });
+        await new Promise((r) => setTimeout(r, 700));
         window.location.assign(checkoutUrl);
         return;
       }
       // LightPay's dialog over the page; the result is confirmed server-side on the return page.
+      setLink({ step: 'open', attempt: 1 });
       setBusy(false);
       const idToken = await auth.idToken().catch(() => null);
       const theme = getTheme();
@@ -191,7 +206,9 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
           to="lightpay"
           title="Paiement avec LightPay"
           description={`${formatXaf(amounts.total)} par MTN MoMo, Airtel Money ou wallet LightPay. Vous revenez ici juste après.`}
-        />
+        >
+          <LightPayStatus link={link} />
+        </Handoff>
       )}
     </form>
   );

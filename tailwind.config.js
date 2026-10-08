@@ -86,16 +86,13 @@ export default {
           from: { opacity: '0', transform: 'translateX(var(--route-shift))' },
           to: { opacity: '1', transform: 'none' },
         },
+        // A sheet rises from the bottom edge of the screen.
+        sheet: {
+          from: { transform: 'translateY(100%)' },
+          to: { transform: 'none' },
+        },
         'route-pop': {
           from: { opacity: '0', transform: 'translateX(calc(var(--route-shift) * -1))' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        pop: {
-          from: { opacity: '0', transform: 'scale(0.94)' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        rise: {
-          from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'none' },
         },
       },
@@ -103,8 +100,7 @@ export default {
         'fade-up': 'fade-up var(--dur-slow) var(--ease-out) both',
         'route-push': 'route-push var(--dur) var(--ease-out) backwards',
         'route-pop': 'route-pop var(--dur) var(--ease-out) backwards',
-        pop: 'pop var(--dur) var(--ease-spring) backwards',
-        rise: 'rise var(--dur) var(--ease-out) backwards',
+        sheet: 'sheet var(--dur) var(--ease-out) backwards',
       },
       boxShadow: {
         xs: 'var(--shadow-xs)',

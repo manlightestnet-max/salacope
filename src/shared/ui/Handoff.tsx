@@ -35,13 +35,15 @@ export interface HandoffProps {
   description?: React.ReactNode;
   /** Covers the page (while the browser leaves for the other service). */
   overlay?: boolean;
+  /** Under the description: the steps of the connection. */
+  children?: React.ReactNode;
 }
 
 /**
  * The moment Salacope hands over to LightPay (or LightPay hands back): both apps and a
  * travelling dot, so the change of address is expected, not alarming.
  */
-export const Handoff: React.FC<HandoffProps> = ({ from, to, title, description, overlay = false }) => {
+export const Handoff: React.FC<HandoffProps> = ({ from, to, title, description, overlay = false, children }) => {
   const card = (
     <div role="status" aria-live="polite" className="w-full max-w-sm mx-auto rounded-3xl border border-gray-200/70 bg-surface shadow-lg px-6 py-8 text-center animate-fade-up">
       <div className="flex items-center justify-center gap-3" aria-hidden>
@@ -55,6 +57,7 @@ export const Handoff: React.FC<HandoffProps> = ({ from, to, title, description, 
       </div>
       <h2 className="mt-6 text-lg font-semibold text-gray-900">{title}</h2>
       {description && <p className="mt-1.5 text-sm text-gray-500">{description}</p>}
+      {children && <div className="mt-5 border-t border-gray-100 pt-4">{children}</div>}
     </div>
   );
 

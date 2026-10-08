@@ -14,6 +14,12 @@ import {
   userView,
 } from './views.js';
 
+/** A seller's app is open: remembered (at most once a minute) so their offers can show "En ligne". */
+export const touchSeller = (userId: string) =>
+  query("UPDATE merchants SET last_seen_at = NOW() WHERE user_id = $1 AND (last_seen_at IS NULL OR last_seen_at < NOW() - interval '1 minute')", [userId]).catch(
+    () => undefined
+  );
+
 /** Loaders shared by the bootstrap, the sync and the write endpoints (what they return as a patch). */
 
 export async function loadOrders(userId: string, where = 'TRUE', params: unknown[] = [], q: Query = query) {

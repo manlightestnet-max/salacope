@@ -58,6 +58,11 @@ route('POST', '/checkout', async (ctx) => {
   // Unverified, suspended or blocked sellers are paid nothing (AML/CFT policy §6).
   if (!listing || listing.status !== 'published' || !listing.sellable) throw new DomainError("Cette offre n'est plus disponible.", 404);
   if (listing.seller_id === buyerId) throw new DomainError('Vous ne pouvez pas acheter votre propre offre.');
+  // A digital product is bought once; a service can be ordered again.
+  if (listing.kind === 'digital') {
+    const [owned] = await query("SELECT 1 FROM orders WHERE buyer_id = $1 AND listing_id = $2 AND status <> 'cancelled' LIMIT 1", [buyerId, listing.id]);
+    if (owned) throw new DomainError('Vous avez déjà acheté ce produit : retrouvez-le dans vos achats.', 409);
+  }
   if (!listing.lightpay_connection_id) throw new DomainError('Ce vendeur n’a pas encore activé ses paiements. Réessayez plus tard.', 409);
 
   const answers: Record<string, string> = ctx.body.brief && typeof ctx.body.brief === 'object' ? ctx.body.brief : {};

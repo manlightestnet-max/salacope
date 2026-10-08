@@ -31,6 +31,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, index, onIndex
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ distance: number; scale: number } | null>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  // Phones: drag the image down to put it away (it follows the finger, the background fades; let go past the threshold or fast).
+  const [pull, setPull] = useState(0);
+  const flick = useRef({ y: 0, t: 0, speed: 0 });
 
   useBodyScrollLock(open);
   const close = () => onIndex(null);
@@ -43,6 +46,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, index, onIndex
   useEffect(() => {
     setScale(1);
     setOffset({ x: 0, y: 0 });
+    setPull(0);
   }, [index]);
 
   if (!open) return null;
@@ -64,7 +68,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, index, onIndex
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) pinch.current = { distance: distance(), scale };
-    else drag.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    else {
+      drag.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+      flick.current = { y: e.clientY, t: e.timeStamp, speed: 0 };
+    }
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
@@ -73,19 +80,34 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, index, onIndex
       zoomTo(pinch.current.scale * (distance() / pinch.current.distance));
     } else if (drag.current && scale > 1) {
       setOffset({ x: drag.current.ox + e.clientX - drag.current.x, y: drag.current.oy + e.clientY - drag.current.y });
+    } else if (drag.current && pointers.current.size === 1) {
+      const dy = e.clientY - drag.current.y;
+      const dt = Math.max(1, e.timeStamp - flick.current.t);
+      flick.current = { y: e.clientY, t: e.timeStamp, speed: (e.clientY - flick.current.y) / dt };
+      setPull(Math.max(0, dy));
     }
   };
   const onPointerUp = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinch.current = null;
-    if (pointers.current.size === 0) drag.current = null;
+    if (pointers.current.size === 0) {
+      drag.current = null;
+      if (scale === 1 && (pull > 110 || (pull > 30 && flick.current.speed > 0.6))) close();
+      setPull(0);
+    }
   };
 
   const control = 'w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-colors';
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col" role="dialog" aria-modal="true" aria-label="Image">
-      <div className="shrink-0 h-14 px-3 flex items-center gap-2 text-white">
+    <div
+      className="fixed inset-0 z-[60] flex flex-col"
+      style={{ backgroundColor: `rgb(0 0 0 / ${0.9 * (1 - Math.min(pull, 320) / 320)})` }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image"
+    >
+      <div className="shrink-0 h-14 px-3 flex items-center gap-2 text-white transition-opacity" style={{ opacity: 1 - Math.min(pull, 120) / 120 }}>
         <span className="text-sm tabular-nums text-white/70">{images.length > 1 ? `${index! + 1} / ${images.length}` : ''}</span>
         <div className="ml-auto flex items-center gap-2">
           <button type="button" className={control} onClick={() => zoomTo(scale - 0.5)} disabled={scale <= MIN} aria-label="Dézoomer">
@@ -114,8 +136,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, index, onIndex
           src={image.src}
           alt={image.alt ?? ''}
           draggable={false}
-          className="absolute inset-0 m-auto max-w-full max-h-full object-contain transition-transform duration-75 motion-reduce:transition-none"
-          style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
+          className={clsx('absolute inset-0 m-auto max-w-full max-h-full object-contain transition-transform motion-reduce:transition-none', pull > 0 ? 'duration-0' : 'duration-200')}
+          style={{ transform: `translate(${offset.x}px, ${offset.y + pull}px) scale(${scale})` }}
         />
         {images.length > 1 && (
           <>

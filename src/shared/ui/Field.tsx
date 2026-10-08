@@ -67,26 +67,3 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
   )
 );
 Textarea.displayName = 'Textarea';
-
-export interface SelectProps<V extends string> extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> {
-  value: V;
-  options: readonly { value: V; label: string }[];
-  onChange: (value: V) => void;
-}
-
-export function Select<V extends string>({ value, options, onChange, className, ...props }: SelectProps<V>) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as V)}
-      className={clsx(control, 'h-9 pl-3 pr-8', className)}
-      {...props}
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}

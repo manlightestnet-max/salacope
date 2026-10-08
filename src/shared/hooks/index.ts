@@ -8,3 +8,6 @@ export * from './useBackLink';
 export * from './useNow';
 export * from './useScrollTop';
 export * from './useVisualViewport';
+export * from './useViewPosition';
+export * from './useScrollMemory';
+export * from './usePersistedState';

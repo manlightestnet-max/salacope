@@ -4,7 +4,7 @@ import { ROUTES } from '../../src/shared/config/routes.js';
 import { query, tx } from '../db.js';
 import { route } from '../http.js';
 import { newId } from '../ids.js';
-import { loadAttempts, loadNotifications, loadOrders, loadReviews, loadStats, loadTickets } from '../load.js';
+import { loadAttempts, loadNotifications, loadOrders, loadReviews, loadStats, loadTickets, touchSeller } from '../load.js';
 import { notify } from '../notify.js';
 import { formatXaf, markReceived, refreshPendingAttempts, settleDueOrders } from '../orders.js';
 
@@ -136,6 +136,7 @@ route('GET', '/sync', async (ctx) => {
   const from = new Date(since.getTime() - 5_000).toISOString();
   const serverTime = new Date().toISOString();
   await Promise.all([
+    touchSeller(userId),
     refreshPendingAttempts(userId).catch(() => undefined),
     settleDueOrders(3).catch(() => undefined),
     markReceived(userId).catch(() => undefined),

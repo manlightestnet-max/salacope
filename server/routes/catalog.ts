@@ -14,6 +14,7 @@ import {
   loadStats,
   loadTickets,
   loadUsers,
+  touchSeller,
 } from '../load.js';
 import { notify } from '../notify.js';
 import { listingView } from '../views.js';
@@ -25,6 +26,7 @@ route('GET', '/bootstrap', async (ctx) => {
   const [me] = identity ? await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [identity.uid]) : [];
   // An account, else a guest who bought without one on this browser.
   const userId = identity ? (me?.id ?? null) : await ctx.viewerId();
+  if (userId) void touchSeller(userId);
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId),
     query(
@@ -242,6 +244,20 @@ route('POST', '/listings/:id/track', async (ctx) => {
     [ctx.params.id, viewer]
   );
   return { ok: true };
+});
+
+/** Public figures of an offer: visits, purchases, and whether its seller's app is open right now. */
+route('GET', '/listings/:id/stats', async (ctx) => {
+  const [row] = await query(
+    `SELECT (SELECT COALESCE(SUM(views), 0)::int FROM listing_daily_stats WHERE listing_id = l.id) AS views,
+            (SELECT COUNT(*)::int FROM orders WHERE listing_id = l.id AND status <> 'cancelled') AS purchases, l.seller_id
+     FROM listings l WHERE l.id = $1 AND l.status = 'published'`,
+    [ctx.params.id]
+  );
+  if (!row) throw new DomainError("Cette offre n'est plus disponible.", 404);
+  // Before the migration that records presence, nobody shows as online.
+  const [seen] = await query("SELECT COALESCE(last_seen_at > NOW() - interval '5 minutes', false) AS online FROM merchants WHERE user_id = $1", [row.seller_id]).catch(() => [{ online: false }]);
+  return { views: row.views, purchases: row.purchases, sellerOnline: Boolean(seen?.online) };
 });
 
 /** The seller's figures per offer: views, clicks (30 days and all time) and revenue of completed sales. */

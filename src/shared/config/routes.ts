@@ -16,6 +16,7 @@ export const ROUTES = {
   account: {
     root: '/ac',
     explorer: '/ac/explorer',
+    search: '/ac/recherche',
     store: (sellerId: string) => `/ac/s/${sellerId}`,
     offer: (listingId: string) => `/ac/p/${listingId}`,
     checkout: (id: string) => `/ac/checkout/${id}`,

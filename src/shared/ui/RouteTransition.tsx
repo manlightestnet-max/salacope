@@ -2,13 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
-// The very first screen of a visit just rises in; direction only matters once the person moves around.
+// The first screen of a visit shows as it is; only moving from one screen to another has a direction.
 let moved = false;
 
 /**
- * Wraps a screen so moving between screens has a direction: opened from another one it slides in from the right,
- * going back it comes from the left, a replacement or the first load only rises. Keyed by path (a new page, not a new
- * query), and switched off by `prefers-reduced-motion`.
+ * Wraps a screen so opening one from another has a direction: it slides in from the right. Nothing else moves: the
+ * first load, going back (the screen is shown as it was left, scroll included) and replacements appear as they are.
+ * Keyed by path (a new page, not a new query), and switched off by `prefers-reduced-motion`.
  */
 export const RouteTransition: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
   const { pathname } = useLocation();
@@ -16,7 +16,8 @@ export const RouteTransition: React.FC<{ children: React.ReactNode; className?: 
   // Decided once per page, when the path changes: an unrelated re-render never restarts the animation.
   const chosen = useRef({ path: '', animation: '' });
   if (chosen.current.path !== pathname) {
-    chosen.current = { path: pathname, animation: !moved ? 'animate-rise' : type === 'POP' ? 'animate-route-pop' : type === 'PUSH' ? 'animate-route-push' : 'animate-rise' };
+    // Only opening a screen from another one moves; the first load, going back and replacements show it as it is.
+    chosen.current = { path: pathname, animation: moved && type === 'PUSH' ? 'animate-route-push' : '' };
   }
   useEffect(() => {
     moved = true;

@@ -38,6 +38,8 @@ export interface CatalogBrowserProps {
   anchorId?: string;
   /** Always show the grid, even with nothing selected (search page). */
   alwaysGrid?: boolean;
+  /** The sort and extra filters are elsewhere (the back-office search puts them in its pinned toolbar). */
+  hideControls?: boolean;
 }
 
 /**
@@ -47,7 +49,7 @@ export interface CatalogBrowserProps {
  * - a category, a search or a price filter → a single grid with infinite scroll
  *   (uniform for one category, packed columns when cover shapes are mixed).
  */
-export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbarExtra, anchorId, alwaysGrid = false }) => {
+export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbarExtra, anchorId, alwaysGrid = false, hideControls = false }) => {
   const views = usePublishedListings();
   const { query, setQuery, hasFilters } = useCatalogQuery();
   const booting = useBooting();
@@ -107,10 +109,12 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
               )}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {toolbarExtra}
-            <SortSelect value={query.sort ?? 'popular'} onChange={(sort) => setQuery({ sort })} />
-          </div>
+          {!hideControls && (
+            <div className="flex flex-wrap items-center gap-2">
+              {toolbarExtra}
+              <SortSelect value={query.sort ?? 'popular'} onChange={(sort) => setQuery({ sort })} />
+            </div>
+          )}
         </div>
         {results.length === 0 ? (
           <EmptyState
@@ -133,7 +137,7 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
           {toolbar}
         </div>
       )}
-      <div key={listKey} className="pt-6 animate-fade-up">
+      <div key={listKey} className="pt-6">
         {content}
       </div>
     </div>

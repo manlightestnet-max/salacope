@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button, Container, EmptyState, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { useBackLink } from '@/shared/hooks';
+import { useDb } from '@/shared/db';
 import { useListingView } from '@/features/catalog';
 import { CheckoutForm } from '@/features/checkout';
 import { useSession } from '@/features/session';
@@ -15,6 +16,11 @@ export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) =
   const { id = '' } = useParams<{ id: string }>();
   const view = useListingView(id);
   const { user } = useSession();
+  // A digital product is bought once: if it is already theirs, there is nothing to pay.
+  const owned = useDb(
+    (s) => (view?.listing.kind === 'digital' && user ? s.orders.find((o) => o.buyerId === user.id && o.listingId === id && o.status !== 'cancelled') : undefined),
+    [id, user?.id, view?.listing.kind]
+  );
 
   const backTo = inApp ? ROUTES.account.offer(id) : ROUTES.listing(id);
   const back = useBackLink({ to: backTo, label: 'Offre' });
@@ -28,6 +34,14 @@ export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) =
         title="C'est votre propre offre"
         description="Vous ne pouvez pas acheter une offre de votre boutique."
         action={<Button to={ROUTES.seller.listing(view.listing.id)}>Modifier l'offre</Button>}
+      />
+    );
+  } else if (owned) {
+    content = (
+      <EmptyState
+        title="Vous avez déjà acheté ce produit"
+        description="Un produit numérique ne s’achète qu’une fois. Retrouvez-le dans votre commande."
+        action={<Button to={ROUTES.account.order(owned.id)}>Voir ma commande</Button>}
       />
     );
   } else {

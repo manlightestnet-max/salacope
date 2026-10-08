@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import clsx from 'clsx';
+import { useScrollMemory } from '../hooks/useScrollMemory';
 import { HelpTip } from './HelpTip';
 
 /** Lists and tables inside a panel drop their own frame: the panel is the frame. */
@@ -23,6 +24,8 @@ export interface PanelProps {
   bar?: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** The body scrolls: its position is remembered under this key and restored when coming back. */
+  scrollKey?: string;
   children: React.ReactNode;
 }
 
@@ -30,7 +33,8 @@ export interface PanelProps {
  * A framed block of the back-office: header (title, count, help, actions), content, optional
  * footer note. Every screen is built from panels, so pages read as one consistent structure.
  */
-export const Panel: React.FC<PanelProps> = ({ title, count, help, description, actions, footer, flush, bar, className, bodyClassName, children }) => {
+export const Panel: React.FC<PanelProps> = ({ title, count, help, description, actions, footer, flush, bar, className, bodyClassName, scrollKey, children }) => {
+  const bodyRef = useScrollMemory<HTMLDivElement>(scrollKey);
   const hasHeader = Boolean(title || actions);
   return (
     <section className={clsx('rounded-2xl border border-gray-200/70 bg-surface', className)}>
@@ -50,7 +54,7 @@ export const Panel: React.FC<PanelProps> = ({ title, count, help, description, a
         </header>
       )}
       <InPanel.Provider value>
-        <div className={clsx(flush ? 'border-t border-gray-200/70' : clsx('px-4 sm:px-5', hasHeader ? 'pb-5' : 'py-5'), bodyClassName)}>
+        <div ref={bodyRef} className={clsx(flush ? 'border-t border-gray-200/70' : clsx('px-4 sm:px-5', hasHeader ? 'pb-5' : 'py-5'), bodyClassName)}>
           {children}
         </div>
       </InPanel.Provider>

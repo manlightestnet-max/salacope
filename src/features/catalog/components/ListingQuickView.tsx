@@ -40,7 +40,7 @@ export const ListingQuickView: React.FC = () => {
         )
       }
     >
-      {view ? <ListingDetail view={view} /> : <p className="text-sm text-gray-500">Cette offre n'existe plus.</p>}
+      {view ? <ListingDetail view={view} floating={false} /> : <p className="text-sm text-gray-500">Cette offre n'existe plus.</p>}
     </Dialog>
   );
 };

@@ -12,7 +12,7 @@ import { storeHref } from '../model';
 import { SellerAvatar } from './SellerLink';
 
 /** Who sells this: identity, trust signal, follow. */
-export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: number; pending?: boolean }> = ({ seller, salesCount, pending }) => {
+export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: number; pending?: boolean; online?: boolean }> = ({ seller, salesCount, pending, online }) => {
   const stats = useSellerStat(seller?.id);
   const inApp = Boolean(usePane());
   if (pending) {
@@ -32,7 +32,10 @@ export const SellerCard: React.FC<{ seller: User | undefined; salesCount?: numbe
   const m = seller.merchant;
   return (
     <div className="flex items-start gap-3">
-      <SellerAvatar seller={seller} size="lg" />
+      <span className="relative shrink-0">
+        <SellerAvatar seller={seller} size="lg" />
+        {online && <span title="En ligne" className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-surface" />}
+      </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <Link

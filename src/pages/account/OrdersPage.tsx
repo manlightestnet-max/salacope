@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Button, EmptyState, Page, Panel, Segmented, Select, Stat, StatGrid, Tab
 import { useDb } from '@/shared/db';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
+import { usePersistedState } from '@/shared/hooks';
 import { displayName, useCurrentUser } from '@/features/session';
 import { KIND_FILTERS, KindBadge, KindFilter, ListingThumb } from '@/features/catalog';
 import {
@@ -30,9 +31,10 @@ export const OrdersPage: React.FC = () => {
   const orders = useBuyerOrders(user.id);
   const users = useDb((s) => s.users, []);
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<OrderFilter>('all');
-  const [kind, setKind] = useState<KindFilter>('all');
-  const [period, setPeriod] = useState<OrderPeriod>('all');
+  // Opening an order and coming back finds the list as it was: same filters, same scroll.
+  const [filter, setFilter] = usePersistedState<OrderFilter>('orders:filter', 'all');
+  const [kind, setKind] = usePersistedState<KindFilter>('orders:kind', 'all');
+  const [period, setPeriod] = usePersistedState<OrderPeriod>('orders:period', 'all');
   const periods = useMemo(() => periodOptions(orders), [orders]);
 
   const ofKind = useMemo(() => orders.filter((o) => (kind === 'all' || o.item.kind === kind) && inPeriod(o, period)), [orders, kind, period]);
@@ -79,6 +81,7 @@ export const OrdersPage: React.FC = () => {
             flush
             className="flex-1 min-h-0 flex flex-col"
             bodyClassName="flex-1 min-h-0 overflow-y-auto"
+            scrollKey="orders"
             actions={<Select aria-label="Période" value={period} options={periods} onChange={setPeriod} />}
           >
             {visible.length === 0 ? (

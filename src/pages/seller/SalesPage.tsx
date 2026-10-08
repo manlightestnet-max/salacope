@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { CheckCircle2, ReceiptText } from 'lucide-react';
 import { EmptyState, ListSection, Page, SearchField, Select, Tabs } from '@/shared/ui';
 import { Order } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
+import { usePersistedState } from '@/shared/hooks';
 import { PLATFORM } from '@/shared/config/platform';
 import { useCurrentUser } from '@/features/session';
 import { OrderList, SELLER_LANES, SellerLane, sellerLane, useSellerOrders, useSellerTagList } from '@/features/orders';
@@ -35,10 +36,11 @@ const byDeadline = (a: Order, b: Order) => (a.dueAt ?? a.createdAt).localeCompar
 export const SalesPage: React.FC = () => {
   const user = useCurrentUser();
   const orders = useSellerOrders(user.id);
-  const [view, setView] = useState<View>('todo');
-  const [search, setSearch] = useState('');
-  const [client, setClient] = useState('');
-  const [tag, setTag] = useState('');
+  // Opening a sale and coming back finds the queue as it was.
+  const [view, setView] = usePersistedState<View>('sales:view', 'todo');
+  const [search, setSearch] = usePersistedState('sales:search', '');
+  const [client, setClient] = usePersistedState('sales:client', '');
+  const [tag, setTag] = usePersistedState('sales:tag', '');
   const tags = useSellerTagList(user.id);
 
   // One entry per client (their name as shown on their orders), alphabetical.

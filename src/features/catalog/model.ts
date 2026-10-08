@@ -116,9 +116,8 @@ export interface CatalogQuery {
 const matchesText = ({ listing, seller }: ListingView, text: string) => {
   const q = text.toLowerCase().trim();
   if (!q) return true;
-  return [listing.title, listing.summary, listing.description, seller?.merchant?.storeName ?? '', ...listing.features].some(
-    (v) => v.toLowerCase().includes(q)
-  );
+  // The offer's identifier matches too (not advertised anywhere): someone sent here by a search engine can paste it.
+  return [listing.id, listing.title, listing.summary, listing.description, seller?.merchant?.storeName ?? '', ...listing.features].some((v) => v.toLowerCase().includes(q));
 };
 
 export const queryListings = (views: ListingView[], query: CatalogQuery): ListingView[] => {

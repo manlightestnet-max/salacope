@@ -70,3 +70,35 @@ export interface ListingInsight {
 }
 
 export const fetchInsights = () => request<{ insights: ListingInsight[] }>('GET', '/seller/insights').then((r) => r.insights);
+
+export interface ListingStats {
+  views: number;
+  purchases: number;
+  sellerOnline: boolean;
+}
+
+const statsCache = new Map<string, ListingStats>();
+
+/**
+ * Real figures of an offer (visits, purchases, seller online). `undefined` while they load, `null` if they cannot be read
+ * (the page then simply shows none); the last known values are shown at once on a return visit.
+ */
+export function useListingStats(listingId: string | undefined): ListingStats | null | undefined {
+  const [stats, setStats] = useState<ListingStats | null | undefined>(() => (listingId ? statsCache.get(listingId) : undefined));
+  useEffect(() => {
+    if (!listingId) return setStats(undefined);
+    setStats(statsCache.get(listingId));
+    let live = true;
+    request<ListingStats>('GET', `/listings/${encodeURIComponent(listingId)}/stats`).then(
+      (s) => {
+        statsCache.set(listingId, s);
+        if (live) setStats(s);
+      },
+      () => live && setStats((current) => current ?? null)
+    );
+    return () => {
+      live = false;
+    };
+  }, [listingId]);
+  return stats;
+}

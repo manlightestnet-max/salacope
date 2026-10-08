@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Compass,
   Heart,
@@ -55,7 +55,7 @@ interface NavItem {
   end?: boolean;
 }
 
-const NavEntry: React.FC<NavItem & { collapsed: boolean; onNavigate: () => void }> = ({
+const NavEntry: React.FC<NavItem & { collapsed: boolean; onNavigate: () => void; pill?: boolean }> = ({
   to,
   label,
   icon: Icon,
@@ -63,6 +63,7 @@ const NavEntry: React.FC<NavItem & { collapsed: boolean; onNavigate: () => void 
   end,
   collapsed,
   onNavigate,
+  pill,
 }) => (
   <NavLink
     to={to}
@@ -73,7 +74,8 @@ const NavEntry: React.FC<NavItem & { collapsed: boolean; onNavigate: () => void 
       clsx(
         'relative flex items-center gap-2.5 h-8 rounded-md text-sm transition-colors',
         collapsed ? 'justify-center w-8 mx-auto' : 'px-2.5',
-        isActive ? 'bg-accent text-on-accent font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        // With `pill` the sliding highlight (see SidebarNav) is the background of the current entry.
+        isActive ? clsx('text-on-accent font-medium', !pill && 'bg-accent') : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       )
     }
   >
@@ -123,11 +125,39 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
   const answered = useAnsweredTicketCount(user.id);
   const unread = useUnreadCount(user.id);
   const followUpdates = useFollowUpdates(user.id);
-  const item = (props: NavItem) => <NavEntry key={props.to} {...props} collapsed={collapsed} onNavigate={onNavigate} />;
+  const item = (props: NavItem, pill = true) => <NavEntry key={props.to} {...props} collapsed={collapsed} onNavigate={onNavigate} pill={pill} />;
+
+  // The highlight of the current entry slides to the next one instead of jumping (not on the first placement).
+  const navRef = useRef<HTMLElement>(null);
+  const placed = useRef(false);
+  const [highlight, setHighlight] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const measure = () => {
+    const el = navRef.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+    const next = el ? { top: el.offsetTop, left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight } : null;
+    setHighlight((cur) => (cur && next && cur.top === next.top && cur.left === next.left && cur.width === next.width && cur.height === next.height ? cur : next));
+  };
+  useLayoutEffect(measure);
+  useEffect(() => {
+    if (highlight) placed.current = true;
+  }, [highlight]);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-5 scrollbar-none">
+      <nav ref={navRef} className="relative flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-5 scrollbar-none">
+        {highlight && (
+          <span
+            aria-hidden
+            className={clsx('absolute top-0 left-0 rounded-md bg-accent', placed.current && 'transition-[transform,width,height] duration-300 ease-out motion-reduce:transition-none')}
+            style={{ transform: `translate(${highlight.left}px, ${highlight.top}px)`, width: highlight.width, height: highlight.height }}
+          />
+        )}
         <div className="space-y-0.5">
           {item({ to: ROUTES.account.explorer, label: 'Explorer', icon: Compass })}
           {item({ to: ROUTES.account.messages, label: 'Messages', icon: MessagesSquare, badge: unread })}
@@ -166,10 +196,10 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
         )}
       </nav>
       <div className="px-2 py-2 border-t border-gray-200 space-y-0.5">
-        {item({ to: ROUTES.account.support, label: 'Support', icon: LifeBuoy, badge: answered })}
+        {item({ to: ROUTES.account.support, label: 'Support', icon: LifeBuoy, badge: answered }, false)}
         {user.guest
-          ? item({ to: `${ROUTES.signIn}?creer=1`, label: 'Créer un compte', icon: UserPlus })
-          : item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings })}
+          ? item({ to: `${ROUTES.signIn}?creer=1`, label: 'Créer un compte', icon: UserPlus }, false)
+          : item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings }, false)}
       </div>
     </div>
   );
@@ -179,7 +209,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
 const trailOf = (pathname: string, storeName?: string): string | null => {
   if (pathname.startsWith(ROUTES.admin.root)) return 'Administration';
   if (pathname.startsWith('/dashboard') || pathname.startsWith(ROUTES.lightpayCallback)) return storeName ?? 'Boutique';
-  if (pathname.startsWith(ROUTES.account.explorer)) return 'Catalogue';
+  if (pathname.startsWith(ROUTES.account.explorer) || pathname.startsWith(ROUTES.account.search)) return 'Catalogue';
   if (pathname.startsWith(ROUTES.account.messages)) return 'Messages';
   if ([ROUTES.account.orders, ROUTES.account.favorites, ROUTES.account.following, ROUTES.paymentReturn, '/ac/checkout'].some((p) => pathname.startsWith(p))) {
     return 'Achats';
@@ -188,27 +218,18 @@ const trailOf = (pathname: string, storeName?: string): string | null => {
   return null;
 };
 
-/** Catalogue search, always reachable: results open in Explorer inside the shell. */
+/** Catalogue search, always reachable: submitting loads the search screen with the query. */
 const TopBarSearch: React.FC = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const [params] = useSearchParams();
-  const onExplorer = pathname === ROUTES.account.explorer;
-  const [q, setQ] = useState(onExplorer ? params.get('q') ?? '' : '');
+  const [q, setQ] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   useFocusShortcut(inputRef);
 
-  useEffect(() => {
-    setQ(onExplorer ? params.get('q') ?? '' : '');
-  }, [onExplorer, params]);
-
   const submit = () => {
-    const next = new URLSearchParams(onExplorer ? params : undefined);
-    next.delete('produit');
-    if (q.trim()) next.set('q', q.trim());
-    else next.delete('q');
-    const qs = next.toString();
-    navigate(`${ROUTES.account.explorer}${qs ? `?${qs}` : ''}`);
+    const text = q.trim();
+    navigate(`${ROUTES.account.search}${text ? `?q=${encodeURIComponent(text)}` : ''}`);
+    setQ('');
+    inputRef.current?.blur();
   };
 
   return (
@@ -216,14 +237,7 @@ const TopBarSearch: React.FC = () => {
       ref={inputRef}
       hint={shortcutLabel('k')}
       value={q}
-      onChange={(v) => {
-        setQ(v);
-        if (!v && onExplorer && params.get('q')) {
-          const next = new URLSearchParams(params);
-          next.delete('q');
-          navigate(`${ROUTES.account.explorer}?${next}`, { replace: true });
-        }
-      }}
+      onChange={setQ}
       onSubmit={submit}
       placeholder="Rechercher dans le catalogue"
       className="w-full max-w-md"
@@ -278,7 +292,8 @@ export const AppLayout: React.FC = () => {
         </button>
         <Logo to={ROUTES.account.explorer} className="shrink-0 hidden sm:flex" />
         <div className="flex-1 flex justify-center min-w-0">
-          <TopBarSearch />
+          {/* On the search screen the field lives in the page itself. */}
+          {pathname !== ROUTES.account.search && <TopBarSearch />}
         </div>
         <div className="shrink-0 flex items-center gap-1">
           <NotificationBell userId={user.id} />
@@ -297,27 +312,38 @@ export const AppLayout: React.FC = () => {
           <SidebarNav collapsed={!pinned} onNavigate={() => {}} />
         </aside>
 
-        {drawerOpen && (
-          <div className="lg:hidden fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
-            <aside className="relative w-64 h-full bg-gray-50 shadow-lg flex flex-col">
-              <div className="h-12 shrink-0 px-3 flex items-center justify-between border-b border-gray-200">
-                <Logo to={ROUTES.account.explorer} />
-                <button
-                  type="button"
-                  onClick={() => setDrawerOpen(false)}
-                  className="p-1 rounded-md text-gray-500 hover:bg-gray-100"
-                  aria-label="Fermer le menu"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex-1 min-h-0">
-                <SidebarNav collapsed={false} onNavigate={() => setDrawerOpen(false)} />
-              </div>
-            </aside>
-          </div>
-        )}
+        {/* Always mounted so it can slide out as well as in; hidden from keyboard and screen readers while closed. */}
+        <div
+          aria-hidden={!drawerOpen}
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ visibility: drawerOpen ? 'visible' : 'hidden', transition: drawerOpen ? 'none' : 'visibility 0s linear 300ms' }}
+        >
+          <div
+            className={clsx('absolute inset-0 bg-black/50 transition-opacity duration-300 motion-reduce:transition-none', drawerOpen ? 'opacity-100' : 'opacity-0')}
+            onClick={() => setDrawerOpen(false)}
+          />
+          <aside
+            className={clsx(
+              'relative w-64 h-full bg-gray-50 shadow-lg flex flex-col transition-transform duration-300 ease-out motion-reduce:transition-none',
+              drawerOpen ? 'translate-x-0' : '-translate-x-full'
+            )}
+          >
+            <div className="h-12 shrink-0 px-3 flex items-center justify-between border-b border-gray-200">
+              <Logo to={ROUTES.account.explorer} />
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="p-1 rounded-md text-gray-500 hover:bg-gray-100"
+                aria-label="Fermer le menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <SidebarNav collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+            </div>
+          </aside>
+        </div>
 
         <PaneContext.Provider value={pane}>
           <PageTrailContext.Provider value={trailOf(pathname, user.merchant?.storeName)}>

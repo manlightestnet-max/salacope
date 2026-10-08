@@ -63,7 +63,8 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-30 bg-canvas sm:bg-canvas/75 sm:backdrop-blur-xl border-b border-gray-200/60">
       <Container className="h-16 flex items-center gap-4 lg:gap-7">
         <Logo className="shrink-0" />
-        <HeaderSearch className="hidden md:block flex-1 max-w-[460px]" />
+        {/* On the search screen the field lives in the page itself. */}
+        {pathname === ROUTES.search ? <div className="hidden md:block flex-1" /> : <HeaderSearch className="hidden md:block flex-1 max-w-[460px]" />}
         <nav className="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
           <HeaderLink to={ROUTES.home} label="Explorer" icon={Compass} end />
           <HeaderLink to={ROUTES.account.orders} label="Mes achats" icon={ShoppingBag} />

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Pin } from 'lucide-react';
 import clsx from 'clsx';
 import { Order } from '@/shared/db';
-import { KindBadge, ListingThumb, LoadingImage } from '@/features/catalog';
+import { COVER_ASPECT, COVER_FORMAT, KindBadge, ListingThumb, LoadingImage } from '@/features/catalog';
 import { List, ListRow } from '@/shared/ui';
 import { formatDate, formatRelative, formatXaf } from '@/shared/lib';
 import { Perspective, hasPendingExtension, isLate } from '../model';
@@ -39,6 +39,26 @@ const SellerDue: React.FC<{ order: Order }> = ({ order }) => {
   return null;
 };
 
+/** The offer as a tiny product in its own shape (a book stands up with its spine, a service lies wide), in a fixed slot. */
+const MiniCover: React.FC<{ order: Order }> = ({ order }) => {
+  const format = COVER_FORMAT[order.item.category];
+  const book = format === 'portrait';
+  return (
+    <span className="w-12 h-12 shrink-0 flex items-center justify-center">
+      <span
+        className={clsx(
+          'relative overflow-hidden bg-gray-100 shadow-sm ring-1 ring-inset ring-gray-950/[0.08]',
+          COVER_ASPECT[format],
+          book ? 'h-12 rounded-r-md rounded-l-sm' : 'w-12 rounded-md'
+        )}
+      >
+        <LoadingImage src={order.item.coverImage} className="absolute inset-0 w-full h-full object-cover" />
+        {book && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-black/25" />}
+      </span>
+    </span>
+  );
+};
+
 /** Phone row: the offer's picture as a small round avatar, the title, the last message, and the state as an icon. */
 const PhoneRow: React.FC<{ order: Order; perspective: Perspective; href: string; fallback?: string }> = ({ order: o, perspective, href, fallback }) => {
   const me = perspective === 'seller' ? o.sellerId : o.buyerId;
@@ -49,9 +69,7 @@ const PhoneRow: React.FC<{ order: Order; perspective: Perspective; href: string;
   return (
     <li className={clsx(done && 'opacity-60')}>
       <Link to={href} className="flex items-center gap-3 px-4 py-3 active:bg-gray-50">
-        <span className="relative w-11 h-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-inset ring-gray-950/[0.06]">
-          <LoadingImage src={o.item.coverImage} className="absolute inset-0 w-full h-full object-cover" />
-        </span>
+        <MiniCover order={o} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 min-w-0">
             {pinned && <Pin className="w-3 h-3 shrink-0 text-gray-400" aria-label="Épinglée" />}

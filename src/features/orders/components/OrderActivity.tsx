@@ -1,13 +1,29 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveSync } from '@/shared/api';
 import clsx from 'clsx';
-import { ArrowUp, Ban, Banknote, MessagesSquare, Paperclip, Timer } from 'lucide-react';
-import { Order, OrderEvent, OrderMessage, User } from '@/shared/db';
-import { Avatar, Card, ImageViewer } from '@/shared/ui';
+import {
+  AlertTriangle,
+  ArrowUp,
+  Ban,
+  Banknote,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
+  LucideIcon,
+  MessagesSquare,
+  PackageCheck,
+  Paperclip,
+  RotateCcw,
+  Timer,
+  XCircle,
+} from 'lucide-react';
+import { Order, OrderEvent, OrderEventType, OrderMessage, User } from '@/shared/db';
+import { Avatar, Card, ImageViewer, TONES, Tone } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
-import { formatDateTime, formatRelative } from '@/shared/lib';
+import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
 import { displayName } from '@/features/session';
-import { CONTACT_BLOCKED, EVENT_LABEL, MAX_MESSAGE_IMAGES, containsContact, isImageType, permissionsFor, perspectiveOf } from '../model';
+import { CONTACT_BLOCKED, EVENT_LABEL, MAX_MESSAGE_IMAGES, containsContact, isImageType, paymentMethodLabel, permissionsFor, perspectiveOf } from '../model';
 import { markRead, sendMessage } from '../api';
 import { messageStatus, unreadCount } from '../chat';
 import { MessageTicks } from './chat/MessageTicks';
@@ -19,16 +35,72 @@ import { AttachmentList } from './OrderDialogs';
 
 type Entry = { kind: 'event'; at: string; event: OrderEvent } | { kind: 'message'; at: string; message: OrderMessage };
 
-/** A lifecycle step, quiet and centred between the messages. */
-const EventRow: React.FC<{ event: OrderEvent; actor?: User }> = ({ event, actor }) => (
-  <li className="flex flex-col items-center text-center px-6">
-    <span className="text-[11px] text-gray-500" title={formatDateTime(event.at)}>
-      <span className="text-gray-700 font-medium">{EVENT_LABEL[event.type]}</span>
-      {actor && ` · ${displayName(actor)}`} · {formatRelative(event.at)}
-    </span>
-    {event.note && event.type !== 'delivered' && <span className="mt-0.5 text-xs text-gray-500 max-w-md">« {event.note} »</span>}
-  </li>
-);
+/** How each step of an order looks: its own icon and colour. */
+const EVENT_STYLE: Record<OrderEventType, { icon: LucideIcon; tone: Tone }> = {
+  paid: { icon: Banknote, tone: 'brand' },
+  accepted: { icon: ClipboardCheck, tone: 'info' },
+  delivered: { icon: PackageCheck, tone: 'brand' },
+  completed: { icon: CheckCircle2, tone: 'success' },
+  auto_completed: { icon: CheckCircle2, tone: 'success' },
+  cancelled: { icon: XCircle, tone: 'neutral' },
+  disputed: { icon: AlertTriangle, tone: 'danger' },
+  revision_requested: { icon: RotateCcw, tone: 'warning' },
+  extension_requested: { icon: CalendarClock, tone: 'warning' },
+  extension_accepted: { icon: CalendarClock, tone: 'success' },
+  extension_declined: { icon: CalendarClock, tone: 'danger' },
+};
+
+/** A lifecycle step as an indicator between the messages: icon, name and how long ago; a tap opens the exact time and details. */
+const EventRow: React.FC<{ order: Order; event: OrderEvent; actor?: User }> = ({ order, event, actor }) => {
+  const [open, setOpen] = useState(false);
+  const { icon: Icon, tone } = EVENT_STYLE[event.type];
+  const note = event.type !== 'delivered' ? event.note : undefined;
+  return (
+    <li className="flex flex-col items-center px-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        title={formatDateTime(event.at)}
+        className="inline-flex items-center gap-2 max-w-full h-8 pl-1.5 pr-2.5 rounded-full border border-gray-200 bg-surface text-xs transition hover:border-gray-300 active:scale-[0.98]"
+      >
+        <span className={clsx('w-5 h-5 shrink-0 rounded-full flex items-center justify-center', TONES[tone].badge)}>
+          <Icon className="w-3 h-3" />
+        </span>
+        <span className="font-medium text-gray-800 truncate">{EVENT_LABEL[event.type]}</span>
+        <time dateTime={event.at} className="shrink-0 text-gray-500 tabular-nums whitespace-nowrap">
+          · {formatRelative(event.at)}
+        </time>
+        <ChevronDown className={clsx('w-3 h-3 shrink-0 text-gray-400 transition-transform duration-200', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <dl className="mt-2 w-full max-w-xs rounded-xl border border-gray-200/70 bg-gray-50 px-3.5 py-2.5 text-xs space-y-1.5 animate-fade-up motion-reduce:animate-none">
+          <div className="flex justify-between gap-4">
+            <dt className="text-gray-500">Date</dt>
+            <dd className="text-gray-900 tabular-nums text-right">{formatDateTime(event.at)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-gray-500">Par</dt>
+            <dd className="text-gray-900 text-right">{event.actorId ? displayName(actor) : 'Salacope (automatique)'}</dd>
+          </div>
+          {event.type === 'paid' && (
+            <>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Montant</dt>
+                <dd className="text-gray-900 tabular-nums text-right">{formatXaf(order.amounts.total)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Moyen</dt>
+                <dd className="text-gray-900 text-right">{paymentMethodLabel(order)}</dd>
+              </div>
+            </>
+          )}
+          {note && <p className="pt-1 text-gray-600">« {note} »</p>}
+        </dl>
+      )}
+    </li>
+  );
+};
 
 const MessageRow: React.FC<{ order: Order; message: OrderMessage; author?: User; mine: boolean; userId: string }> = ({ order, message, author, mine, userId }) => {
   const [viewing, setViewing] = useState<number | null>(null);
@@ -181,7 +253,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
         {entries.map((entry) =>
           entry.kind === 'event' ? (
             <React.Fragment key={entry.event.id}>
-              <EventRow event={entry.event} actor={entry.event.actorId ? users.get(entry.event.actorId) : undefined} />
+              <EventRow order={order} event={entry.event} actor={entry.event.actorId ? users.get(entry.event.actorId) : undefined} />
               {entry.event.type === 'delivered' && order.item.kind === 'service' && perspective && (
                 <li className="flex justify-center">
                   <ValidationCard order={order} perspective={perspective} current={entry.event.id === lastDelivery} />

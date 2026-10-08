@@ -255,15 +255,10 @@ export const AppLayout: React.FC = () => {
   useEffect(() => setDrawerOpen(false), [pathname]);
 
   const PinIcon = pinned ? PanelLeftClose : PanelLeftOpen;
-  // A conversation on a phone takes the whole screen: its own header replaces the app bar, nothing else on screen.
-  const inRoom = /^\/ac\/messages\/[^/]+/.test(pathname);
-
   return (
     <div className="flex flex-col overflow-hidden bg-surface" style={{ height: 'var(--vvh, 100dvh)' }}>
-      <div className={clsx('shrink-0', inRoom && 'max-lg:hidden')}>
-        <LaunchBanner />
-      </div>
-      <header className={clsx('shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30', inRoom && 'max-lg:hidden')}>
+      <LaunchBanner />
+      <header className="shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30">
         <button
           type="button"
           onClick={() => setPinned((v) => !v)}

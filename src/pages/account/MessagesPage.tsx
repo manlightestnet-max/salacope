@@ -48,7 +48,6 @@ export const MessagesPage: React.FC = () => {
   return (
     <Page
       fill
-      immersive={Boolean(roomId)}
       title="Messages"
       back={open ? back : undefined}
       toolbar={
@@ -84,7 +83,7 @@ export const MessagesPage: React.FC = () => {
 
           <div className={clsx('min-h-0', !open && 'hidden lg:block')}>
             {roomId ? (
-              <ChatRoom orderId={roomId} userId={user.id} backTo={back.to} />
+              <ChatRoom orderId={roomId} userId={user.id} />
             ) : picking ? (
               <CounterpartOrders conversation={picking} userId={user.id} hrefFor={ROUTES.account.chat} />
             ) : (

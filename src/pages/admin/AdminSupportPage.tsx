@@ -5,7 +5,7 @@ import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Seg
 import { formatRelative } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { topicLabel } from '@/features/support';
-import { AdminTicketRow, TicketFilter, adminApi, useAdminResource } from '@/features/admin';
+import { AdminTicketRow, MoreRows, TicketFilter, adminApi, useAdminPaged } from '@/features/admin';
 
 export const ADMIN_TICKET_STATUS: Record<AdminTicketRow['status'], { label: string; tone: 'warning' | 'brand' | 'neutral' }> = {
   open: { label: 'À traiter', tone: 'warning' },
@@ -21,8 +21,8 @@ export const AdminSupportPage: React.FC = () => {
   const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'open';
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const { data, error, loading } = useAdminResource(() => adminApi.tickets(filter, search), [filter, search]);
-  const tickets = data?.tickets;
+  const { items: tickets, extra: counts, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.tickets(filter, search, offset), [filter, search]);
+  const loading = !tickets;
 
   return (
     <Page
@@ -45,8 +45,8 @@ export const AdminSupportPage: React.FC = () => {
           label="Filtre"
           value={filter}
           options={[
-            { value: 'open', label: data ? `À traiter (${data.counts.open})` : 'À traiter' },
-            { value: 'answered', label: data ? `Répondus (${data.counts.answered})` : 'Répondus' },
+            { value: 'open', label: counts ? `À traiter (${counts.open})` : 'À traiter' },
+            { value: 'answered', label: counts ? `Répondus (${counts.answered})` : 'Répondus' },
             { value: 'resolved', label: 'Résolus' },
             { value: 'all', label: 'Tous' },
           ]}
@@ -58,7 +58,7 @@ export const AdminSupportPage: React.FC = () => {
         />
       }
     >
-      <Panel title="Demandes" count={tickets?.length} flush>
+      <Panel title="Demandes" flush>
         {error ? (
           <EmptyState title="Liste indisponible" description={error} />
         ) : !tickets ? (
@@ -66,6 +66,7 @@ export const AdminSupportPage: React.FC = () => {
             <SkeletonRows rows={4} className="w-full" />
           </div>
         ) : tickets.length ? (
+          <>
           <List columns={{ main: 'Demande', meta: 'Statut', trailing: 'Dernière activité' }}>
             {tickets.map((t) => (
               <ListRow
@@ -79,6 +80,8 @@ export const AdminSupportPage: React.FC = () => {
               />
             ))}
           </List>
+          <MoreRows hasMore={hasMore} loading={loadingMore} sentinelRef={sentinelRef} onMore={next} />
+          </>
         ) : (
           <EmptyState icon={LifeBuoy} title={filter === 'open' && !search ? 'Rien à traiter' : 'Aucune demande'} description={loading ? undefined : filter === 'open' && !search ? 'Toutes les demandes ont reçu une réponse.' : undefined} />
         )}

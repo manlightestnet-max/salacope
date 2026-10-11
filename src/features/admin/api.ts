@@ -143,6 +143,32 @@ export interface AdminTicketDetail {
   } | null;
 }
 
+export interface AdminProfit {
+  /** `YYYY-MM`, or `all`. */
+  period: string;
+  /** Commission kept on the sales closed in the period. */
+  profit: number;
+  sales: number;
+  sales_total: number;
+  /** Payments received in the period (refunds excluded). */
+  payments: number;
+  volume: number;
+  /** Commission on the money still blocked: earned once the sales are validated. */
+  pending_profit: number;
+  pending_orders: number;
+  kinds: { kind: string; sales: number; profit: number; sales_total: number }[];
+  months: { month: string; profit: number }[];
+}
+
+export interface AdminSettings {
+  /** Fractions: 0.1 = 10 %. */
+  feeRate: number;
+  feeRateDigital: number | null;
+  feeRateService: number | null;
+  digitalHoldDays: number;
+  serviceValidationDays: number;
+}
+
 export type FundFilter = 'disputed' | 'waiting' | 'all';
 
 export interface AdminFundRow {
@@ -169,18 +195,29 @@ export interface AdminFundTotals {
   disputed_total: number;
 }
 
+export interface AdminTrackRecord {
+  orders: number;
+  completed: number;
+  disputes: number;
+  refunded: number;
+  paid_by_decision: number;
+  /** Sellers only. */
+  reviews: number | null;
+  rating: number | null;
+}
+
 export interface AdminFundDetail {
   order: {
     id: string;
     number: string;
     status: 'paid' | 'in_progress' | 'delivered' | 'completed' | 'cancelled' | 'disputed';
-    item: { title: string; kind: string };
+    item: { title: string; kind: string; deliveryDays?: number; revisions?: number; file?: { name?: string; format?: string } };
     amounts: { subtotal: number; discount: number; total: number; fee: number; net: number };
+    brief: { question: string; answer: string }[] | null;
     release_at: string | null;
     due_at: string | null;
     created_at: string;
     updated_at: string;
-    delivery_note: string | null;
     buyer_id: string;
     seller_id: string;
     buyer_name: string;
@@ -191,6 +228,12 @@ export interface AdminFundDetail {
     held: boolean;
     via: string | null;
   };
+  offer: { description: string; deliveryDays: number | null; revisions: number | null };
+  delivery: { note: string; at: string; files: { name: string; size: string; type: string; url: string | null }[] } | null;
+  /** Times the buyer opened the product file (digital orders). */
+  downloads: { n: number; first: string | null; last: string | null } | null;
+  seller: AdminTrackRecord;
+  buyer: AdminTrackRecord;
   events: { id: string; type: string; actor_id: string | null; note: string | null; at: string }[];
   messages: { id: string; author_id: string; name: string; body: string; at: string; files: number }[];
   tickets: { id: string; number: string; subject: string; status: 'open' | 'answered' | 'resolved' }[];
@@ -200,9 +243,17 @@ export type SellerFilter = 'all' | 'pending' | 'approved' | 'unverified' | 'susp
 
 const qs = (params: Record<string, string>) => new URLSearchParams(params).toString();
 
+/** One page of a list: the rows, whether more follow, and what only the first page carries (counts, totals). */
+export interface PagedRows<T, X = undefined> {
+  items: T[];
+  hasMore: boolean;
+  extra: X;
+}
+
 export const adminApi = {
   overview: () => request<{ overview: AdminOverview }>('GET', '/admin/overview').then((r) => r.overview),
-  sellers: (filter: SellerFilter, q: string) => request<{ sellers: AdminSellerRow[] }>('GET', `/admin/sellers?${qs({ filter, q })}`).then((r) => r.sellers),
+  sellers: (filter: SellerFilter, q: string, offset = 0): Promise<PagedRows<AdminSellerRow>> =>
+    request<{ sellers: AdminSellerRow[]; hasMore: boolean }>('GET', `/admin/sellers?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.sellers, hasMore: r.hasMore, extra: undefined })),
   seller: (id: string) => request<AdminSellerDetail>('GET', `/admin/sellers/${encodeURIComponent(id)}`),
   document: (submissionId: string, kind: KycDocumentKind) =>
     request<{ dataUrl: string }>('GET', `/admin/kyc/${encodeURIComponent(submissionId)}/${kind}`).then((r) => r.dataUrl),
@@ -214,7 +265,8 @@ export const adminApi = {
   unsuspend: (id: string, note: string) => request<AdminSellerDetail>('POST', `/admin/sellers/${encodeURIComponent(id)}/unsuspend`, { note }),
   unpublish: (listingId: string, reason: string) =>
     request<AdminSellerDetail>('POST', `/admin/listings/${encodeURIComponent(listingId)}/unpublish`, { reason }),
-  users: (filter: 'all' | 'blocked', q: string) => request<{ users: AdminUserRow[] }>('GET', `/admin/users?${qs({ filter, q })}`).then((r) => r.users),
+  users: (filter: 'all' | 'blocked', q: string, offset = 0): Promise<PagedRows<AdminUserRow>> =>
+    request<{ users: AdminUserRow[]; hasMore: boolean }>('GET', `/admin/users?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.users, hasMore: r.hasMore, extra: undefined })),
   block: (id: string, reason: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/block`, { reason }),
   unblock: (id: string, note: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/unblock`, { note }),
   banners: () => request<{ banners: AdminBanner[] }>('GET', '/admin/banners').then((r) => r.banners),
@@ -232,18 +284,23 @@ export const adminApi = {
   migrateStorage: () => request<{ migrated: number; failed: number; remaining: Record<string, number> }>('POST', '/admin/storage/migrate'),
   testStorage: () =>
     request<{ results: { purpose: StoragePurpose; ok: boolean; message: string }[] }>('POST', '/admin/storage/test').then((r) => r.results),
-  tickets: (filter: TicketFilter, q: string) =>
-    request<{ tickets: AdminTicketRow[]; counts: { open: number; answered: number } }>('GET', `/admin/tickets?${qs({ filter, q })}`),
+  tickets: (filter: TicketFilter, q: string, offset = 0): Promise<PagedRows<AdminTicketRow, { open: number; answered: number }>> =>
+    request<{ tickets: AdminTicketRow[]; hasMore: boolean; counts: { open: number; answered: number } }>('GET', `/admin/tickets?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.tickets, hasMore: r.hasMore, extra: r.counts })),
   ticket: (id: string) => request<AdminTicketDetail>('GET', `/admin/tickets/${encodeURIComponent(id)}`),
   replyTicket: (id: string, body: string, resolve: boolean) =>
     request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/reply`, { body, resolve }),
   resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
-  funds: (filter: FundFilter, q: string) =>
-    request<{ funds: AdminFundRow[]; totals: AdminFundTotals }>('GET', `/admin/funds?${qs({ filter, q })}`),
+  settings: () => request<{ settings: AdminSettings }>('GET', '/admin/settings').then((r) => r.settings),
+  saveSettings: (input: AdminSettings) => request<{ settings: AdminSettings }>('PUT', '/admin/settings', input).then((r) => r.settings),
+  profit: (period: string) => request<AdminProfit>('GET', `/admin/profit?${qs({ period })}`),
+  funds: (filter: FundFilter, q: string, offset = 0): Promise<PagedRows<AdminFundRow, AdminFundTotals>> =>
+    request<{ funds: AdminFundRow[]; hasMore: boolean; totals: AdminFundTotals }>('GET', `/admin/funds?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.funds, hasMore: r.hasMore, extra: r.totals })),
   fund: (id: string) => request<AdminFundDetail>('GET', `/admin/funds/${encodeURIComponent(id)}`),
   releaseFunds: (id: string, reason: string) => request<AdminFundDetail>('POST', `/admin/funds/${encodeURIComponent(id)}/release`, { reason }),
+  askFunds: (id: string, to: 'seller' | 'buyer' | 'both', message: string) => request('POST', `/admin/funds/${encodeURIComponent(id)}/ask`, { to, message }),
   refundFunds: (id: string, reason: string) => request<AdminFundDetail>('POST', `/admin/funds/${encodeURIComponent(id)}/refund`, { reason }),
-  audit: () => request<{ log: AdminAuditRow[] }>('GET', '/admin/audit').then((r) => r.log),
+  audit: (offset = 0): Promise<PagedRows<AdminAuditRow>> =>
+    request<{ log: AdminAuditRow[]; hasMore: boolean }>('GET', `/admin/audit?${qs({ offset: String(offset) })}`).then((r) => ({ items: r.log, hasMore: r.hasMore, extra: undefined })),
 };
 
 /** Log entries in words. */
@@ -260,6 +317,8 @@ export const AUDIT_LABEL: Record<string, string> = {
   'banner.save': 'Emplacement publicitaire enregistré',
   'storage.save': 'Stockage de fichiers configuré',
   'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'settings.save': 'Commission et délais modifiés',
+  'funds.ask': 'Précision demandée sur une commande',
   'funds.release': 'Fonds libérés au vendeur',
   'funds.refund': 'Fonds remboursés à l’acheteur',
   'ticket.reply': 'Réponse du support envoyée',

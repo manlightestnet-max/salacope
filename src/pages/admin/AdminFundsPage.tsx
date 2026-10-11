@@ -4,7 +4,7 @@ import { Lock } from 'lucide-react';
 import { Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows, Stat, StatGrid } from '@/shared/ui';
 import { formatDate, formatNumber, formatRelative, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { AdminFundRow, FundFilter, adminApi, useAdminResource } from '@/features/admin';
+import { AdminFundRow, FundFilter, MoreRows, adminApi, useAdminPaged } from '@/features/admin';
 
 export const FUND_STATE: Record<AdminFundRow['status'] | 'completed' | 'cancelled', { label: string; tone: 'danger' | 'warning' | 'brand' | 'info' | 'success' | 'neutral' }> = {
   disputed: { label: 'Litige', tone: 'danger' },
@@ -23,9 +23,7 @@ export const AdminFundsPage: React.FC = () => {
   const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'disputed';
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const { data, error } = useAdminResource(() => adminApi.funds(filter, search), [filter, search]);
-  const funds = data?.funds;
-  const totals = data?.totals;
+  const { items: funds, extra: totals, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.funds(filter, search, offset), [filter, search]);
 
   return (
     <Page
@@ -66,7 +64,7 @@ export const AdminFundsPage: React.FC = () => {
           <Stat label="En litige" value={totals ? formatXaf(totals.disputed_total) : ''} emphasis={Boolean(totals?.disputed)} hint={totals ? `${formatNumber(totals.disputed)} commande${totals.disputed > 1 ? 's' : ''}` : undefined} />
           <Stat label="En attente de validation" value={totals ? formatXaf(totals.held_total - totals.disputed_total) : ''} hint="Libérés par l’acheteur ou automatiquement" />
         </StatGrid>
-        <Panel title="Commandes" count={funds?.length} flush>
+        <Panel title="Commandes" flush>
           {error ? (
             <EmptyState title="Liste indisponible" description={error} />
           ) : !funds ? (
@@ -74,6 +72,7 @@ export const AdminFundsPage: React.FC = () => {
               <SkeletonRows rows={4} className="w-full" />
             </div>
           ) : funds.length ? (
+            <>
             <List columns={{ main: 'Commande', meta: 'État', trailing: 'Montant' }}>
               {funds.map((f) => (
                 <ListRow
@@ -98,6 +97,8 @@ export const AdminFundsPage: React.FC = () => {
                 />
               ))}
             </List>
+            <MoreRows hasMore={hasMore} loading={loadingMore} sentinelRef={sentinelRef} onMore={next} />
+            </>
           ) : (
             <EmptyState icon={Lock} title={filter === 'disputed' && !search ? 'Aucun litige' : 'Aucun fonds bloqué'} description={filter === 'disputed' && !search ? 'Aucune somme n’est gelée par un litige.' : undefined} />
           )}

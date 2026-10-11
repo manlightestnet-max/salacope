@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import { Avatar, Badge, Button, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows, useToast } from '@/shared/ui';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { AdminUserRow, ReasonDialog, adminApi, useAdminResource } from '@/features/admin';
+import { AdminUserRow, MoreRows, ReasonDialog, adminApi, useAdminPaged } from '@/features/admin';
 
 type Filter = 'all' | 'blocked';
 
 /** Every account (buyers and sellers): blocking stops all use of the account. */
 export const AdminUsersPage: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
-  const [q, setQ] = useState('');
-  const [search, setSearch] = useState('');
-  const { data: users, error, loading, reload } = useAdminResource(() => adminApi.users(filter, search), [filter, search]);
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get('q') ?? '');
+  const [search, setSearch] = useState(params.get('q') ?? '');
+  // The top bar search lands here with the words in the address, also when already on this page.
+  const fromBar = params.get('q') ?? '';
+  useEffect(() => {
+    setQ(fromBar);
+    setSearch(fromBar);
+  }, [fromBar]);
+  const { items: users, error, reload, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.users(filter, search, offset), [filter, search]);
   const [target, setTarget] = useState<AdminUserRow | null>(null);
   const toast = useToast();
 
@@ -44,14 +52,15 @@ export const AdminUsersPage: React.FC = () => {
         />
       }
     >
-      <Panel title="Répertoire" count={users?.length} flush>
+      <Panel title="Répertoire" flush>
         {error ? (
           <EmptyState title="Liste indisponible" description={error} />
-        ) : !users || loading ? (
+        ) : !users ? (
           <div className="py-12 flex justify-center">
             <SkeletonRows rows={4} className="w-full" />
           </div>
         ) : users.length ? (
+          <>
           <List columns={{ main: 'Compte', meta: 'Statut', trailing: 'Achats' }}>
             {users.map((u) => (
               <ListRow
@@ -80,6 +89,8 @@ export const AdminUsersPage: React.FC = () => {
               />
             ))}
           </List>
+          <MoreRows hasMore={hasMore} loading={loadingMore} sentinelRef={sentinelRef} onMore={next} />
+          </>
         ) : (
           <EmptyState icon={Users} title="Aucun compte" />
         )}

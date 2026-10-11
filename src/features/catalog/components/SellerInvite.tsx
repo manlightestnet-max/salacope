@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button, OperatorLogo } from '@/shared/ui';
 import { formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { PLATFORM } from '@/shared/config/platform';
+import { commissionText } from '@/shared/config/platform';
 import { PaymentChannel } from '@/shared/config/payment';
 import { ListingView } from '../model';
 
@@ -53,7 +53,7 @@ export const SellerInvite: React.FC<{ views: ListingView[]; className?: string }
         </h2>
         <p className="mt-4 max-w-md text-[15px] sm:text-base leading-relaxed text-gray-500">
           Ouvrez votre boutique en 2 minutes. Sans abonnement,{' '}
-          {PLATFORM.feeRate > 0 ? `commission de ${PLATFORM.feeRate * 100} % par vente.` : 'aucune commission pendant le lancement.'}
+          {commissionText().replace(/^C/, 'c').replace(/^A/, 'a')}
         </p>
         <Button to={ROUTES.sell} variant="primary" size="xl" pill className="mt-7 w-full sm:w-auto" iconRight={<ArrowRight className="w-4 h-4" />}>
           Ouvrir ma boutique

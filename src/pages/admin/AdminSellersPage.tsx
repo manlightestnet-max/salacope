@@ -4,7 +4,7 @@ import { Store } from 'lucide-react';
 import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { KycBadge, SellerDetail, SellerFilter, adminApi, useAdminResource } from '@/features/admin';
+import { KycBadge, MoreRows, SellerDetail, SellerFilter, adminApi, useAdminPaged } from '@/features/admin';
 
 const FILTERS: { value: SellerFilter; label: string }[] = [
   { value: 'all', label: 'Tous' },
@@ -22,7 +22,7 @@ export const AdminSellersPage: React.FC = () => {
   const filter = FILTERS.find((f) => f.value === params.get('filtre'))?.value ?? 'all';
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const { data: sellers, error, loading, reload } = useAdminResource(() => adminApi.sellers(filter, search), [filter, search]);
+  const { items: sellers, error, reload, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.sellers(filter, search, offset), [filter, search]);
   const detailRef = useRef<HTMLDivElement>(null);
 
   const select = (sellerId: string) => {
@@ -63,14 +63,15 @@ export const AdminSellersPage: React.FC = () => {
       }
     >
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] gap-6 items-start">
-        <Panel title="Répertoire" count={sellers?.length} flush className="min-w-0">
+        <Panel title="Répertoire" flush className="min-w-0">
           {error ? (
             <EmptyState title="Liste indisponible" description={error} />
-          ) : !sellers || loading ? (
+          ) : !sellers ? (
             <div className="py-12 flex justify-center">
               <SkeletonRows rows={4} className="w-full" />
             </div>
           ) : sellers.length ? (
+            <>
             <List columns={{ main: 'Vendeur', meta: 'Statut', trailing: 'Volume' }}>
               {sellers.map((s) => (
                 <ListRow
@@ -90,6 +91,8 @@ export const AdminSellersPage: React.FC = () => {
                 />
               ))}
             </List>
+            <MoreRows hasMore={hasMore} loading={loadingMore} sentinelRef={sentinelRef} onMore={next} />
+            </>
           ) : (
             <EmptyState icon={Store} title="Aucun vendeur" />
           )}

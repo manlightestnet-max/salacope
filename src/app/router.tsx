@@ -48,6 +48,8 @@ import { AdminStoragePage } from '@/pages/admin/AdminStoragePage';
 import { AdminStorageSectionPage } from '@/pages/admin/AdminStorageSectionPage';
 import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
 import { AdminFundsPage } from '@/pages/admin/AdminFundsPage';
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import { AdminSettingsSectionPage } from '@/pages/admin/AdminSettingsSectionPage';
 import { AdminFundPage } from '@/pages/admin/AdminFundPage';
 import { AdminTicketPage } from '@/pages/admin/AdminTicketPage';
 
@@ -182,6 +184,8 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.banners, element: <AdminBannersPage /> },
               { path: ROUTES.admin.storage, element: <AdminStoragePage /> },
               { path: '/admin/stockage/:section', element: <AdminStorageSectionPage /> },
+              { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
+              { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
               { path: ROUTES.admin.funds, element: <AdminFundsPage /> },
               { path: '/admin/fonds/:id', element: <AdminFundPage /> },
               { path: ROUTES.admin.support, element: <AdminSupportPage /> },

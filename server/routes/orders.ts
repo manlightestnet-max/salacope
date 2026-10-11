@@ -76,7 +76,7 @@ route('POST', '/checkout', async (ctx) => {
   const companyName = text(ctx.body.invoice?.companyName, 120);
   const invoice = companyName ? { companyName, taxId: text(ctx.body.invoice?.taxId, 40) } : null;
   const [buyer] = await query("SELECT name, COALESCE(email, '') AS email, phone FROM users WHERE id = $1", [buyerId]);
-  const amounts = priceOrder(listing.price_xaf);
+  const amounts = priceOrder(listing.price_xaf, listing.kind);
   const item = {
     title: listing.title,
     kind: listing.kind,

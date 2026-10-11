@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button, Card, Container } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { PLATFORM, RELEASE_RULE } from '@/shared/config/platform';
+import { commissionText, releaseRule } from '@/shared/config/platform';
 import { useSession } from '@/features/session';
 
 const STEPS = [
@@ -10,7 +10,7 @@ const STEPS = [
   { title: 'Publiez vos offres', text: 'Fichiers livrés automatiquement, ou services livrés dans un délai fixé.' },
   {
     title: 'Encaissez',
-    text: `Chaque vente est payée dès que le client valide, ou automatiquement après la livraison (${RELEASE_RULE}). Retrait sur MTN MoMo ou Airtel Money.`,
+    text: `Chaque vente est payée dès que le client valide, ou automatiquement après la livraison (${releaseRule()}). Retrait sur MTN MoMo ou Airtel Money.`,
   },
 ];
 
@@ -27,7 +27,7 @@ export const SellPage: React.FC = () => {
         <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Vendez vos formations et services au Congo</h1>
         <p className="mt-3 text-gray-600">
           Sans abonnement.{' '}
-          {PLATFORM.feeRate > 0 ? `Commission de ${PLATFORM.feeRate * 100} % par vente.` : 'Aucune commission pendant le lancement.'}
+          {commissionText()}
         </p>
         <ol className="mt-8 space-y-5">
           {STEPS.map((step, i) => (

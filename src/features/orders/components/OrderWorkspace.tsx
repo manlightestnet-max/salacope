@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, DescriptionList, Page } from '@/shared/ui';
 import { formatDateTime, formatXaf } from '@/shared/lib';
-import { PLATFORM } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb, SellerCard } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
@@ -84,7 +83,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
                   ...(order.amounts.discount
                     ? [{ label: `Remise ${order.couponCode}`, value: `−${formatXaf(order.amounts.discount)}` }]
                     : []),
-                  ...(isSeller && PLATFORM.feeRate > 0
+                  ...(isSeller && order.amounts.fee > 0
                     ? [
                         { label: 'Commission', value: `−${formatXaf(order.amounts.fee)}` },
                         { label: 'Net', value: formatXaf(order.amounts.net) },

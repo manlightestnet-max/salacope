@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { Database, db, emptyDatabase } from '@/shared/db';
+import { PlatformSettings, applyPlatform } from '@/shared/config/platform';
 import { auth } from './auth';
 import { guest } from './guest';
 import { request } from './client';
@@ -26,6 +27,7 @@ const setStatus = (s: BootStatus) => {
 interface BootstrapResponse {
   userId: string | null;
   catalogVersion?: string;
+  platform?: PlatformSettings;
   needsAccount: boolean;
   serverTime: string;
   data: Omit<Database, 'sessionUserId'>;
@@ -70,6 +72,7 @@ export async function boot(): Promise<void> {
     }
     // A guest key nobody holds any more (taken over by an account): forget it.
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
+    applyPlatform(res.platform);
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
     catalogVersion = res.catalogVersion ?? null;
@@ -95,12 +98,13 @@ export function refreshCatalog(force = false): Promise<void> {
   if (status !== 'ready') return Promise.resolve();
   if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
   if (catalogRequest) return catalogRequest;
-  catalogRequest = request<{ unchanged?: boolean; version: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
     `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
   )
     .then((res) => {
       catalogAt = Date.now();
+      applyPlatform(res.platform);
       if (res.unchanged || !res.data) return;
       catalogVersion = res.version;
       const { users, listings, stats, reviews } = res.data;

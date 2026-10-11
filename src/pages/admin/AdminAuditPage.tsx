@@ -3,22 +3,23 @@ import { ScrollText } from 'lucide-react';
 import { EmptyState, List, ListRow, Page, Panel, SkeletonRows } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { AUDIT_LABEL, adminApi, useAdminResource } from '@/features/admin';
+import { AUDIT_LABEL, MoreRows, adminApi, useAdminPaged } from '@/features/admin';
 
 /** Every administrator action, newest first (append-only: kept for the AML/CFT records). */
 export const AdminAuditPage: React.FC = () => {
-  const { data: log, error, loading } = useAdminResource(() => adminApi.audit(), []);
+  const { items: log, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.audit(offset), []);
 
   return (
     <Page title="Journal" help="Qui a fait quoi, sur quel compte, quand et pourquoi. Rien ne peut y être modifié ni effacé.">
-      <Panel title="Actions" count={log?.length} flush>
+      <Panel title="Actions" flush>
         {error ? (
           <EmptyState title="Journal indisponible" description={error} />
-        ) : !log || loading ? (
+        ) : !log ? (
           <div className="py-12 flex justify-center">
             <SkeletonRows rows={4} className="w-full" />
           </div>
         ) : log.length ? (
+          <>
           <List columns={{ main: 'Action', trailing: 'Date' }}>
             {log.map((a) => (
               <ListRow
@@ -30,6 +31,8 @@ export const AdminAuditPage: React.FC = () => {
               />
             ))}
           </List>
+          <MoreRows hasMore={hasMore} loading={loadingMore} sentinelRef={sentinelRef} onMore={next} />
+          </>
         ) : (
           <EmptyState icon={ScrollText} title="Aucune action pour l’instant" />
         )}

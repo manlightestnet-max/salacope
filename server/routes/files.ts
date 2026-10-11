@@ -61,5 +61,7 @@ route('GET', '/orders/:id/file', async (ctx) => {
   if (!fileId) throw new DomainError('Ce produit n’a pas encore de fichier sur le serveur : écrivez au vendeur dans la discussion.', 404);
   const link = await downloadUrl(fileId, 120);
   if (!link) throw new DomainError('Fichier introuvable. Écrivez au vendeur dans la discussion.', 404);
+  // Kept as evidence for disputes (the table may not be migrated yet: a download is never refused for that).
+  await query('INSERT INTO order_downloads (order_id, user_id) VALUES ($1, $2)', [ctx.params.id, userId]).catch(() => undefined);
   return link;
 });

@@ -19,6 +19,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   ShoppingBag,
   UserCheck,
   Store,
@@ -38,6 +39,7 @@ import { needsAction, useUnreadCount } from '@/features/orders';
 import { NotificationBell } from '@/features/notifications';
 import { useAnsweredTicketCount } from '@/features/support';
 import { useFollowUpdates } from '@/features/library';
+import { adminApi } from '@/features/admin';
 import { UserMenu } from './UserMenu';
 
 const PIN_KEY = 'salacope.sidebar.pinned';
@@ -118,6 +120,24 @@ const NavGroup: React.FC<{ title: string; collapsed: boolean; children: React.Re
   </div>
 );
 
+/** What waits for the administration (identity checks, disputes, support), for the menu badges; refreshed on each page and every minute. */
+function useAdminTodo(enabled: boolean) {
+  const [todo, setTodo] = useState<{ kyc_pending: number; disputed: number; tickets_open: number }>();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    const load = () => adminApi.overview().then((o) => alive && setTodo({ kyc_pending: Number(o.kyc_pending), disputed: Number(o.disputed), tickets_open: Number(o.tickets_open) }), () => undefined);
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [enabled, pathname]);
+  return todo;
+}
+
 /** Left menu content, shared by the pinned column, the icon rail and the mobile drawer. */
 const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: Area }> = ({ collapsed, onNavigate, area }) => {
   const user = useCurrentUser();
@@ -128,6 +148,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
     }),
     [user.id]
   );
+  const todo = useAdminTodo(area === 'admin');
   const answered = useAnsweredTicketCount(user.id);
   const unread = useUnreadCount(user.id);
   const followUpdates = useFollowUpdates(user.id);
@@ -165,16 +186,23 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
           />
         )}
         {area === 'admin' ? (
-          <NavGroup title="Administration" collapsed={collapsed}>
-            {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
-            {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store })}
-            {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
-            {item({ to: ROUTES.admin.funds, label: 'Fonds bloqués', icon: Lock })}
-            {item({ to: ROUTES.admin.support, label: 'Support', icon: LifeBuoy })}
-            {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
-            {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}
-            {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
-          </NavGroup>
+          <>
+            <NavGroup title="Vue d’ensemble" collapsed={collapsed}>
+              {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
+            </NavGroup>
+            <NavGroup title="Traitement quotidien" collapsed={collapsed}>
+              {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store, badge: todo?.kyc_pending })}
+              {item({ to: ROUTES.admin.funds, label: 'Fonds bloqués', icon: Lock, badge: todo?.disputed })}
+              {item({ to: ROUTES.admin.support, label: 'Support', icon: LifeBuoy, badge: todo?.tickets_open })}
+            </NavGroup>
+            <NavGroup title="Plateforme" collapsed={collapsed}>
+              {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
+              {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
+              {item({ to: ROUTES.admin.settings, label: 'Paramètres', icon: SlidersHorizontal })}
+              {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}
+              {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
+            </NavGroup>
+          </>
         ) : (
           <>
             <div className="space-y-0.5">
@@ -264,6 +292,30 @@ const TopBarSearch: React.FC = () => {
   );
 };
 
+/** Administration search: looks a seller or an account up by name, e-mail or phone. */
+const AdminSearch: React.FC = () => {
+  const navigate = useNavigate();
+  const [q, setQ] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  useFocusShortcut(inputRef);
+  return (
+    <SearchField
+      ref={inputRef}
+      hint={shortcutLabel('k')}
+      value={q}
+      onChange={setQ}
+      onSubmit={() => {
+        const text = q.trim();
+        if (!text) return;
+        navigate(`${ROUTES.admin.users}?q=${encodeURIComponent(text)}`);
+        inputRef.current?.blur();
+      }}
+      placeholder="Rechercher un vendeur, un compte…"
+      className="w-full max-w-md"
+    />
+  );
+};
+
 /**
  * Back-office shell: fixed top bar and left menu, and a single scrolling pane on the right.
  * The menu can be pinned (labels) or reduced to an icon rail; the choice is remembered.
@@ -312,8 +364,8 @@ const Shell: React.FC<{ area: Area }> = ({ area }) => {
         </button>
         <Logo to={admin ? ROUTES.admin.root : ROUTES.account.explorer} className="shrink-0 hidden sm:flex" />
         <div className="flex-1 flex justify-center min-w-0">
-          {/* On the search screen the field lives in the page itself; the administration has no catalogue search. */}
-          {!admin && pathname !== ROUTES.account.search && <TopBarSearch />}
+          {/* On the search screen the field lives in the page itself; the administration has its own search. */}
+          {admin ? <AdminSearch /> : pathname !== ROUTES.account.search && <TopBarSearch />}
         </div>
         <div className="shrink-0 flex items-center gap-1">
           {!admin && <NotificationBell userId={user.id} />}

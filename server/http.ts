@@ -3,6 +3,7 @@ import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
 import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
+import { ensurePlatform } from './settings.js';
 
 export interface Context {
   method: string;
@@ -122,6 +123,7 @@ export async function handle(request: Request): Promise<Response> {
   };
 
   try {
+    await ensurePlatform();
     const result = await match.handler({
       method,
       path,

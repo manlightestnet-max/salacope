@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardHeader, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { PLATFORM } from '@/shared/config/platform';
+import { commissionText } from '@/shared/config/platform';
 import { GuestPrompt, LightPayConnect, MerchantForm, activateMerchant, useCurrentUser } from '@/features/session';
 
 /** Seller onboarding inside the back-office: the store, then the LightPay wallet that receives the sales. */
@@ -26,7 +26,7 @@ export const OpenStorePage: React.FC = () => {
     <Page title="Ouvrir ma boutique" width="narrow">
       <p className="text-sm text-gray-500 mb-4">
         Sans abonnement.{' '}
-        {PLATFORM.feeRate > 0 ? `Commission de ${PLATFORM.feeRate * 100} % par vente.` : 'Aucune commission pendant le lancement.'} Vos
+        {commissionText()} Vos
         ventes sont versées sur votre wallet LightPay après validation du client. Votre identité est vérifiée avant la mise
         en ligne de vos offres.
       </p>

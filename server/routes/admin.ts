@@ -8,6 +8,8 @@ import { newId } from '../ids.js';
 import { notify } from '../notify.js';
 import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
+import { currentPlatform, savePlatform } from '../settings.js';
+import { signAttachments } from '../storage/attachments.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
 import { PURPOSES, Purpose, StorageConfig, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
@@ -24,6 +26,10 @@ const reasonOf = (v: unknown) => {
   if (reason.length < 5) throw new DomainError('Indiquez la raison (elle est gardée dans le journal).');
   return reason;
 };
+/** Lists load page by page (infinite scroll in the app): `offset` in, one page plus a "more" flag out. */
+const PAGE = 30;
+const offsetOf = (ctx: { search: URLSearchParams }) => Math.max(0, Math.floor(Number(ctx.search.get('offset'))) || 0);
+const paged = <T>(rows: T[]) => ({ rows: rows.slice(0, PAGE), hasMore: rows.length > PAGE });
 const like = (q: string) => `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
 
 route('GET', '/admin/overview', async (ctx) => {
@@ -66,10 +72,10 @@ route('GET', '/admin/sellers', async (ctx) => {
        (SELECT COALESCE(SUM((o.amounts->>'total')::bigint), 0) FROM orders o WHERE o.seller_id = u.id AND o.status <> 'cancelled') AS volume
      FROM merchants m JOIN users u ON u.id = m.user_id
      WHERE ${where} AND ($1 = '' OR u.name ILIKE $2 OR u.email ILIKE $2 OR m.store_name ILIKE $2)
-     ORDER BY (m.kyc_status = 'pending') DESC, m.activated_at DESC LIMIT 300`,
+     ORDER BY (m.kyc_status = 'pending') DESC, m.activated_at DESC, u.id LIMIT ${PAGE + 1} OFFSET ${offsetOf(ctx)}`,
     [q, like(q)]
   );
-  return { sellers: rows };
+  return { sellers: paged(rows).rows, hasMore: paged(rows).hasMore };
 });
 
 async function sellerDetail(id: string) {
@@ -253,10 +259,10 @@ route('GET', '/admin/users', async (ctx) => {
      FROM users u LEFT JOIN merchants m ON m.user_id = u.id
      WHERE u.firebase_uid IS NOT NULL AND ($3 = FALSE OR u.blocked_at IS NOT NULL)
        AND ($1 = '' OR u.name ILIKE $2 OR u.email ILIKE $2 OR u.phone ILIKE $2)
-     ORDER BY u.created_at DESC LIMIT 300`,
+     ORDER BY u.created_at DESC, u.id LIMIT ${PAGE + 1} OFFSET ${offsetOf(ctx)}`,
     [q, like(q), blockedOnly]
   );
-  return { users: rows };
+  return { users: paged(rows).rows, hasMore: paged(rows).hasMore };
 });
 
 route('POST', '/admin/users/:id/block', async (ctx) => {
@@ -290,9 +296,9 @@ route('GET', '/admin/audit', async (ctx) => {
   const rows = await query(
     `SELECT a.id, a.admin_email, a.action, a.detail, a.created_at, a.target_user_id, u.name AS target_name, m.store_name AS target_store
      FROM admin_audit a LEFT JOIN users u ON u.id = a.target_user_id LEFT JOIN merchants m ON m.user_id = a.target_user_id
-     ORDER BY a.created_at DESC LIMIT 300`
+     ORDER BY a.created_at DESC, a.id LIMIT ${PAGE + 1} OFFSET ${offsetOf(ctx)}`
   );
-  return { log: rows };
+  return { log: paged(rows).rows, hasMore: paged(rows).hasMore };
 });
 
 // --- Advertising slots of the storefront banner ---------------------------------------------------------------
@@ -464,11 +470,11 @@ route('GET', '/admin/tickets', async (ctx) => {
        (SELECT COUNT(*)::int FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author_id IS NOT NULL) AS from_user
      FROM tickets t JOIN users u ON u.id = t.user_id
      WHERE ${where} AND ($1 = '' OR t.subject ILIKE $2 OR t.number ILIKE $2 OR t.reference ILIKE $2 OR u.name ILIKE $2 OR u.email ILIKE $2)
-     ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'answered' THEN 1 ELSE 2 END, t.updated_at ${filter === 'open' ? 'ASC' : 'DESC'} LIMIT 300`,
+     ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'answered' THEN 1 ELSE 2 END, t.updated_at ${filter === 'open' ? 'ASC' : 'DESC'}, t.id LIMIT ${PAGE + 1} OFFSET ${offsetOf(ctx)}`,
     [q, like(q)]
   );
   const [counts] = await query("SELECT COUNT(*) FILTER (WHERE status = 'open')::int AS open, COUNT(*) FILTER (WHERE status = 'answered')::int AS answered FROM tickets");
-  return { tickets: rows, counts };
+  return { tickets: paged(rows).rows, hasMore: paged(rows).hasMore, counts };
 });
 
 async function ticketDetail(id: string) {
@@ -547,7 +553,7 @@ route('GET', '/admin/funds', async (ctx) => {
      FROM orders o JOIN users s ON s.id = o.seller_id LEFT JOIN merchants m ON m.user_id = o.seller_id
      WHERE ${HELD} AND ${where}
        AND ($1 = '' OR o.number ILIKE $2 OR o.item->>'title' ILIKE $2 OR s.name ILIKE $2 OR m.store_name ILIKE $2 OR o.buyer->>'name' ILIKE $2)
-     ORDER BY (o.status = 'disputed') DESC, o.updated_at ASC LIMIT 300`,
+     ORDER BY (o.status = 'disputed') DESC, o.updated_at ASC, o.id LIMIT ${PAGE + 1} OFFSET ${offsetOf(ctx)}`,
     [q, like(q)]
   );
   const [totals] = await query(
@@ -556,20 +562,39 @@ route('GET', '/admin/funds', async (ctx) => {
        COALESCE(SUM((o.amounts->>'total')::bigint) FILTER (WHERE o.status = 'disputed'), 0) AS disputed_total
      FROM orders o WHERE ${HELD}`
   );
-  return { funds: rows, totals };
+  return { funds: paged(rows).rows, hasMore: paged(rows).hasMore, totals };
 });
+
+/** How a party has behaved so far: the first thing to look at when two accounts tell different stories. */
+async function trackRecord(userId: string, side: 'seller' | 'buyer') {
+  const col = side === 'seller' ? 'seller_id' : 'buyer_id';
+  const [row] = await query(
+    `SELECT COUNT(*) FILTER (WHERE status <> 'cancelled')::int AS orders,
+       COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
+       (SELECT COUNT(DISTINCT e.order_id)::int FROM order_events e JOIN orders x ON x.id = e.order_id WHERE e.type = 'disputed' AND x.${col} = $1) AS disputes,
+       (SELECT COUNT(DISTINCT e.order_id)::int FROM order_events e JOIN orders x ON x.id = e.order_id WHERE e.type = 'funds_refunded' AND x.${col} = $1) AS refunded,
+       (SELECT COUNT(DISTINCT e.order_id)::int FROM order_events e JOIN orders x ON x.id = e.order_id WHERE e.type = 'funds_released' AND x.${col} = $1) AS paid_by_decision
+     FROM orders WHERE ${col} = $1`,
+    [userId]
+  );
+  const [reviews] =
+    side === 'seller'
+      ? await query('SELECT COUNT(*)::int AS n, ROUND(AVG(rating)::numeric, 1) AS avg FROM reviews WHERE seller_id = $1', [userId])
+      : [null];
+  return { ...row, reviews: reviews?.n ?? null, rating: reviews?.avg ? Number(reviews.avg) : null };
+}
 
 async function fundDetail(orderId: string) {
   const [order] = await query(
-    `SELECT o.id, o.number, o.status, o.item, o.amounts, o.release_at, o.due_at, o.created_at, o.updated_at, o.delivery->>'note' AS delivery_note,
-       o.buyer_id, o.seller_id, o.buyer->>'name' AS buyer_name, bu.email AS buyer_email, su.name AS seller_name, su.email AS seller_email, m.store_name,
+    `SELECT o.id, o.number, o.status, o.item, o.amounts, o.brief, o.release_at, o.due_at, o.created_at, o.updated_at, o.delivery,
+       o.buyer_id, o.seller_id, o.listing_id, o.buyer->>'name' AS buyer_name, bu.email AS buyer_email, su.name AS seller_name, su.email AS seller_email, m.store_name,
        (${HELD}) AS held, o.payment->>'via' AS via
      FROM orders o JOIN users su ON su.id = o.seller_id JOIN users bu ON bu.id = o.buyer_id LEFT JOIN merchants m ON m.user_id = o.seller_id
      WHERE o.id = $1`,
     [orderId]
   );
   if (!order) throw new DomainError('Commande introuvable.', 404);
-  const [events, messages, tickets] = await Promise.all([
+  const [events, messages, tickets, listing, downloads, seller, buyer] = await Promise.all([
     query('SELECT id, type, actor_id, note, at FROM order_events WHERE order_id = $1 ORDER BY at, id', [orderId]),
     query(
       `SELECT m.id, m.author_id, m.body, m.at, jsonb_array_length(m.attachments)::int AS files, u.name
@@ -577,8 +602,34 @@ async function fundDetail(orderId: string) {
       [orderId]
     ),
     query('SELECT id, number, subject, status FROM tickets WHERE reference = $1 ORDER BY created_at DESC', [order.number]),
+    query('SELECT description, delivery_days, revisions, status FROM listings WHERE id = $1', [order.listing_id]),
+    // Evidence for digital products: did the buyer open the file, and when? (empty until migration 013 is applied)
+    query('SELECT COUNT(*)::int AS n, MIN(at) AS first, MAX(at) AS last FROM order_downloads WHERE order_id = $1 AND user_id = $2', [orderId, order.buyer_id]).catch(() => []),
+    trackRecord(order.seller_id, 'seller'),
+    trackRecord(order.buyer_id, 'buyer'),
   ]);
-  return { order, events, messages: messages.reverse(), tickets };
+  // What the seller delivered: pictures and files open through a short-lived address; a file kept in the database is only named.
+  const files = (order.delivery?.files ?? []).map((f: any) => ({ ...f }));
+  await signAttachments([{ attachments: files }]).catch(() => undefined);
+  const delivery = order.delivery
+    ? {
+        note: order.delivery.note ?? '',
+        at: order.delivery.at,
+        files: files.map((f: any) => ({ name: f.name, size: f.size, type: f.type, url: typeof f.dataUrl === 'string' && f.dataUrl.startsWith('https://') ? f.dataUrl : null })),
+      }
+    : null;
+  delete order.delivery;
+  return {
+    order,
+    offer: { description: listing[0]?.description ?? '', deliveryDays: listing[0]?.delivery_days ?? null, revisions: listing[0]?.revisions ?? null },
+    delivery,
+    downloads: downloads[0] ?? null,
+    seller,
+    buyer,
+    events,
+    messages: messages.reverse(),
+    tickets,
+  };
 }
 
 route('GET', '/admin/funds/:id', async (ctx) => {
@@ -626,3 +677,113 @@ const settleFunds = (decision: 'release' | 'refund') =>
   });
 settleFunds('release');
 settleFunds('refund');
+
+/**
+ * Salacope's profit: the commission kept on every sale that was paid out to the seller (validated by the buyer, automatically,
+ * or by an administration decision), counted on the day the sale was closed. Refunded orders earn nothing.
+ * `period`: `month` (the current month, Brazzaville time), `all`, or `YYYY-MM`.
+ */
+const CONGO_OFFSET_MS = 3_600_000;
+const monthStart = (year: number, month: number) => new Date(Date.UTC(year, month - 1, 1) - CONGO_OFFSET_MS);
+
+route('GET', '/admin/profit', async (ctx) => {
+  await requireAdmin(ctx);
+  const raw = ctx.search.get('period') ?? 'month';
+  const now = new Date(Date.now() + CONGO_OFFSET_MS);
+  let label = raw;
+  let from = new Date(0);
+  let to = new Date(Date.now() + 86_400_000);
+  if (raw === 'month') {
+    from = monthStart(now.getUTCFullYear(), now.getUTCMonth() + 1);
+    to = monthStart(now.getUTCFullYear(), now.getUTCMonth() + 2);
+    label = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  } else if (/^\d{4}-(0[1-9]|1[0-2])$/.test(raw)) {
+    const [y, m] = raw.split('-').map(Number);
+    from = monthStart(y, m);
+    to = monthStart(y, m + 1);
+  } else if (raw !== 'all') {
+    throw new DomainError('Période invalide.');
+  }
+
+  const closed = `SELECT o.item->>'kind' AS kind, (o.amounts->>'fee')::bigint AS fee, (o.amounts->>'total')::bigint AS total,
+      (SELECT MAX(e.at) FROM order_events e WHERE e.order_id = o.id AND e.type IN ('completed', 'auto_completed', 'funds_released')) AS closed_at
+    FROM orders o WHERE o.status = 'completed'`;
+  const [byKind, payments, pending, monthly] = await Promise.all([
+    query(`SELECT kind, COUNT(*)::int AS sales, COALESCE(SUM(fee), 0) AS profit, COALESCE(SUM(total), 0) AS sales_total FROM (${closed}) c WHERE closed_at >= $1 AND closed_at < $2 GROUP BY kind`, [from.toISOString(), to.toISOString()]),
+    query(`SELECT COUNT(*)::int AS payments, COALESCE(SUM((amounts->>'total')::bigint), 0) AS volume FROM orders WHERE status <> 'cancelled' AND created_at >= $1 AND created_at < $2`, [from.toISOString(), to.toISOString()]),
+    query(`SELECT COUNT(*)::int AS orders, COALESCE(SUM((o.amounts->>'fee')::bigint), 0) AS profit FROM orders o WHERE ${HELD}`),
+    query(
+      `SELECT to_char(closed_at AT TIME ZONE 'Africa/Brazzaville', 'YYYY-MM') AS month, COALESCE(SUM(fee), 0) AS profit
+       FROM (${closed}) c WHERE closed_at >= $1 GROUP BY 1`,
+      [monthStart(now.getUTCFullYear(), now.getUTCMonth() + 1 - 11).toISOString()]
+    ),
+  ]);
+
+  const months: { month: string; profit: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    months.push({ month: key, profit: Number(monthly.find((m) => m.month === key)?.profit ?? 0) });
+  }
+  const kinds = byKind.map((k) => ({ kind: k.kind, sales: k.sales, profit: Number(k.profit), sales_total: Number(k.sales_total) }));
+  return {
+    period: label,
+    profit: kinds.reduce((n, k) => n + k.profit, 0),
+    sales: kinds.reduce((n, k) => n + k.sales, 0),
+    sales_total: kinds.reduce((n, k) => n + k.sales_total, 0),
+    payments: payments[0].payments,
+    volume: Number(payments[0].volume),
+    pending_profit: Number(pending[0].profit),
+    pending_orders: pending[0].orders,
+    kinds,
+    months,
+  };
+});
+
+/** Commission and payout delays. They apply to the orders placed after the change: an order keeps the amounts it was paid with. */
+route('GET', '/admin/settings', async (ctx) => {
+  await requireAdmin(ctx);
+  return { settings: currentPlatform() };
+});
+
+route('PUT', '/admin/settings', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const rate = (v: unknown, label: string, optional: boolean) => {
+    if (optional && (v === null || v === undefined || v === '')) return null;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > 0.5) throw new DomainError(`${label} : indiquez un pourcentage entre 0 et 50.`);
+    return Math.round(n * 1000) / 1000;
+  };
+  const days = (v: unknown, label: string) => {
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1 || n > 60) throw new DomainError(`${label} : indiquez un nombre de jours entre 1 et 60.`);
+    return n;
+  };
+  const before = currentPlatform();
+  const settings = {
+    feeRate: rate(ctx.body.feeRate, 'Commission générale', false) as number,
+    feeRateDigital: rate(ctx.body.feeRateDigital, 'Commission des produits numériques', true),
+    feeRateService: rate(ctx.body.feeRateService, 'Commission des services', true),
+    digitalHoldDays: days(ctx.body.digitalHoldDays, 'Délai des produits numériques'),
+    serviceValidationDays: days(ctx.body.serviceValidationDays, 'Délai des services'),
+  };
+  await savePlatform(settings);
+  await tx(async (q) => audit(q, admin, 'settings.save', null, { before, after: settings }));
+  return { settings: currentPlatform() };
+});
+
+/** Asks one or both parties for something (a proof, an explanation) before deciding: they are notified, and answer in the order's conversation. */
+route('POST', '/admin/funds/:id/ask', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const message = text(ctx.body.message, 500);
+  if (message.length < 5) throw new DomainError('Écrivez votre question (5 caractères minimum).');
+  const to = ['seller', 'buyer', 'both'].includes(ctx.body.to) ? (ctx.body.to as 'seller' | 'buyer' | 'both') : 'both';
+  await tx(async (q) => {
+    const [row] = await q<OrderRow>(`SELECT o.* FROM orders o WHERE o.id = $1 AND ${HELD} FOR UPDATE`, [ctx.params.id]);
+    if (!row) throw new DomainError('Cette commande n’est plus en cours.', 409);
+    const title = `Salacope vous demande une précision · ${row.number}`;
+    await notify(q, [...(to !== 'buyer' ? [toSeller(row, title, message)] : []), ...(to !== 'seller' ? [toBuyer(row, title, message)] : [])]);
+    await audit(q, admin, 'funds.ask', row.seller_id, { order: row.number, to, message });
+  });
+  return { ok: true };
+});

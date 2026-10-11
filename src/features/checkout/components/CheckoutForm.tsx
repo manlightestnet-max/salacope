@@ -39,7 +39,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
 
   useEffect(warmLightPay, []);
 
-  const amounts = priceOrder(listing.priceXaf);
+  const amounts = priceOrder(listing.priceXaf, listing.kind);
   const questions = listing.briefQuestions ?? [];
 
   const pay = async () => {

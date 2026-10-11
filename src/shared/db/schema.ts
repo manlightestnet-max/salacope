@@ -86,6 +86,8 @@ export interface Listing {
   status: 'published' | 'draft';
   /** Own offers only: set when Salacope hid the offer (it cannot be published again until restored). */
   hiddenReason?: string;
+  /** When Salacope hid it. */
+  hiddenAt?: string;
   /** Last time it went online (followers are told about it). Older rows: `createdAt`. */
   publishedAt?: string;
   createdAt: string;

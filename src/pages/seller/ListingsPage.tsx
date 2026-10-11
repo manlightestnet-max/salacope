@@ -6,7 +6,7 @@ import { formatDate, formatNumber, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { KIND_LABEL, ListingThumb } from '@/features/catalog';
-import { ManagedListing, deleteListing, listingHasOrders, setListingStatus, useListingInsights, useManagedListings } from '@/features/listings';
+import { HiddenBadge, ManagedListing, deleteListing, listingHasOrders, setListingStatus, useListingInsights, useManagedListings } from '@/features/listings';
 import { VerificationNotice } from '@/features/verification';
 
 type Filter = 'all' | 'published' | 'draft';
@@ -85,6 +85,7 @@ export const ListingsPage: React.FC = () => {
                     leading={<ListingThumb src={listing.coverImage} category={listing.category} size="md" />}
                     title={listing.title}
                     subtitle={[
+                      listing.hiddenReason && `Raison : ${listing.hiddenReason}`,
                       KIND_LABEL[listing.kind],
                       plural(m.sales, 'vente'),
                       insights && `${plural(insights.get(listing.id)?.views ?? 0, 'vue')} · ${plural(insights.get(listing.id)?.clicks ?? 0, 'clic')}`,
@@ -94,9 +95,7 @@ export const ListingsPage: React.FC = () => {
                       .join(' · ')}
                     meta={
                       listing.hiddenReason ? (
-                        <Badge tone="danger" dot>
-                          Masquée par Salacope
-                        </Badge>
+                        <HiddenBadge listing={listing} />
                       ) : (
                         <Badge tone={published ? 'success' : 'neutral'} dot>
                           {published ? 'En ligne' : 'Brouillon'}

@@ -5,7 +5,7 @@ import { Badge, Button, EmptyState, Page } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
-import { LISTING_FORM_ID, ListingEditor, createListing, setListingStatus, updateListing, useManagedListing } from '@/features/listings';
+import { HiddenBadge, LISTING_FORM_ID, ListingEditor, createListing, setListingStatus, updateListing, useManagedListing } from '@/features/listings';
 import { displayName } from '@/features/session';
 
 /**
@@ -39,9 +39,7 @@ export const ListingEditorPage: React.FC = () => {
         listing && (
           <span className="ml-2">
             {listing?.hiddenReason ? (
-              <Badge tone="danger" dot>
-                Masquée par Salacope
-              </Badge>
+              <HiddenBadge listing={listing} />
             ) : (
               <Badge tone={published ? 'success' : 'neutral'} dot>
                 {published ? 'En ligne' : 'Brouillon'}
@@ -80,6 +78,16 @@ export const ListingEditorPage: React.FC = () => {
         )
       }
     >
+      {listing?.hiddenReason && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-300/50 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="font-medium">Cette offre a été masquée par Salacope</p>
+          <p className="mt-1 whitespace-pre-line break-words">Raison : {listing.hiddenReason}</p>
+          <p className="mt-2 text-red-700">Elle n’apparaît plus dans le catalogue et vous ne pouvez pas la republier. Corrigez ce qui est signalé, puis demandez son rétablissement au support.</p>
+          <Button className="mt-3" size="sm" variant="secondary" to={`${ROUTES.account.newTicket}?sujet=other`}>
+            Contacter le support
+          </Button>
+        </div>
+      )}
       <ListingEditor
         key={listing?.id ?? 'new'}
         listing={listing}

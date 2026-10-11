@@ -2,3 +2,4 @@ export * from './api';
 export * from './hooks';
 export * from './components/ListingEditor';
 export * from './uploads';
+export * from './components/HiddenBadge';

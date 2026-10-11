@@ -9,5 +9,6 @@ import './routes/lightpay.js';
 import './routes/admin.js';
 import './routes/share.js';
 import './routes/files.js';
+import './routes/lockdown.js';
 
 export { handle } from './http.js';

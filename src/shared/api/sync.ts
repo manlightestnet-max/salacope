@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { Database, db, emptyDatabase } from '@/shared/db';
 import { PlatformSettings, applyPlatform } from '@/shared/config/platform';
 import { auth } from './auth';
+import { reportLockdown } from './lockdown';
 import { guest } from './guest';
 import { request } from './client';
 
@@ -28,6 +29,7 @@ interface BootstrapResponse {
   userId: string | null;
   catalogVersion?: string;
   platform?: PlatformSettings;
+  lockdown?: string;
   needsAccount: boolean;
   serverTime: string;
   data: Omit<Database, 'sessionUserId'>;
@@ -73,6 +75,7 @@ export async function boot(): Promise<void> {
     // A guest key nobody holds any more (taken over by an account): forget it.
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     applyPlatform(res.platform);
+    reportLockdown(res.lockdown);
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
     catalogVersion = res.catalogVersion ?? null;
@@ -98,13 +101,14 @@ export function refreshCatalog(force = false): Promise<void> {
   if (status !== 'ready') return Promise.resolve();
   if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
   if (catalogRequest) return catalogRequest;
-  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
     `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
   )
     .then((res) => {
       catalogAt = Date.now();
       applyPlatform(res.platform);
+      reportLockdown(res.lockdown);
       if (res.unchanged || !res.data) return;
       catalogVersion = res.version;
       const { users, listings, stats, reviews } = res.data;
@@ -121,7 +125,8 @@ export function refreshCatalog(force = false): Promise<void> {
 export async function syncNow(): Promise<void> {
   if (!lastSync || !db.get().sessionUserId) return;
   try {
-    const res = await request<{ serverTime: string; patch: any }>('GET', `/sync?since=${encodeURIComponent(lastSync)}`);
+    const res = await request<{ serverTime: string; lockdown?: string; patch: any }>('GET', `/sync?since=${encodeURIComponent(lastSync)}`);
+    reportLockdown(res.lockdown);
     db.apply(res.patch);
     lastSync = res.serverTime;
     notify();

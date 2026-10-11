@@ -11,6 +11,7 @@ import {
   LucideIcon,
   Megaphone,
   Menu as MenuIcon,
+  OctagonAlert,
   MessagesSquare,
   Package,
   PanelLeftClose,
@@ -31,6 +32,7 @@ import {
 } from 'lucide-react';
 import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
 import { useDb } from '@/shared/db';
+import { LOCKDOWN_TEXT, useLockdown } from '@/shared/api';
 import { shortcutLabel, useFocusShortcut, useTrackHistory, useVisualViewportHeight } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { isAdminHost } from '@/shared/config/hosts';
@@ -198,6 +200,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
             <NavGroup title="Plateforme" collapsed={collapsed}>
               {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
               {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
+              {item({ to: ROUTES.admin.security, label: 'Sécurité', icon: OctagonAlert })}
               {item({ to: ROUTES.admin.settings, label: 'Paramètres', icon: SlidersHorizontal })}
               {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}
               {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
@@ -292,6 +295,22 @@ const TopBarSearch: React.FC = () => {
   );
 };
 
+/** While the brake is on, everybody sees it; the administration gets the way to the lock. */
+const LockdownBanner: React.FC<{ area: Area }> = ({ area }) => {
+  const level = useLockdown();
+  if (level === 'off' || level === 'total') return null;
+  return (
+    <div role="status" className="shrink-0 bg-red-600 text-white text-[13px] px-3 py-1.5 flex items-center justify-center gap-3 text-center">
+      <span>{LOCKDOWN_TEXT[level]}</span>
+      {area === 'admin' && (
+        <NavLink to={ROUTES.admin.security} className="underline underline-offset-2 font-medium whitespace-nowrap">
+          Gérer
+        </NavLink>
+      )}
+    </div>
+  );
+};
+
 /** Administration search: looks a seller or an account up by name, e-mail or phone. */
 const AdminSearch: React.FC = () => {
   const navigate = useNavigate();
@@ -344,6 +363,7 @@ const Shell: React.FC<{ area: Area }> = ({ area }) => {
   return (
     <div className="flex flex-col overflow-hidden bg-surface" style={{ height: 'var(--vvh, 100dvh)' }}>
       <LaunchBanner />
+      <LockdownBanner area={area} />
       <header className="shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30">
         <button
           type="button"

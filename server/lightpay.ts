@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { DomainError } from '../src/shared/domain/errors.js';
+import { guardPayments } from './lockdown.js';
 
 /**
  * LightPay (api.smlab.xyz): every franc goes through it. Salacope's secret key never leaves the server.
@@ -36,6 +37,8 @@ const FRIENDLY: Record<string, string> = {
 };
 
 async function call<T = any>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+  // Emergency brake: no payment, payout or refund (and nothing at all when stopped) leaves the server.
+  guardPayments(method);
   let res: Response;
   try {
     res = await fetch(`${apiBase()}/v1${path}`, {

@@ -169,6 +169,12 @@ export interface AdminSettings {
   serviceValidationDays: number;
 }
 
+export interface AdminLockdown {
+  state: { level: 'off' | 'payments' | 'readonly' | 'total'; reason: string; since: string | null; by: string | null; forced: 'payments' | 'readonly' | 'total' | null };
+  /** An unlock code is set on the server: lifting the brake asks for it. */
+  codeRequired: boolean;
+}
+
 export type FundFilter = 'disputed' | 'waiting' | 'all';
 
 export interface AdminFundRow {
@@ -290,6 +296,8 @@ export const adminApi = {
   replyTicket: (id: string, body: string, resolve: boolean) =>
     request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/reply`, { body, resolve }),
   resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
+  lockdown: () => request<AdminLockdown>('GET', '/admin/lockdown'),
+  setLockdown: (level: string, reason: string, code: string) => request<AdminLockdown>('POST', '/admin/lockdown', { level, reason, code }),
   settings: () => request<{ settings: AdminSettings }>('GET', '/admin/settings').then((r) => r.settings),
   saveSettings: (input: AdminSettings) => request<{ settings: AdminSettings }>('PUT', '/admin/settings', input).then((r) => r.settings),
   profit: (period: string) => request<AdminProfit>('GET', `/admin/profit?${qs({ period })}`),
@@ -317,6 +325,8 @@ export const AUDIT_LABEL: Record<string, string> = {
   'banner.save': 'Emplacement publicitaire enregistré',
   'storage.save': 'Stockage de fichiers configuré',
   'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'lockdown.set': 'Verrou d’urgence modifié',
+  'lockdown.denied': 'Levée du verrou refusée (code incorrect)',
   'settings.save': 'Commission et délais modifiés',
   'funds.ask': 'Précision demandée sur une commande',
   'funds.release': 'Fonds libérés au vendeur',

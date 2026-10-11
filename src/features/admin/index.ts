@@ -4,3 +4,4 @@ export * from './components/ReasonDialog';
 export * from './components/SellerDetail';
 export * from './paged';
 export * from './components/MoreRows';
+export * from './components/LockdownControl';

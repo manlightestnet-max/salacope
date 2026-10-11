@@ -1,3 +1,4 @@
+import { levelNow } from '../lockdown.js';
 import { currentPlatform } from '../settings.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { ListingInput, listingFields, validateListing } from '../../src/shared/domain/listings.js';
@@ -85,7 +86,8 @@ route('GET', '/catalog', async (ctx) => {
   const { userId } = await viewerOf(ctx);
   const version = await catalogVersion(userId);
   const platform = currentPlatform();
-  const answer = ctx.search.get('v') === version ? { unchanged: true, version, platform } : { version, platform, data: await loadCatalog(userId) };
+  const lockdown = levelNow();
+  const answer = ctx.search.get('v') === version ? { unchanged: true, version, platform, lockdown } : { version, platform, lockdown, data: await loadCatalog(userId) };
   // Cached only for a visitor who asked for the shared copy (`?anon=1`: its own address, never one a signed-in person uses).
   return !userId && ctx.search.get('anon') === '1' ? publicJson(answer) : answer;
 });
@@ -112,6 +114,7 @@ route('GET', '/bootstrap', async (ctx) => {
     serverTime: new Date().toISOString(),
     catalogVersion: version,
     platform: currentPlatform(),
+    lockdown: levelNow(),
     data: {
       ...catalog,
       favorites: own?.[0].map((f) => ({ userId: f.user_id, listingId: f.listing_id, createdAt: f.created_at })) ?? [],

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { BootingContext, Button, EmptyState, ToastProvider } from '@/shared/ui';
-import { boot, showSnapshot, useBootStatus, useLiveSync } from '@/shared/api';
+import { boot, showSnapshot, useBootStatus, useLiveSync, useLockdown } from '@/shared/api';
+import { LockdownScreen } from './LockdownScreen';
 import { router } from './router';
 
 // The real page at once with the last known data (signed-in accounts); the server then refreshes it in place.
@@ -14,7 +15,10 @@ const BootGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     void boot().catch(() => undefined);
   }, []);
   useLiveSync();
+  const lockdown = useLockdown();
 
+  // Stopped by the emergency brake: nothing else is drawn (the server answers nothing else either).
+  if (lockdown === 'total') return <LockdownScreen />;
   if (status !== 'offline') return <BootingContext.Provider value={status === 'loading'}>{children}</BootingContext.Provider>;
   {
     return (

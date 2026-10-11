@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { guardDatabase } from './lockdown.js';
 
 /** Timestamps travel as ISO strings, like the app's types. */
 pg.types.setTypeParser(1184, (v) => new Date(v).toISOString());
@@ -36,6 +37,7 @@ const connect = async (): Promise<pg.PoolClient> => {
 export type Query = <T = any>(text: string, params?: unknown[]) => Promise<T[]>;
 
 export const query: Query = async (text, params = []) => {
+  guardDatabase(text);
   const client = await connect();
   try {
     return (await client.query(text, params)).rows;
@@ -46,10 +48,14 @@ export const query: Query = async (text, params = []) => {
 
 /** Runs `fn` in one transaction; everything is rolled back if it throws. */
 export async function tx<T>(fn: (q: Query) => Promise<T>): Promise<T> {
+  guardDatabase('BEGIN');
   const client = await connect();
   try {
     await client.query('BEGIN');
-    const result = await fn(async (text, params = []) => (await client.query(text, params)).rows);
+    const result = await fn(async (text, params = []) => {
+      guardDatabase(text);
+      return (await client.query(text, params)).rows;
+    });
     await client.query('COMMIT');
     return result;
   } catch (err) {

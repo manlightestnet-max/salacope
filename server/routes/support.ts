@@ -1,3 +1,4 @@
+import { levelNow } from '../lockdown.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { REVIEW_MAX_LENGTH, canBeReviewed } from '../../src/shared/domain/reviews.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
@@ -147,5 +148,5 @@ route('GET', '/sync', async (ctx) => {
     loadTickets(userId, 'updated_at >= $2', [from]),
     loadNotifications(userId, 'created_at >= $2', [from]),
   ]);
-  return { serverTime, patch: { orders, paymentAttempts, tickets, notifications } };
+  return { serverTime, lockdown: levelNow(), patch: { orders, paymentAttempts, tickets, notifications } };
 });

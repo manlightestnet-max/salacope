@@ -3,6 +3,7 @@ import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
 import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
+import { LockedError, levelNow, lockedMessage, refreshLockdown, withBypass } from './lockdown.js';
 import { ensurePlatform } from './settings.js';
 
 export interface Context {
@@ -72,6 +73,18 @@ export async function handle(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': String(wait), 'Cache-Control': 'no-store' },
     });
   }
+  // Emergency brake. Stopped: every request is refused before the database or LightPay are touched, except the lockdown screen
+  // of the administration. Read-only: writes are refused, except by the administration (which can still act on accounts).
+  await refreshLockdown();
+  const level = levelNow();
+  const lockRoute = path === '/status' || path === '/admin/lockdown';
+  const admin = path.startsWith('/admin');
+  if (level !== 'off' && !lockRoute) {
+    if (level === 'total' || (level === 'readonly' && method !== 'GET' && !admin)) {
+      return reply(503, { error: lockedMessage(level), locked: level });
+    }
+  }
+  const bypassGuard = lockRoute || (admin && level !== 'total');
   const values = path.match(match.pattern)!.slice(1);
 
   const rawBody = method === 'GET' || method === 'HEAD' ? '' : await request.text();
@@ -123,8 +136,9 @@ export async function handle(request: Request): Promise<Response> {
   };
 
   try {
-    await ensurePlatform();
-    const result = await match.handler({
+    const run = async () => {
+      await ensurePlatform();
+      return match.handler({
       method,
       path,
       params: Object.fromEntries(match.keys.map((k, i) => [k, decodeURIComponent(values[i])])),
@@ -138,10 +152,13 @@ export async function handle(request: Request): Promise<Response> {
       userId: getUserId,
       viewerId: async () => (await getViewer())?.id ?? null,
       accountId: getAccountId,
-    });
+      });
+    };
+    const result = await (bypassGuard ? withBypass(run) : run());
     if (result instanceof Response) return result;
     return reply(200, result ?? { ok: true });
   } catch (err) {
+    if (err instanceof LockedError) return reply(503, { error: err.message, locked: err.level });
     if (err instanceof DomainError) return reply(err.status, { error: err.message });
     console.error('[api]', method, path, err);
     return reply(500, { error: 'Erreur du serveur. Réessayez dans un instant.' });

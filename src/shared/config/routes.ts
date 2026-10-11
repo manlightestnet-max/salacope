@@ -53,6 +53,9 @@ export const ROUTES = {
     users: '/admin/acs',
     audit: '/admin/journal',
     banners: '/admin/publicite',
+    storage: '/admin/stockage',
+    support: '/admin/support',
+    ticket: (id: string) => `/admin/support/${id}`,
   },
 
   legal: {

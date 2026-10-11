@@ -4,7 +4,12 @@ import type { KycDocumentKind, RiskLevel } from '../../src/shared/domain/kyc.js'
 import { audit, requireAdmin } from '../compliance.js';
 import { query, tx } from '../db.js';
 import { route } from '../http.js';
+import { newId } from '../ids.js';
 import { notify } from '../notify.js';
+import { secretsReady } from '../secrets.js';
+import { offloadImage, pruneImages } from '../storage/images.js';
+import { migrateBatch, remaining } from '../storage/migrate.js';
+import { PURPOSES, Purpose, StorageConfig, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
 
 /**
  * Salacope administration (AML/CFT policy §4 and §6): sellers and their identity checks,
@@ -33,6 +38,7 @@ route('GET', '/admin/overview', async (ctx) => {
     (SELECT COUNT(*) FROM listings WHERE status = 'published') AS listings,
     (SELECT COUNT(*) FROM orders WHERE status <> 'cancelled') AS orders,
     (SELECT COUNT(*) FROM orders WHERE status = 'disputed') AS disputed,
+    (SELECT COUNT(*) FROM tickets WHERE status = 'open') AS tickets_open,
     (SELECT COALESCE(SUM((amounts->>'total')::bigint), 0) FROM orders WHERE status <> 'cancelled') AS volume,
     (SELECT COALESCE(SUM((amounts->>'fee')::bigint), 0) FROM orders WHERE status = 'completed') AS commission`);
   return { overview: row };
@@ -119,12 +125,18 @@ route('GET', '/admin/kyc/:submissionId/:kind', async (ctx) => {
   const admin = await requireAdmin(ctx);
   const kind = ctx.params.kind as KycDocumentKind;
   const [doc] = await query(
-    `SELECT d.mime, encode(d.data, 'base64') AS data, k.user_id FROM kyc_documents d JOIN kyc_submissions k ON k.id = d.submission_id
+    `SELECT d.mime, d.file_id, encode(d.data, 'base64') AS data, k.user_id FROM kyc_documents d JOIN kyc_submissions k ON k.id = d.submission_id
      WHERE d.submission_id = $1 AND d.kind = $2`,
     [ctx.params.submissionId, kind]
   );
   if (!doc) throw new DomainError('Document introuvable.', 404);
   await audit(query, admin, 'kyc.view', doc.user_id, { submission: ctx.params.submissionId, document: kind });
+  // A document kept in the private bucket is read by the server and handed over once, to this administrator only.
+  if (doc.file_id) {
+    const stored = await readStoredFile(doc.file_id);
+    if (!stored) throw new DomainError('Document introuvable dans le stockage.', 404);
+    return { dataUrl: `data:${stored.mime};base64,${stored.bytes.toString('base64')}` };
+  }
   return { dataUrl: `data:${doc.mime};base64,${String(doc.data).replace(/\s/g, '')}` };
 });
 
@@ -325,6 +337,11 @@ route('PUT', '/admin/banners/:position', async (ctx) => {
     image = String(ctx.body.image);
   }
   if (!image) throw new DomainError('Ajoutez l’image de l’emplacement.');
+  // A new picture goes to storage under the administrator's account (when it is set up).
+  if (ctx.body.image) {
+    const [me] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [admin.uid]);
+    if (me) image = await offloadImage(me.id, image, `banner:${position}`);
+  }
   await tx(async (q) => {
     await q(
       `INSERT INTO ad_banners (position, image, title, link, active) VALUES ($1, $2, $3, $4, $5)
@@ -333,6 +350,7 @@ route('PUT', '/admin/banners/:position', async (ctx) => {
     );
     await audit(q, admin, 'banner.save', null, { position, title, link, active });
   });
+  await pruneImages(`banner:${position}`, [image]).catch(() => undefined);
   return { banners: await query('SELECT position, image, title, link, active, updated_at FROM ad_banners ORDER BY position') };
 });
 
@@ -344,4 +362,164 @@ route('DELETE', '/admin/banners/:position', async (ctx) => {
     await audit(q, admin, 'banner.remove', null, { position });
   });
   return { banners: await query('SELECT position, image, title, link, active, updated_at FROM ad_banners ORDER BY position') };
+});
+
+// --- File storage (Cloudflare R2): keys are entered here, kept encrypted, and never shown again --------------------
+const mask = (v?: string) => (v ? `…${v.slice(-4)}` : null);
+const BUCKET_NAME = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
+
+route('GET', '/admin/storage', async (ctx) => {
+  await requireAdmin(ctx);
+  const config = await loadStorageConfig();
+  const usage = await query(
+    "SELECT purpose, COUNT(*)::int AS files, COALESCE(SUM(size), 0)::bigint AS bytes FROM stored_files WHERE status = 'ready' GROUP BY purpose"
+  ).catch(() => []);
+  return {
+    storage: {
+      keyReady: secretsReady(),
+      configured: Boolean(config),
+      accountId: config?.accountId ?? '',
+      accessKey: mask(config?.accessKeyId),
+      secretKey: mask(config?.secretAccessKey),
+      buckets: config?.buckets ?? {},
+      usage,
+    },
+  };
+});
+
+route('PUT', '/admin/storage', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!secretsReady()) throw new DomainError('Ajoutez d’abord SALACOPE_SETTINGS_KEY dans l’environnement du serveur : sans elle, les clés ne peuvent pas être chiffrées.');
+  const previous = await loadStorageConfig();
+  const accountId = text(ctx.body.accountId, 64);
+  if (!/^[a-f0-9]{32}$/i.test(accountId)) throw new DomainError('Identifiant de compte Cloudflare invalide (32 caractères).');
+  // A blank key keeps the one already saved.
+  const accessKeyId = text(ctx.body.accessKeyId, 128) || previous?.accessKeyId || '';
+  const secretAccessKey = text(ctx.body.secretAccessKey, 256) || previous?.secretAccessKey || '';
+  if (!accessKeyId || !secretAccessKey) throw new DomainError('Renseignez la clé d’accès et la clé secrète.');
+
+  const buckets: StorageConfig['buckets'] = {};
+  for (const purpose of PURPOSES) {
+    const input = ctx.body.buckets?.[purpose];
+    const name = text(input?.name, 63).toLowerCase();
+    if (!name) continue;
+    if (!BUCKET_NAME.test(name)) throw new DomainError(`Nom de bucket invalide pour « ${purpose} » (minuscules, chiffres et tirets).`);
+    const publicUrl = text(input?.publicUrl, 200);
+    if (publicUrl && !/^https:\/\/[^\s]+$/.test(publicUrl)) throw new DomainError('L’adresse publique doit commencer par https://');
+    if (purpose === 'image' && !publicUrl) throw new DomainError('Le bucket des images a besoin de son adresse publique (domaine personnalisé ou r2.dev).');
+    buckets[purpose] = publicUrl ? { name, publicUrl } : { name };
+  }
+  await saveStorageConfig({ accountId, accessKeyId, secretAccessKey, buckets });
+  await tx(async (q) => audit(q, admin, 'storage.save', null, { accountId, buckets: Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, v.name])) }));
+  return { ok: true };
+});
+
+/** Writes, reads back and deletes a tiny object in each configured bucket. */
+route('POST', '/admin/storage/test', async (ctx) => {
+  await requireAdmin(ctx);
+  const results: { purpose: Purpose; ok: boolean; message: string }[] = [];
+  for (const purpose of PURPOSES) {
+    const t = await target(purpose);
+    if (!t) continue;
+    const key = `test/${Date.now()}-${purpose}.txt`;
+    try {
+      await putObject(t, key, Buffer.from('salacope'), 'text/plain');
+      const back = (await getObject(t, key)).toString('utf8');
+      await deleteObject(t, key);
+      results.push({ purpose, ok: back === 'salacope', message: back === 'salacope' ? 'Connexion réussie' : 'Lecture différente de l’écriture' });
+    } catch (err) {
+      results.push({ purpose, ok: false, message: err instanceof DomainError ? err.message : 'Échec de la connexion' });
+    }
+  }
+  return { results };
+});
+
+/** What is still in the database and could move to storage (only for the kinds that have a bucket). */
+route('GET', '/admin/storage/migration', async (ctx) => {
+  await requireAdmin(ctx);
+  return { remaining: await remaining() };
+});
+
+/** Moves one small batch of existing files to storage; the admin page calls it again until nothing remains. */
+route('POST', '/admin/storage/migrate', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const [me] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [admin.uid]);
+  const report = await migrateBatch(me?.id ?? null);
+  if (report.migrated) await tx(async (q) => audit(q, admin, 'storage.migrate', null, { migrated: report.migrated, failed: report.failed }));
+  return report;
+});
+
+/** Support inbox: tickets opened by buyers and sellers, those waiting for Salacope first. */
+route('GET', '/admin/tickets', async (ctx) => {
+  await requireAdmin(ctx);
+  const filter = ctx.search.get('filter') ?? 'open';
+  const where = { open: "t.status = 'open'", answered: "t.status = 'answered'", resolved: "t.status = 'resolved'" }[filter] ?? 'TRUE';
+  const q = text(ctx.search.get('q'), 80);
+  const rows = await query(
+    `SELECT t.id, t.number, t.topic, t.subject, t.reference, t.status, t.created_at, t.updated_at, u.name, u.email,
+       (SELECT body FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author_id IS NOT NULL ORDER BY m.at DESC, m.id DESC LIMIT 1) AS last_message,
+       (SELECT COUNT(*)::int FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author_id IS NOT NULL) AS from_user
+     FROM tickets t JOIN users u ON u.id = t.user_id
+     WHERE ${where} AND ($1 = '' OR t.subject ILIKE $2 OR t.number ILIKE $2 OR t.reference ILIKE $2 OR u.name ILIKE $2 OR u.email ILIKE $2)
+     ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'answered' THEN 1 ELSE 2 END, t.updated_at ${filter === 'open' ? 'ASC' : 'DESC'} LIMIT 300`,
+    [q, like(q)]
+  );
+  const [counts] = await query("SELECT COUNT(*) FILTER (WHERE status = 'open')::int AS open, COUNT(*) FILTER (WHERE status = 'answered')::int AS answered FROM tickets");
+  return { tickets: rows, counts };
+});
+
+async function ticketDetail(id: string) {
+  const [ticket] = await query(
+    `SELECT t.id, t.number, t.topic, t.subject, t.reference, t.status, t.created_at, t.updated_at, t.user_id, u.name, u.email, u.phone, u.blocked_at,
+       m.store_name
+     FROM tickets t JOIN users u ON u.id = t.user_id LEFT JOIN merchants m ON m.user_id = u.id WHERE t.id = $1`,
+    [id]
+  );
+  if (!ticket) throw new DomainError('Ticket introuvable.', 404);
+  const messages = await query('SELECT id, author_id, body, at FROM ticket_messages WHERE ticket_id = $1 ORDER BY at, id', [id]);
+  // What Salacope knows about the reference: the payment attempt and/or the order, to answer without searching.
+  let context: Record<string, unknown> | null = null;
+  if (ticket.reference) {
+    const [attempt] = await query('SELECT id, code, status, amount, channel, created_at FROM payment_attempts WHERE code = $1', [ticket.reference]);
+    const [order] = await query(
+      `SELECT o.number, o.status, (o.amounts->>'total')::bigint AS total, o.item->>'title' AS title, o.created_at
+       FROM orders o WHERE o.number = $1 OR o.attempt_id = $2`,
+      [ticket.reference, attempt?.id ?? null]
+    );
+    if (attempt || order) context = { attempt: attempt ?? null, order: order ?? null };
+  }
+  return { ticket, messages, context };
+}
+
+route('GET', '/admin/tickets/:id', async (ctx) => {
+  await requireAdmin(ctx);
+  return ticketDetail(ctx.params.id);
+});
+
+/** Salacope answers (the person is notified); `resolve` closes the ticket with the answer. */
+route('POST', '/admin/tickets/:id/reply', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const body = String(ctx.body.body ?? '').trim().slice(0, 4000);
+  if (!body) throw new DomainError('Écrivez votre réponse.');
+  const resolve = ctx.body.resolve === true;
+  await tx(async (q) => {
+    const [t] = await q('SELECT id, user_id, number FROM tickets WHERE id = $1 FOR UPDATE', [ctx.params.id]);
+    if (!t) throw new DomainError('Ticket introuvable.', 404);
+    await q('INSERT INTO ticket_messages (id, ticket_id, author_id, body) VALUES ($1, $2, NULL, $3)', [newId('tkm'), t.id, body]);
+    await q('UPDATE tickets SET status = $2, updated_at = NOW() WHERE id = $1', [t.id, resolve ? 'resolved' : 'answered']);
+    await notify(q, [{ userId: t.user_id, title: `Le support a répondu · ${t.number}`, body, href: ROUTES.account.ticket(t.id) }]);
+    await audit(q, admin, resolve ? 'ticket.resolve' : 'ticket.reply', t.user_id, { ticket: t.number });
+  });
+  return ticketDetail(ctx.params.id);
+});
+
+/** Closes a ticket without a message (answered elsewhere, duplicate, spam). */
+route('POST', '/admin/tickets/:id/resolve', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  await tx(async (q) => {
+    const [t] = await q("UPDATE tickets SET status = 'resolved', updated_at = NOW() WHERE id = $1 RETURNING user_id, number", [ctx.params.id]);
+    if (!t) throw new DomainError('Ticket introuvable.', 404);
+    await audit(q, admin, 'ticket.resolve', t.user_id, { ticket: t.number });
+  });
+  return ticketDetail(ctx.params.id);
 });

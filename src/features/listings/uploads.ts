@@ -1,0 +1,73 @@
+import { useEffect, useState } from 'react';
+import { request } from '@/shared/api';
+
+/** What storage offers this person: which kinds of file can be kept, and the room left. */
+export interface StorageUsage {
+  usedBytes: number;
+  quotaBytes: number;
+  maxFileBytes: number;
+  product: boolean;
+  chat: boolean;
+  image: boolean;
+}
+
+let usageCache: StorageUsage | null = null;
+
+/** Storage capabilities and the seller's space (the last known values at once, refreshed in the background). */
+export function useStorageUsage(): { usage: StorageUsage | null; loaded: boolean; reload: () => void } {
+  const [usage, setUsage] = useState<StorageUsage | null>(usageCache);
+  const [loaded, setLoaded] = useState(Boolean(usageCache));
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    request<StorageUsage>('GET', '/files/usage').then(
+      (u) => {
+        usageCache = u;
+        if (live) {
+          setUsage(u);
+          setLoaded(true);
+        }
+      },
+      () => live && setLoaded(true)
+    );
+    return () => {
+      live = false;
+    };
+  }, [tick]);
+  return { usage, loaded, reload: () => setTick((n) => n + 1) };
+}
+
+export interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+}
+
+/**
+ * Sends the file of a digital product straight to storage: the server hands out a short-lived address, the browser puts the
+ * file there (with progress), then the server checks it arrived. A failure leaves nothing behind that counts.
+ */
+export async function uploadProductFile(file: File, onProgress: (fraction: number) => void, ref?: string): Promise<UploadedFile> {
+  const type = file.type || 'application/octet-stream';
+  const { id, uploadUrl } = await request<{ id: string; uploadUrl: string }>('POST', '/files/sign', { purpose: 'product', name: file.name, type, size: file.size, ref });
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', type);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('L’envoi a été refusé par le stockage. Réessayez.')));
+    xhr.onerror = () => reject(new Error('Envoi interrompu : vérifiez votre connexion et réessayez.'));
+    xhr.send(file);
+  });
+  await request('POST', `/files/${encodeURIComponent(id)}/complete`);
+  usageCache = null;
+  return { id, name: file.name, size: file.size };
+}
+
+/** The file of an order (buyer who has paid, or the seller): opens the download. */
+export async function downloadOrderFile(orderId: string): Promise<void> {
+  const { url } = await request<{ url: string; name: string }>('GET', `/orders/${encodeURIComponent(orderId)}/file`);
+  window.location.assign(url);
+}
+
+export const formatBytes = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} Mo` : `${Math.max(1, Math.round(bytes / 1024))} Ko`);

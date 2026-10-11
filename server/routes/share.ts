@@ -122,6 +122,8 @@ const CACHE = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=8640
 
 /** A stored picture (kept as a data URL) as the image file the preview needs. */
 const image = (dataUrl: string | null | undefined) => {
+  // Stored on the public bucket: send the reader there.
+  if (/^https:\/\//.test(String(dataUrl ?? ''))) return new Response(null, { status: 302, headers: { Location: String(dataUrl), 'Cache-Control': CACHE } });
   const m = String(dataUrl ?? '').match(DATA_URL);
   if (!m) return new Response(JSON.stringify({ error: 'Image introuvable.' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
   return new Response(Buffer.from(m[2], 'base64'), { status: 200, headers: { 'Content-Type': m[1], 'Cache-Control': CACHE, 'X-Content-Type-Options': 'nosniff' } });

@@ -1,3 +1,5 @@
+import { storeBytes } from '../storage/index.js';
+import { offloadImage, pruneImages } from '../storage/images.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { validateHandle } from '../../src/shared/domain/listings.js';
 import { KYC_DOCUMENTS, KYC_MAX_BYTES, validateKyc } from '../../src/shared/domain/kyc.js';
@@ -145,9 +147,10 @@ route('PUT', '/merchant/logo', async (ctx) => {
     const data = Buffer.from(m[2], 'base64');
     if (!MAGIC[m[1]](data)) throw new DomainError('Ce fichier n’est pas une image valide.');
     if (data.length > LOGO_MAX_BYTES) throw new DomainError('Photo trop lourde après réduction : choisissez une autre image.');
-    logo = String(ctx.body.logo);
+    logo = await offloadImage(userId, String(ctx.body.logo), `logo:${userId}`);
   }
   const rows = await query('UPDATE merchants SET logo = $2 WHERE user_id = $1 RETURNING user_id', [userId, logo]);
+  await pruneImages(`logo:${userId}`, logo ? [logo] : []).catch(() => undefined);
   if (!rows.length) throw new DomainError('Boutique introuvable.', 404);
   return { patch: { users: [await loadSelf(userId)] } };
 });
@@ -169,7 +172,10 @@ route('POST', '/kyc', async (ctx) => {
       [id, userId, input.fullName, input.birthDate, input.nationality, input.idType, input.idNumber, input.idExpires ?? null, input.address, input.pep]
     );
     for (const d of documents) {
-      await q('INSERT INTO kyc_documents (submission_id, kind, mime, data) VALUES ($1, $2, $3, $4)', [id, d.kind, d.mime, d.data]);
+      // In the private identity bucket when there is one (the database then keeps only a reference), else in the database.
+      const stored = await storeBytes('kyc', userId, d.data, { name: `${d.kind}.${d.mime.split('/')[1] ?? 'bin'}`, mime: d.mime, ref: id });
+      if (stored) await q('INSERT INTO kyc_documents (submission_id, kind, mime, file_id) VALUES ($1, $2, $3, $4)', [id, d.kind, d.mime, stored.id]);
+      else await q('INSERT INTO kyc_documents (submission_id, kind, mime, data) VALUES ($1, $2, $3, $4)', [id, d.kind, d.mime, d.data]);
     }
     await q("UPDATE merchants SET kyc_status = 'pending', kyc_note = NULL WHERE user_id = $1", [userId]);
   });

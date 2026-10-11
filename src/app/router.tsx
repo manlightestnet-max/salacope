@@ -44,6 +44,9 @@ import { AdminSellersPage } from '@/pages/admin/AdminSellersPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminBannersPage } from '@/pages/admin/AdminBannersPage';
+import { AdminStoragePage } from '@/pages/admin/AdminStoragePage';
+import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
+import { AdminTicketPage } from '@/pages/admin/AdminTicketPage';
 
 const NotFound = () => (
   <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />
@@ -169,6 +172,9 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.users, element: <AdminUsersPage /> },
               { path: ROUTES.admin.audit, element: <AdminAuditPage /> },
               { path: ROUTES.admin.banners, element: <AdminBannersPage /> },
+              { path: ROUTES.admin.storage, element: <AdminStoragePage /> },
+              { path: ROUTES.admin.support, element: <AdminSupportPage /> },
+              { path: '/admin/support/:id', element: <AdminTicketPage /> },
             ],
           },
         ],

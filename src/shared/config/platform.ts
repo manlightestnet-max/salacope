@@ -32,3 +32,9 @@ export const releaseDays = (kind: 'digital' | 'service') => (kind === 'digital' 
 
 /** The same rule in words, for pages covering both kinds. */
 export const RELEASE_RULE = `${PLATFORM.digitalHoldDays} jours pour un produit numérique, ${PLATFORM.serviceValidationDays} jours pour un service`;
+
+/** File storage (Cloudflare R2): what one seller may keep, and the biggest single file. */
+export const STORAGE = {
+  quotaBytes: 200 * 1024 * 1024,
+  maxFileBytes: 100 * 1024 * 1024,
+} as const;

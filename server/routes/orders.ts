@@ -1,3 +1,4 @@
+import { storeAttachments } from '../storage/attachments.js';
 import { PLATFORM } from '../../src/shared/config/platform.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
 import type { Attachment } from '../../src/shared/db/schema.js';
@@ -201,7 +202,7 @@ const cleanAttachments = (list: unknown): Attachment[] => {
 
 act('deliver', 'deliver', async (row, userId, ctx, q) => {
   const note = text(ctx.body.note, 4000);
-  const files = cleanAttachments(ctx.body.files);
+  const files = await storeAttachments(userId, cleanAttachments(ctx.body.files), row.id);
   if (!note && files.length === 0) throw new DomainError('Ajoutez un message ou un fichier à la livraison.');
   if (containsContact(note)) throw new DomainError(CONTACT_BLOCKED);
   const at = new Date().toISOString();
@@ -330,7 +331,7 @@ act('extension', 'answerExtension', async (row, userId, ctx, q) => {
 route('POST', '/orders/:id/messages', async (ctx) => {
   const userId = await ctx.userId();
   const body = text(ctx.body.body, 4000);
-  const attachments = cleanAttachments(ctx.body.attachments);
+  let attachments = cleanAttachments(ctx.body.attachments);
   if (!body && attachments.length === 0) throw new DomainError('Message vide.');
   if (attachments.filter((a) => isImageType(a.type)).length > MAX_MESSAGE_IMAGES) {
     throw new DomainError(`${MAX_MESSAGE_IMAGES} images au maximum par message : envoyez les autres dans un message suivant.`);
@@ -339,6 +340,7 @@ route('POST', '/orders/:id/messages', async (ctx) => {
   await tx(async (q) => {
     const { row, perspective } = await authorize(q, ctx.params.id, userId, 'message');
     if (perspective === 'seller') await requireNotBlocked(q, row);
+    attachments = await storeAttachments(userId, attachments, row.id);
     const at = new Date().toISOString();
     await q('INSERT INTO order_messages (id, order_id, author_id, body, attachments, at) VALUES ($1, $2, $3, $4, $5::jsonb, $6)', [
       newId('msg'),

@@ -35,6 +35,17 @@ export const AdminOverviewPage: React.FC = () => {
                   </Link>
                 }
               />
+              <Stat
+                label="Support"
+                value={o.tickets_open}
+                emphasis={o.tickets_open > 0}
+                help="Demandes qui attendent une réponse de Salacope."
+                hint={
+                  <Link to={`${ROUTES.admin.support}?filtre=open`} className="hover:text-gray-900">
+                    Répondre →
+                  </Link>
+                }
+              />
               <Stat label="Vendeurs" value={formatNumber(o.sellers)} hint={`${formatNumber(o.kyc_approved)} vérifiés`} />
               <Stat label="Comptes" value={formatNumber(o.accounts)} hint={`+ ${formatNumber(o.guests)} achats sans compte`} />
               <Stat

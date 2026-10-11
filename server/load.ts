@@ -1,3 +1,4 @@
+import { signAttachments } from './storage/attachments.js';
 import type { Query } from './db.js';
 import { query } from './db.js';
 import {
@@ -35,6 +36,7 @@ export async function loadOrders(userId: string, where = 'TRUE', params: unknown
     q<{ blocker_id: string; blocked_id: string }>('SELECT blocker_id, blocked_id FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]),
   ]);
   const blocked = new Set(blocks.map((b) => `${b.blocker_id}>${b.blocked_id}`));
+  await signAttachments([...messages, ...rows.map((r) => ({ attachments: r.delivery?.files }))]).catch(() => undefined);
   return rows.map((r) =>
     orderView(
       r,

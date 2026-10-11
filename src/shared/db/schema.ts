@@ -48,6 +48,9 @@ export interface User {
 export interface ListingFile {
   name: string;
   format: string;
+  /** The stored file a buyer downloads (absent while the seller has only named it). */
+  fileId?: string;
+  size?: number;
 }
 
 /** A question the seller needs answered before starting a service. */
@@ -124,7 +127,10 @@ export interface Attachment {
   name: string;
   size: string;
   type: string;
+  /** The file itself while it is kept in the database; for a stored file, a short-lived address added when it is sent. */
   dataUrl?: string;
+  /** Set when the file lives in storage. */
+  fileId?: string;
 }
 
 /** Seller's card in the chat: one of their offers to pay, valid a few minutes once the buyer opens it. */

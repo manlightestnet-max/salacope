@@ -17,6 +17,8 @@ import {
   touchSeller,
 } from '../load.js';
 import { notify } from '../notify.js';
+import { offloadImage, offloadImages, pruneImages } from '../storage/images.js';
+import { checkProductFile, pruneProductFiles } from '../storage/products.js';
 import { listingView } from '../views.js';
 import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
 
@@ -166,12 +168,28 @@ const checkedInput = (body: any): ListingInput => {
   return input;
 };
 
+/** New pictures go to storage (when it is set up) and the listing keeps their short addresses. */
+const withStoredImages = async <T extends { coverImage: string; gallery?: string[] }>(sellerId: string, fields: T, listingId: string): Promise<T> => ({
+  ...fields,
+  coverImage: await offloadImage(sellerId, fields.coverImage, listingId),
+  gallery: fields.gallery === undefined ? undefined : await offloadImages(sellerId, fields.gallery, listingId),
+});
+
+/** An attached product file must be the seller's own, fully uploaded; its real size replaces whatever was announced. */
+const withProductFile = async <T extends { file?: { fileId?: string; size?: number } }>(sellerId: string, fields: T, listingId: string): Promise<T> => {
+  const fileId = fields.file?.fileId;
+  if (!fileId) return fields;
+  const size = await checkProductFile(sellerId, fileId);
+  await query('UPDATE stored_files SET ref = $2 WHERE id = $1 AND ref IS DISTINCT FROM $2', [fileId, listingId]);
+  return { ...fields, file: { ...fields.file, size } };
+};
+
 route('POST', '/listings', async (ctx) => {
   const sellerId = await ctx.userId();
   await requireMerchant(sellerId);
-  const fields = listingFields(checkedInput(ctx.body.listing ?? {}));
   const publish = ctx.body.publish === true;
   const id = newId('lst');
+  const fields = await withProductFile(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), id), id);
   const listing = await tx(async (q) => {
     if (publish) await requirePayouts(q, sellerId);
     await q(
@@ -208,7 +226,7 @@ route('POST', '/listings', async (ctx) => {
 
 route('PATCH', '/listings/:id', async (ctx) => {
   const sellerId = await ctx.userId();
-  const fields = listingFields(checkedInput(ctx.body.listing ?? {}));
+  const fields = await withProductFile(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), ctx.params.id), ctx.params.id);
   const listing = await tx(async (q) => {
     await ownedListing(q, ctx.params.id, sellerId);
     await q(
@@ -236,6 +254,14 @@ route('PATCH', '/listings/:id', async (ctx) => {
     );
     return (await loadListing(ctx.params.id, q))!;
   });
+  // Pictures that were replaced or removed stop counting in the seller's space.
+  const keep = [fields.coverImage, ...(fields.gallery ?? [])];
+  if (fields.gallery === undefined) {
+    const [row] = await query<{ gallery: string[] }>('SELECT gallery FROM listings WHERE id = $1', [ctx.params.id]);
+    keep.push(...(row?.gallery ?? []));
+  }
+  await pruneImages(ctx.params.id, keep).catch(() => undefined);
+  await pruneProductFiles(ctx.params.id, fields.file?.fileId).catch(() => undefined);
   return { patch: { listings: [listing] } };
 });
 

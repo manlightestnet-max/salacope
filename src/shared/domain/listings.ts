@@ -22,6 +22,9 @@ export interface ListingInput {
   briefQuestions?: BriefQuestion[];
   fileName?: string;
   fileFormat?: string;
+  /** The uploaded file (stored), and its size. */
+  fileId?: string;
+  fileSize?: number;
 }
 
 export const MAX_BRIEF_QUESTIONS = 6;
@@ -111,7 +114,10 @@ export const listingFields = (input: ListingInput): ListingFields => ({
           .filter((q) => q.label?.trim())
           .map((q) => ({ id: String(q.id), label: q.label.trim(), required: Boolean(q.required) }))
       : undefined,
-  file: input.kind === 'digital' ? { name: input.fileName!.trim(), format: input.fileFormat?.trim() || 'PDF' } : undefined,
+  file:
+    input.kind === 'digital'
+      ? { name: input.fileName!.trim(), format: input.fileFormat?.trim() || 'PDF', ...(input.fileId ? { fileId: String(input.fileId), size: Number(input.fileSize) || undefined } : {}) }
+      : undefined,
 });
 
 /** Address of a verified store: salacope.online/@handle (lower case, 3 to 30 characters). */

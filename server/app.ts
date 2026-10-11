@@ -8,5 +8,6 @@ import './routes/support.js';
 import './routes/lightpay.js';
 import './routes/admin.js';
 import './routes/share.js';
+import './routes/files.js';
 
 export { handle } from './http.js';

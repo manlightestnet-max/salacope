@@ -8,10 +8,7 @@ import { PLATFORM } from '@/shared/config/platform';
 import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb, fetchGallery } from '@/features/catalog';
 import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
-
-const FORMATS = ['PDF', 'ZIP', 'DOCX', 'XLSX', 'Vidéo', 'Accès en ligne'].map((f) => ({ value: f, label: f }));
-const FORMAT_BY_EXTENSION: Record<string, string> = { pdf: 'PDF', zip: 'ZIP', docx: 'DOCX', xlsx: 'XLSX', mp4: 'Vidéo' };
-const formatFromFileName = (name: string) => FORMAT_BY_EXTENSION[name.split('.').pop()?.toLowerCase() ?? ''];
+import { ProductFileField } from './ProductFileField';
 
 const REVISION_OPTIONS = Array.from({ length: PLATFORM.maxRevisions + 1 }, (_, n) => ({
   value: String(n),
@@ -50,6 +47,8 @@ const fromListing = (l?: Listing): ListingInput => ({
   briefQuestions: l?.briefQuestions ?? [],
   fileName: l?.file?.name ?? '',
   fileFormat: l?.file?.format ?? 'PDF',
+  fileId: l?.file?.fileId,
+  fileSize: l?.file?.size,
 });
 
 /** "12 / 120" next to a label; turns red past the limit. */
@@ -532,24 +531,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                 </Field>
               </>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Fichier livré" className="col-span-2">
-                  {(id) => (
-                    <Input
-                      id={id}
-                      placeholder="guide.pdf"
-                      value={form.fileName}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        setForm((f) => ({ ...f, fileName: name, fileFormat: formatFromFileName(name) ?? f.fileFormat }));
-                      }}
-                    />
-                  )}
-                </Field>
-                <Field label="Format">
-                  {(id) => <Select id={id} value={form.fileFormat ?? 'PDF'} options={FORMATS} onChange={(v) => set('fileFormat', v)} className="w-full" />}
-                </Field>
-              </div>
+              <ProductFileField form={form} setForm={setForm} listingId={listing?.id} />
             ))}
 
           {step === 3 && (

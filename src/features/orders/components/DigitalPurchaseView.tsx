@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowUpRight, CheckCircle2, Download, FileText, Flag, History, LucideIcon, MessageCircle, Receipt } from 'lucide-react';
-import { Button, ConfirmDialog, DescriptionList, Page, useToast } from '@/shared/ui';
+import { Button, ConfirmDialog, DescriptionList, Page } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
+import { downloadOrderFile } from '@/features/listings';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { COVER_FORMAT, KindBadge, ListingCover } from '@/features/catalog';
@@ -48,7 +49,6 @@ const OptionChip: React.FC<{ icon: LucideIcon; label: string; active?: boolean; 
  */
 export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> = ({ view, userId }) => {
   const { order, seller } = view;
-  const toast = useToast();
   const navigate = useNavigate();
   const unread = unreadCount(order, userId);
   const run = useServiceAction();
@@ -108,7 +108,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
               className="flex-1 sm:flex-none"
               disabled={!available}
               icon={<Download className="w-4 h-4" />}
-              onClick={() => toast.success('Démo : le fichier réel sera servi par le serveur de stockage.')}
+              onClick={() => run(() => downloadOrderFile(order.id))}
             >
               Télécharger
             </Button>

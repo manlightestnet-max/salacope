@@ -14,6 +14,7 @@ export interface AdminOverview {
   listings: number;
   orders: number;
   disputed: number;
+  tickets_open: number;
   volume: number;
   commission: number;
 }
@@ -101,6 +102,45 @@ export interface AdminBanner {
   updated_at: string;
 }
 
+export type StoragePurpose = 'image' | 'product' | 'chat' | 'kyc';
+
+/** What the admin may see of the storage settings: the keys only as their last four characters. */
+export interface AdminStorage {
+  keyReady: boolean;
+  configured: boolean;
+  accountId: string;
+  accessKey: string | null;
+  secretKey: string | null;
+  buckets: Partial<Record<StoragePurpose, { name: string; publicUrl?: string }>>;
+  usage: { purpose: StoragePurpose; files: number; bytes: number }[];
+}
+
+export type TicketFilter = 'open' | 'answered' | 'resolved' | 'all';
+
+export interface AdminTicketRow {
+  id: string;
+  number: string;
+  topic: 'payment' | 'order' | 'account' | 'other';
+  subject: string;
+  reference: string | null;
+  status: 'open' | 'answered' | 'resolved';
+  created_at: string;
+  updated_at: string;
+  name: string;
+  email: string;
+  last_message: string | null;
+  from_user: number;
+}
+
+export interface AdminTicketDetail {
+  ticket: Omit<AdminTicketRow, 'last_message' | 'from_user'> & { user_id: string; phone: string; blocked_at: string | null; store_name: string | null };
+  messages: { id: string; author_id: string | null; body: string; at: string }[];
+  context: {
+    attempt: { code: string; status: string; amount: number; channel: string; created_at: string } | null;
+    order: { number: string; status: string; total: number; title: string; created_at: string } | null;
+  } | null;
+}
+
 export type SellerFilter = 'all' | 'pending' | 'approved' | 'unverified' | 'suspended';
 
 const qs = (params: Record<string, string>) => new URLSearchParams(params).toString();
@@ -126,6 +166,23 @@ export const adminApi = {
   saveBanner: (position: number, input: { image?: string; title: string; link: string; active: boolean }) =>
     request<{ banners: AdminBanner[] }>('PUT', `/admin/banners/${position}`, input).then((r) => r.banners),
   removeBanner: (position: number) => request<{ banners: AdminBanner[] }>('DELETE', `/admin/banners/${position}`).then((r) => r.banners),
+  storage: () => request<{ storage: AdminStorage }>('GET', '/admin/storage').then((r) => r.storage),
+  saveStorage: (input: {
+    accountId: string;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    buckets: Record<string, { name: string; publicUrl?: string }>;
+  }) => request('PUT', '/admin/storage', input),
+  storageMigration: () => request<{ remaining: Record<string, number> }>('GET', '/admin/storage/migration').then((r) => r.remaining),
+  migrateStorage: () => request<{ migrated: number; failed: number; remaining: Record<string, number> }>('POST', '/admin/storage/migrate'),
+  testStorage: () =>
+    request<{ results: { purpose: StoragePurpose; ok: boolean; message: string }[] }>('POST', '/admin/storage/test').then((r) => r.results),
+  tickets: (filter: TicketFilter, q: string) =>
+    request<{ tickets: AdminTicketRow[]; counts: { open: number; answered: number } }>('GET', `/admin/tickets?${qs({ filter, q })}`),
+  ticket: (id: string) => request<AdminTicketDetail>('GET', `/admin/tickets/${encodeURIComponent(id)}`),
+  replyTicket: (id: string, body: string, resolve: boolean) =>
+    request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/reply`, { body, resolve }),
+  resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
   audit: () => request<{ log: AdminAuditRow[] }>('GET', '/admin/audit').then((r) => r.log),
 };
 
@@ -141,5 +198,9 @@ export const AUDIT_LABEL: Record<string, string> = {
   'user.block': 'Compte bloqué',
   'user.unblock': 'Compte débloqué',
   'banner.save': 'Emplacement publicitaire enregistré',
+  'storage.save': 'Stockage de fichiers configuré',
+  'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'ticket.reply': 'Réponse du support envoyée',
+  'ticket.resolve': 'Ticket résolu',
   'banner.remove': 'Emplacement publicitaire retiré',
 };

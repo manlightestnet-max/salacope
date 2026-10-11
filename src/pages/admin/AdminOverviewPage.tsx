@@ -11,7 +11,7 @@ export const AdminOverviewPage: React.FC = () => {
   const [o, log] = data ?? [];
 
   return (
-    <Page title="Administration" help="Tableau de bord de conformité de Salacope : vendeurs, vérifications d’identité, mesures prises.">
+    <Page title="Aperçu" help="Tableau de bord de conformité de Salacope : vendeurs, vérifications d’identité, mesures prises.">
       {error ? (
         <Panel>
           <EmptyState title="Données indisponibles" description={error} action={<Button onClick={reload}>Réessayer</Button>} />

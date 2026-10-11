@@ -5,7 +5,7 @@ import { isAdminHost } from '@/shared/config/hosts';
 import { RequireAdmin, RequireAuth, RequireMerchant } from '@/features/session';
 import { PublicLayout } from './layouts/PublicLayout';
 import { MinimalLayout } from './layouts/MinimalLayout';
-import { AppLayout } from './layouts/AppLayout';
+import { AdminLayout, AppLayout } from './layouts/AppLayout';
 import { LegalLayout } from './layouts/LegalLayout';
 
 import { HomePage } from '@/pages/public/HomePage';
@@ -166,8 +166,13 @@ export const router = createBrowserRouter([
               { path: ROUTES.seller.verification, element: <VerificationPage /> },
             ],
           },
+        ],
+      },
+      {
+        element: <RequireAdmin />,
+        children: [
           {
-            element: <RequireAdmin />,
+            element: <AdminLayout />,
             children: [
               { path: ROUTES.admin.root, element: <AdminOverviewPage /> },
               { path: ROUTES.admin.sellers, element: <AdminSellersPage /> },

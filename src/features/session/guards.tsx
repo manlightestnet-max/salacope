@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/shared/config/routes';
-import { ADMIN_HOST, isPublicHost } from '@/shared/config/hosts';
+import { ADMIN_HOST, isAdminHost, isPublicHost } from '@/shared/config/hosts';
 import { auth, guest } from '@/shared/api';
-import { useBooting } from '@/shared/ui';
+import { Button, EmptyState, useBooting } from '@/shared/ui';
 import { useSession } from './hooks';
 
 /** Redirects to sign-in, then back to the requested page. */
@@ -37,7 +37,25 @@ export const RequireAdmin: React.FC = () => {
     window.location.replace(`https://${ADMIN_HOST}${location.pathname}${location.search}`);
     return null;
   }
-  if (!user?.admin) return <Navigate to={ROUTES.account.explorer} replace />;
+  if (!user?.admin) {
+    // On the administration address there is no account area to fall back to.
+    if (isAdminHost()) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-surface px-4">
+          <EmptyState
+            title="Accès réservé"
+            description="Cette adresse est réservée à l’administration de Salacope."
+            action={
+              <Button variant="primary" onClick={() => window.location.assign('https://salacope.online')}>
+                Aller sur Salacope
+              </Button>
+            }
+          />
+        </div>
+      );
+    }
+    return <Navigate to={ROUTES.account.explorer} replace />;
+  }
   return <Outlet />;
 };
 

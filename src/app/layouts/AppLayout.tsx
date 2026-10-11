@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Compass,
   HardDrive,
@@ -32,6 +32,7 @@ import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, ThemeTo
 import { useDb } from '@/shared/db';
 import { shortcutLabel, useFocusShortcut, useTrackHistory, useVisualViewportHeight } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
+import { isAdminHost } from '@/shared/config/hosts';
 import { useCurrentUser } from '@/features/session';
 import { needsAction, useUnreadCount } from '@/features/orders';
 import { NotificationBell } from '@/features/notifications';
@@ -48,6 +49,9 @@ const readPinned = () => {
     return true;
   }
 };
+
+/** The back-office has two separate areas: the account (buy, sell) and the administration. They never share a menu. */
+type Area = 'account' | 'admin';
 
 interface NavItem {
   to: string;
@@ -115,7 +119,7 @@ const NavGroup: React.FC<{ title: string; collapsed: boolean; children: React.Re
 );
 
 /** Left menu content, shared by the pinned column, the icon rail and the mobile drawer. */
-const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ collapsed, onNavigate }) => {
+const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: Area }> = ({ collapsed, onNavigate, area }) => {
   const user = useCurrentUser();
   const counts = useDb(
     (s) => ({
@@ -160,34 +164,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             style={{ transform: `translate(${highlight.left}px, ${highlight.top}px)`, width: highlight.width, height: highlight.height }}
           />
         )}
-        <div className="space-y-0.5">
-          {item({ to: ROUTES.account.explorer, label: 'Explorer', icon: Compass })}
-          {item({ to: ROUTES.account.messages, label: 'Messages', icon: MessagesSquare, badge: unread })}
-        </div>
-
-        <NavGroup title="Achats" collapsed={collapsed}>
-          {item({ to: ROUTES.account.orders, label: 'Mes achats', icon: ShoppingBag, badge: counts.toValidate })}
-          {item({ to: ROUTES.account.favorites, label: 'Favoris', icon: Heart })}
-          {item({ to: ROUTES.account.following, label: 'Abonnements', icon: UserRound, badge: followUpdates.total })}
-        </NavGroup>
-
-        {user.merchant ? (
-          <NavGroup title={user.merchant.storeName} collapsed={collapsed}>
-            {item({ to: ROUTES.seller.root, label: "Vue d'ensemble", icon: LayoutDashboard, end: true })}
-            {item({ to: ROUTES.seller.sales, label: 'Ventes', icon: ReceiptText, badge: counts.toProcess })}
-            {item({ to: ROUTES.seller.listings, label: 'Offres', icon: Package })}
-            {item({ to: ROUTES.seller.customers, label: 'Clients', icon: Users })}
-            {item({ to: ROUTES.seller.payouts, label: 'Paiements', icon: Wallet })}
-            {user.merchant.kycStatus !== 'approved' &&
-              item({ to: ROUTES.seller.verification, label: 'Vérification', icon: UserCheck, badge: user.merchant.kycStatus === 'pending' ? undefined : 1 })}
-          </NavGroup>
-        ) : user.guest ? null : (
-          <NavGroup title="Vendre" collapsed={collapsed}>
-            {item({ to: ROUTES.account.openStore, label: 'Ouvrir ma boutique', icon: Store })}
-          </NavGroup>
-        )}
-
-        {user.admin && (
+        {area === 'admin' ? (
           <NavGroup title="Administration" collapsed={collapsed}>
             {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
             {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store })}
@@ -198,14 +175,51 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}
             {item({ to: ROUTES.admin.audit, label: 'Journal', icon: ScrollText })}
           </NavGroup>
+        ) : (
+          <>
+            <div className="space-y-0.5">
+            {item({ to: ROUTES.account.explorer, label: 'Explorer', icon: Compass })}
+            {item({ to: ROUTES.account.messages, label: 'Messages', icon: MessagesSquare, badge: unread })}
+          </div>
+
+          <NavGroup title="Achats" collapsed={collapsed}>
+            {item({ to: ROUTES.account.orders, label: 'Mes achats', icon: ShoppingBag, badge: counts.toValidate })}
+            {item({ to: ROUTES.account.favorites, label: 'Favoris', icon: Heart })}
+            {item({ to: ROUTES.account.following, label: 'Abonnements', icon: UserRound, badge: followUpdates.total })}
+          </NavGroup>
+
+          {user.merchant ? (
+            <NavGroup title={user.merchant.storeName} collapsed={collapsed}>
+              {item({ to: ROUTES.seller.root, label: "Vue d'ensemble", icon: LayoutDashboard, end: true })}
+              {item({ to: ROUTES.seller.sales, label: 'Ventes', icon: ReceiptText, badge: counts.toProcess })}
+              {item({ to: ROUTES.seller.listings, label: 'Offres', icon: Package })}
+              {item({ to: ROUTES.seller.customers, label: 'Clients', icon: Users })}
+              {item({ to: ROUTES.seller.payouts, label: 'Paiements', icon: Wallet })}
+              {user.merchant.kycStatus !== 'approved' &&
+                item({ to: ROUTES.seller.verification, label: 'Vérification', icon: UserCheck, badge: user.merchant.kycStatus === 'pending' ? undefined : 1 })}
+            </NavGroup>
+          ) : user.guest ? null : (
+            <NavGroup title="Vendre" collapsed={collapsed}>
+              {item({ to: ROUTES.account.openStore, label: 'Ouvrir ma boutique', icon: Store })}
+            </NavGroup>
+          )}
+          </>
         )}
       </nav>
-      <div className="px-2 py-2 border-t border-gray-200 space-y-0.5">
-        {item({ to: ROUTES.account.support, label: 'Support', icon: LifeBuoy, badge: answered }, false)}
-        {user.guest
-          ? item({ to: `${ROUTES.signIn}?creer=1`, label: 'Créer un compte', icon: UserPlus }, false)
-          : item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings }, false)}
-      </div>
+      {area === 'admin' ? (
+        !isAdminHost() && (
+          <div className="px-2 py-2 border-t border-gray-200">
+            {item({ to: ROUTES.account.explorer, label: 'Quitter l’administration', icon: Compass }, false)}
+          </div>
+        )
+      ) : (
+        <div className="px-2 py-2 border-t border-gray-200 space-y-0.5">
+          {item({ to: ROUTES.account.support, label: 'Support', icon: LifeBuoy, badge: answered }, false)}
+          {user.guest
+            ? item({ to: `${ROUTES.signIn}?creer=1`, label: 'Créer un compte', icon: UserPlus }, false)
+            : item({ to: ROUTES.account.settings, label: 'Paramètres', icon: Settings }, false)}
+        </div>
+      )}
     </div>
   );
 };
@@ -254,7 +268,7 @@ const TopBarSearch: React.FC = () => {
  * Back-office shell: fixed top bar and left menu, and a single scrolling pane on the right.
  * The menu can be pinned (labels) or reduced to an icon rail; the choice is remembered.
  */
-export const AppLayout: React.FC = () => {
+const Shell: React.FC<{ area: Area }> = ({ area }) => {
   useTrackHistory();
   useVisualViewportHeight();
   const user = useCurrentUser();
@@ -273,6 +287,7 @@ export const AppLayout: React.FC = () => {
 
   useEffect(() => setDrawerOpen(false), [pathname]);
 
+  const admin = area === 'admin';
   const PinIcon = pinned ? PanelLeftClose : PanelLeftOpen;
   return (
     <div className="flex flex-col overflow-hidden bg-surface" style={{ height: 'var(--vvh, 100dvh)' }}>
@@ -295,15 +310,15 @@ export const AppLayout: React.FC = () => {
         >
           <MenuIcon className="w-5 h-5" />
         </button>
-        <Logo to={ROUTES.account.explorer} className="shrink-0 hidden sm:flex" />
+        <Logo to={admin ? ROUTES.admin.root : ROUTES.account.explorer} className="shrink-0 hidden sm:flex" />
         <div className="flex-1 flex justify-center min-w-0">
-          {/* On the search screen the field lives in the page itself. */}
-          {pathname !== ROUTES.account.search && <TopBarSearch />}
+          {/* On the search screen the field lives in the page itself; the administration has no catalogue search. */}
+          {!admin && pathname !== ROUTES.account.search && <TopBarSearch />}
         </div>
         <div className="shrink-0 flex items-center gap-1">
-          <NotificationBell userId={user.id} />
+          {!admin && <NotificationBell userId={user.id} />}
           <ThemeToggle />
-          <UserMenu compact inApp />
+          <UserMenu compact inApp admin={admin} />
         </div>
       </header>
 
@@ -314,7 +329,7 @@ export const AppLayout: React.FC = () => {
             pinned ? 'w-56' : 'w-14'
           )}
         >
-          <SidebarNav collapsed={!pinned} onNavigate={() => {}} />
+          <SidebarNav area={area} collapsed={!pinned} onNavigate={() => {}} />
         </aside>
 
         {/* Always mounted so it can slide out as well as in; hidden from keyboard and screen readers while closed. */}
@@ -334,7 +349,7 @@ export const AppLayout: React.FC = () => {
             )}
           >
             <div className="h-12 shrink-0 px-3 flex items-center justify-between border-b border-gray-200">
-              <Logo to={ROUTES.account.explorer} />
+              <Logo to={admin ? ROUTES.admin.root : ROUTES.account.explorer} />
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
@@ -345,7 +360,7 @@ export const AppLayout: React.FC = () => {
               </button>
             </div>
             <div className="flex-1 min-h-0">
-              <SidebarNav collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+              <SidebarNav area={area} collapsed={false} onNavigate={() => setDrawerOpen(false)} />
             </div>
           </aside>
         </div>
@@ -361,3 +376,9 @@ export const AppLayout: React.FC = () => {
     </div>
   );
 };
+
+/** Buying and selling. On the administration address, nothing of it is reachable: it goes back to the administration. */
+export const AppLayout: React.FC = () => (isAdminHost() ? <Navigate to={ROUTES.admin.root} replace /> : <Shell area="account" />);
+
+/** The administration: its own menu and top bar, apart from the account. */
+export const AdminLayout: React.FC = () => <Shell area="admin" />;

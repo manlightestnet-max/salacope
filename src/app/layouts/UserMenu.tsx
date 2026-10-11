@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Compass, LayoutDashboard, LifeBuoy, LogIn, LogOut, Settings, UserPlus } from 'lucide-react';
+import { ChevronDown, Compass, LayoutDashboard, LifeBuoy, LogIn, LogOut, Settings, ShieldCheck, UserPlus } from 'lucide-react';
 import { Avatar, Menu, MenuItem } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
+import { ADMIN_HOST, isPublicHost } from '@/shared/config/hosts';
 import { signOut, useSession } from '@/features/session';
 
 /** Avatar dropdown. `inApp`: already inside the back-office, so no shortcut to it. */
-export const UserMenu: React.FC<{ compact?: boolean; inApp?: boolean }> = ({ compact = false, inApp = false }) => {
+export const UserMenu: React.FC<{ compact?: boolean; inApp?: boolean; admin?: boolean }> = ({ compact = false, inApp = false, admin = false }) => {
   const { user, isMerchant, isGuest } = useSession();
   const navigate = useNavigate();
   if (!user) return null;
@@ -54,10 +55,15 @@ export const UserMenu: React.FC<{ compact?: boolean; inApp?: boolean }> = ({ com
         </>
       }
       items={[
-        ...shortcuts,
-        { label: 'Support', to: ROUTES.account.support, icon: <LifeBuoy className="w-4 h-4" /> },
-        { label: 'Paramètres', to: ROUTES.account.settings, icon: <Settings className="w-4 h-4" /> },
-        'divider',
+        ...(admin
+          ? []
+          : [
+              ...shortcuts,
+              ...(user.admin ? [{ label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, onSelect: () => window.location.assign(isPublicHost() ? `https://${ADMIN_HOST}${ROUTES.admin.root}` : ROUTES.admin.root) }] : []),
+              { label: 'Support', to: ROUTES.account.support, icon: <LifeBuoy className="w-4 h-4" /> },
+              { label: 'Paramètres', to: ROUTES.account.settings, icon: <Settings className="w-4 h-4" /> },
+              'divider' as const,
+            ]),
         {
           label: 'Se déconnecter',
           icon: <LogOut className="w-4 h-4" />,

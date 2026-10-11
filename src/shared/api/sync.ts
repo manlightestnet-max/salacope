@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { Database, db, emptyDatabase } from '@/shared/db';
 import { PlatformSettings, applyPlatform } from '@/shared/config/platform';
+import { LaunchBannerSettings, applyLaunchBanner } from '@/shared/config/launchBanner';
 import { auth } from './auth';
 import { reportLockdown } from './lockdown';
 import { guest } from './guest';
@@ -29,6 +30,7 @@ interface BootstrapResponse {
   userId: string | null;
   catalogVersion?: string;
   platform?: PlatformSettings;
+  launchBanner?: LaunchBannerSettings;
   lockdown?: string;
   needsAccount: boolean;
   serverTime: string;
@@ -75,6 +77,7 @@ export async function boot(): Promise<void> {
     // A guest key nobody holds any more (taken over by an account): forget it.
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     applyPlatform(res.platform);
+    applyLaunchBanner(res.launchBanner);
     reportLockdown(res.lockdown);
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
@@ -101,13 +104,14 @@ export function refreshCatalog(force = false): Promise<void> {
   if (status !== 'ready') return Promise.resolve();
   if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
   if (catalogRequest) return catalogRequest;
-  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; launchBanner?: LaunchBannerSettings; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
     `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
   )
     .then((res) => {
       catalogAt = Date.now();
       applyPlatform(res.platform);
+      applyLaunchBanner(res.launchBanner);
       reportLockdown(res.lockdown);
       if (res.unchanged || !res.data) return;
       catalogVersion = res.version;

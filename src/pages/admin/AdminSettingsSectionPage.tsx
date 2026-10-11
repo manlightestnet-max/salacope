@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AdminSettings, adminApi, useAdminResource } from '@/features/admin';
 import { Button, EmptyState, Field, Input, Page, Panel, SkeletonRows, useToast } from '@/shared/ui';
 import { formatXaf } from '@/shared/lib';
+import { percent } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 
 const TITLES: Record<string, string> = { commission: 'Commission', delais: 'Délais de paiement du vendeur' };
@@ -51,19 +52,30 @@ const CommissionForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
   const [general, setGeneral] = useState(toPercent(s.feeRate));
   const [digital, setDigital] = useState(toPercent(s.feeRateDigital));
   const [service, setService] = useState(toPercent(s.feeRateService));
-  const example = 10_000;
-  const rate = (own: string) => (fromPercent(own) ?? fromPercent(general) ?? 0);
+  const [amount, setAmount] = useState('10000');
+  // Both kinds have their own rate: the general rate would never be used, so it is switched off.
+  const generalOff = digital.trim() !== '' && service.trim() !== '';
+  const rate = (own: string) => fromPercent(own) ?? fromPercent(general) ?? 0;
+  const base = Math.max(0, Number(amount.replace(/\s/g, '')) || 0);
+  const lines = [
+    { label: 'Produit numérique', own: digital },
+    { label: 'Service', own: service },
+  ].map((l) => {
+    const r = rate(l.own);
+    const fee = Math.round(base * r);
+    return { ...l, r, fee, net: base - fee };
+  });
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        save({ ...s, feeRate: fromPercent(general) ?? NaN, feeRateDigital: fromPercent(digital), feeRateService: fromPercent(service) });
+        save({ ...s, feeRate: fromPercent(general) ?? fromPercent(digital) ?? NaN, feeRateDigital: fromPercent(digital), feeRateService: fromPercent(service) });
       }}
     >
       <Panel title="Commission" description="Part retenue sur chaque vente, déduite du vendeur. 0 pendant un lancement.">
         <div className="space-y-4">
-          <Field label="Taux général (%)" hint="S’applique quand un type d’offre n’a pas son propre taux.">
-            {(id) => <Input id={id} inputMode="decimal" value={general} onChange={(e) => setGeneral(e.target.value)} placeholder="10" />}
+          <Field label="Taux général (%)" hint={generalOff ? 'Inactif : les produits numériques et les services ont chacun leur taux, il n’est plus compté.' : 'S’applique quand un type d’offre n’a pas son propre taux.'}>
+            {(id) => <Input id={id} inputMode="decimal" value={general} disabled={generalOff} onChange={(e) => setGeneral(e.target.value)} placeholder="10" className={generalOff ? 'opacity-50' : undefined} />}
           </Field>
           <Field label="Produits numériques (%)" optional hint="Laisse vide pour appliquer le taux général.">
             {(id) => <Input id={id} inputMode="decimal" value={digital} onChange={(e) => setDigital(e.target.value)} placeholder={general} />}
@@ -72,10 +84,29 @@ const CommissionForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
             {(id) => <Input id={id} inputMode="decimal" value={service} onChange={(e) => setService(e.target.value)} placeholder={general} />}
           </Field>
         </div>
-        <p className="mt-4 text-sm text-gray-500">
-          Pour une vente de {formatXaf(example)} : le vendeur reçoit {formatXaf(Math.round(example * (1 - rate(digital))))} sur un produit numérique et{' '}
-          {formatXaf(Math.round(example * (1 - rate(service))))} sur un service.
-        </p>
+
+        <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-gray-900">Simulation</p>
+            <label className="flex items-center gap-2 text-xs text-gray-500">
+              Prix de vente
+              <Input aria-label="Prix de vente simulé" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-28 h-8 text-right" />
+              FCFA
+            </label>
+          </div>
+          <dl className="mt-3 divide-y divide-gray-200 text-sm">
+            {lines.map((l) => (
+              <div key={l.label} className="py-2 flex flex-wrap items-baseline justify-between gap-x-4">
+                <dt className="text-gray-700">
+                  {l.label} <span className="text-gray-500">· {percent(l.r)}</span>
+                </dt>
+                <dd className="text-gray-900 tabular-nums">
+                  Commission {formatXaf(l.fee)} · vendeur reçoit <span className="font-medium">{formatXaf(l.net)}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
         <SaveBar error={error} busy={busy} />
       </Panel>
     </form>

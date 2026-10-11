@@ -8,7 +8,7 @@ import { newId } from '../ids.js';
 import { notify } from '../notify.js';
 import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
-import { currentPlatform, savePlatform } from '../settings.js';
+import { currentLaunchBanner, currentPlatform, saveLaunchBanner, savePlatform } from '../settings.js';
 import { SESSIONS_KEY, refreshLockdown, setSignedOutAll, signedOutAllState } from '../lockdown.js';
 import { signAttachments } from '../storage/attachments.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
@@ -841,4 +841,29 @@ route('GET', '/admin/sessions', async (ctx) => {
   await requireAdmin(ctx);
   await refreshLockdown();
   return { state: signedOutAllState() };
+});
+
+/** The notice above the header of the site: off, text, or text with a button. */
+route('GET', '/admin/launch-banner', async (ctx) => {
+  await requireAdmin(ctx);
+  return { banner: currentLaunchBanner() };
+});
+
+route('PUT', '/admin/launch-banner', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const enabled = ctx.body.enabled === true;
+  const style: 'text' | 'button' = ctx.body.style === 'button' ? 'button' : 'text';
+  const message = text(ctx.body.text, 160);
+  const secondary = text(ctx.body.secondary, 160);
+  const buttonLabel = text(ctx.body.buttonLabel, 30);
+  const buttonLink = String(ctx.body.buttonLink ?? '').trim().slice(0, 300);
+  if (enabled && !message) throw new DomainError('Écrivez le message de la bannière.');
+  if (style === 'button') {
+    if (!buttonLabel) throw new DomainError('Donnez un texte au bouton.');
+    if (!/^\/(?!\/)\S*$/.test(buttonLink) && !/^https:\/\/\S+$/.test(buttonLink)) throw new DomainError('Le lien du bouton est une page du site (/…) ou une adresse https://…');
+  }
+  const next = { enabled, style, text: message, secondary, buttonLabel: style === 'button' ? buttonLabel : '', buttonLink: style === 'button' ? buttonLink : '', audience: 'all' as const };
+  await saveLaunchBanner(next);
+  await tx(async (q) => audit(q, admin, 'launch.save', null, { enabled, style, text }));
+  return { banner: next };
 });

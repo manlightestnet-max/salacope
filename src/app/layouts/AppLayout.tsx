@@ -16,6 +16,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelTop,
   ReceiptText,
   ScrollText,
   Settings,
@@ -200,6 +201,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
             <NavGroup title="Plateforme" collapsed={collapsed}>
               {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
               {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
+              {item({ to: ROUTES.admin.launchBanner, label: 'Bannière', icon: PanelTop })}
               {item({ to: ROUTES.admin.security, label: 'Sécurité', icon: OctagonAlert })}
               {item({ to: ROUTES.admin.settings, label: 'Paramètres', icon: SlidersHorizontal })}
               {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}
@@ -362,7 +364,7 @@ const Shell: React.FC<{ area: Area }> = ({ area }) => {
   const PinIcon = pinned ? PanelLeftClose : PanelLeftOpen;
   return (
     <div className="flex flex-col overflow-hidden bg-surface" style={{ height: 'var(--vvh, 100dvh)' }}>
-      <LaunchBanner />
+      {area === 'account' && <LaunchBanner />}
       <LockdownBanner area={area} />
       <header className="shrink-0 h-12 border-b border-gray-200 bg-surface flex items-center gap-3 px-3 z-30">
         <button

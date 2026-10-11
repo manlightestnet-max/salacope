@@ -56,6 +56,7 @@ export const ROUTES = {
     banners: '/admin/publicite',
     storage: '/admin/stockage',
     storageSection: (section: string) => `/admin/stockage/${section}`,
+    launchBanner: '/admin/banniere',
     security: '/admin/securite',
     settings: '/admin/parametres',
     settingsSection: (section: string) => `/admin/parametres/${section}`,

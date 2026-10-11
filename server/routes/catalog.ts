@@ -1,5 +1,5 @@
 import { levelNow } from '../lockdown.js';
-import { currentPlatform } from '../settings.js';
+import { currentLaunchBanner, currentPlatform } from '../settings.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { ListingInput, listingFields, validateListing } from '../../src/shared/domain/listings.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
@@ -88,7 +88,9 @@ route('GET', '/catalog', async (ctx) => {
   const version = await catalogVersion(userId);
   const platform = currentPlatform();
   const lockdown = levelNow();
-  const answer = ctx.search.get('v') === version ? { unchanged: true, version, platform, lockdown } : { version, platform, lockdown, data: await loadCatalog(userId) };
+  const launchBanner = currentLaunchBanner();
+  const answer =
+    ctx.search.get('v') === version ? { unchanged: true, version, platform, launchBanner, lockdown } : { version, platform, launchBanner, lockdown, data: await loadCatalog(userId) };
   // Cached only for a visitor who asked for the shared copy (`?anon=1`: its own address, never one a signed-in person uses).
   return !userId && ctx.search.get('anon') === '1' ? publicJson(answer) : answer;
 });
@@ -115,6 +117,7 @@ route('GET', '/bootstrap', async (ctx) => {
     serverTime: new Date().toISOString(),
     catalogVersion: version,
     platform: currentPlatform(),
+    launchBanner: currentLaunchBanner(),
     lockdown: levelNow(),
     data: {
       ...catalog,

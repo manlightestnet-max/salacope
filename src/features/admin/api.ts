@@ -1,4 +1,5 @@
 import { request } from '@/shared/api';
+import type { LaunchBannerSettings } from '@/shared/config/launchBanner';
 import type { KycDocumentKind, KycIdType, KycStatus, RiskLevel } from '@/shared/domain';
 
 /** Salacope administration: raw rows from /api/admin/* (reserved to administrators). */
@@ -320,6 +321,8 @@ export const adminApi = {
   replyTicket: (id: string, body: string, resolve: boolean) =>
     request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/reply`, { body, resolve }),
   resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
+  launchBanner: () => request<{ banner: LaunchBannerSettings }>('GET', '/admin/launch-banner').then((r) => r.banner),
+  saveLaunchBanner: (input: LaunchBannerSettings) => request<{ banner: LaunchBannerSettings }>('PUT', '/admin/launch-banner', input).then((r) => r.banner),
   lockdown: () => request<AdminLockdown>('GET', '/admin/lockdown'),
   setLockdown: (level: string, reason: string, code: string) => request<AdminLockdown>('POST', '/admin/lockdown', { level, reason, code }),
   settings: () => request<{ settings: AdminSettings }>('GET', '/admin/settings').then((r) => r.settings),
@@ -354,6 +357,7 @@ export const AUDIT_LABEL: Record<string, string> = {
   'banner.save': 'Emplacement publicitaire enregistré',
   'storage.save': 'Stockage de fichiers configuré',
   'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'launch.save': 'Bannière du site modifiée',
   'lockdown.set': 'Verrou d’urgence modifié',
   'lockdown.denied': 'Levée du verrou refusée (code incorrect)',
   'settings.save': 'Commission et délais modifiés',

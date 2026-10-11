@@ -122,6 +122,7 @@ export const AdminBannersPage: React.FC = () => {
       toolbar={
         <Tabs
           bare
+          segmented
           value={String(position)}
           onChange={(v) => {
             const next = new URLSearchParams(params);

@@ -84,6 +84,8 @@ export interface Listing {
   /** Digital only. */
   file?: ListingFile;
   status: 'published' | 'draft';
+  /** Own offers only: set when Salacope hid the offer (it cannot be published again until restored). */
+  hiddenReason?: string;
   /** Last time it went online (followers are told about it). Older rows: `createdAt`. */
   publishedAt?: string;
   createdAt: string;

@@ -77,7 +77,18 @@ export interface AdminSellerDetail {
     blocked_reason: string | null;
   };
   submissions: AdminKycSubmission[];
-  listings: { id: string; title: string; category: string; price_xaf: number; status: 'published' | 'draft'; published_at: string | null; sales: number }[];
+  listings: {
+    id: string;
+    title: string;
+    kind: 'digital' | 'service';
+    category: string;
+    price_xaf: number;
+    status: 'published' | 'draft';
+    published_at: string | null;
+    hidden_at: string | null;
+    hidden_reason: string | null;
+    sales: number;
+  }[];
   stats: { orders: number; disputed: number; cancelled: number; volume: number; commission: number };
   log: AdminAuditRow[];
 }
@@ -274,12 +285,12 @@ export const adminApi = {
     request<{ dataUrl: string }>('GET', `/admin/kyc/${encodeURIComponent(submissionId)}/${kind}`).then((r) => r.dataUrl),
   decideKyc: (id: string, decision: 'approved' | 'rejected', note: string) =>
     request<AdminSellerDetail>('POST', `/admin/sellers/${encodeURIComponent(id)}/kyc`, { decision, note }),
-  editSeller: (id: string, input: { name: string; storeName: string; headline: string; city: string; risk: RiskLevel }) =>
-    request<AdminSellerDetail>('PATCH', `/admin/sellers/${encodeURIComponent(id)}`, input),
+  setRisk: (id: string, risk: RiskLevel) => request<AdminSellerDetail>('PATCH', `/admin/sellers/${encodeURIComponent(id)}`, { risk }),
   suspend: (id: string, reason: string) => request<AdminSellerDetail>('POST', `/admin/sellers/${encodeURIComponent(id)}/suspend`, { reason }),
   unsuspend: (id: string, note: string) => request<AdminSellerDetail>('POST', `/admin/sellers/${encodeURIComponent(id)}/unsuspend`, { note }),
-  unpublish: (listingId: string, reason: string) =>
-    request<AdminSellerDetail>('POST', `/admin/listings/${encodeURIComponent(listingId)}/unpublish`, { reason }),
+  hideListing: (listingId: string, reason: string) =>
+    request<AdminSellerDetail>('POST', `/admin/listings/${encodeURIComponent(listingId)}/hide`, { reason }),
+  restoreListing: (listingId: string) => request<AdminSellerDetail>('POST', `/admin/listings/${encodeURIComponent(listingId)}/restore`, {}),
   users: (filter: 'all' | 'blocked', q: string, offset = 0): Promise<PagedRows<AdminUserRow>> =>
     request<{ users: AdminUserRow[]; hasMore: boolean }>('GET', `/admin/users?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.users, hasMore: r.hasMore, extra: undefined })),
   user: (id: string) => request<AdminUserDetail>('GET', `/admin/users/${encodeURIComponent(id)}`),
@@ -333,6 +344,9 @@ export const AUDIT_LABEL: Record<string, string> = {
   'seller.suspend': 'Boutique suspendue',
   'seller.unsuspend': 'Boutique réactivée',
   'listing.unpublish': 'Offre retirée',
+  'listing.hide': 'Offre masquée',
+  'listing.restore': 'Offre rétablie',
+  'seller.risk': 'Niveau de risque modifié',
   'user.signout': 'Sessions fermées (déconnexion)',
   'sessions.signout_all': 'Tout le monde déconnecté',
   'user.block': 'Compte bloqué',

@@ -137,6 +137,7 @@ export const AdminTicketPage: React.FC = () => {
       toolbar={
         <Tabs
           bare
+          segmented
           value={view}
           onChange={goTo}
           items={[

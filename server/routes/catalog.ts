@@ -39,7 +39,8 @@ async function loadCatalog(userId: string | null) {
     loadUsers(userId),
     query(
       `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, cover_image, delivery_days,
-         revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count
+         revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count,
+         CASE WHEN seller_id = $1 THEN hidden_reason END AS hidden_reason
        FROM listings WHERE ${VISIBLE_LISTINGS}
        ORDER BY COALESCE(published_at, created_at) DESC`,
       [userId]
@@ -277,7 +278,11 @@ route('POST', '/listings/:id/status', async (ctx) => {
   const listing = await tx(async (q) => {
     const current = await ownedListing(q, ctx.params.id, sellerId);
     const goesOnline = status === 'published' && current.status !== 'published';
-    if (goesOnline) await requirePayouts(q, sellerId);
+    if (goesOnline) {
+      const [hidden] = await q('SELECT hidden_at, hidden_reason FROM listings WHERE id = $1', [ctx.params.id]);
+      if (hidden?.hidden_at) throw new DomainError(`Cette offre a été masquée par Salacope : ${hidden.hidden_reason}. Écrivez au support pour la faire rétablir.`, 403);
+      await requirePayouts(q, sellerId);
+    }
     await q(
       `UPDATE listings SET status = $2, updated_at = NOW(), published_at = CASE WHEN $3 THEN NOW() ELSE published_at END WHERE id = $1`,
       [ctx.params.id, status, goesOnline]

@@ -8,7 +8,6 @@ import {
   Dialog,
   EmptyState,
   Field,
-  Input,
   List,
   ListRow,
   Page,
@@ -22,6 +21,8 @@ import {
 } from '@/shared/ui';
 import { formatDate, formatDateTime, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
+import type { Category } from '@/shared/db';
+import { categoryLabel } from '@/features/catalog';
 import { KYC_DOCUMENTS, KYC_ID_TYPES, KYC_STATUS_LABEL, KycDocumentKind, KycStatus, RISK_LABEL, RiskLevel } from '@/shared/domain';
 import { AUDIT_LABEL, AdminKycSubmission, AdminSellerDetail, adminApi } from '../api';
 import { useAdminResource } from '../hooks';
@@ -109,7 +110,7 @@ const Submission: React.FC<{ s: AdminKycSubmission }> = ({ s }) => (
   </div>
 );
 
-type Action = 'approve' | 'reject' | 'suspend' | 'unsuspend' | 'block' | 'unblock' | 'signout' | { unpublish: { id: string; title: string } };
+type Action = 'approve' | 'reject' | 'suspend' | 'unsuspend' | 'block' | 'unblock' | 'signout' | { hide: { id: string; title: string } } | { restore: { id: string; title: string } };
 type View = 'resume' | 'identite' | 'boutique' | 'offres' | 'mesures' | 'journal';
 const VIEWS: View[] = ['resume', 'identite', 'boutique', 'offres', 'mesures', 'journal'];
 
@@ -119,15 +120,12 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const [action, setAction] = useState<Action | null>(null);
-  const [form, setForm] = useState({ name: '', storeName: '', headline: '', city: '', risk: 'low' as RiskLevel });
+  const [risk, setRisk] = useState<RiskLevel>('low');
   const [saving, setSaving] = useState(false);
   const back = { to: ROUTES.admin.sellers, label: 'Vendeurs' };
 
   useEffect(() => {
-    if (data) {
-      const s = data.seller;
-      setForm({ name: s.name, storeName: s.store_name, headline: s.headline, city: s.city, risk: s.risk });
-    }
+    if (data) setRisk(data.seller.risk);
   }, [data]);
 
   if (error && !data) {
@@ -160,7 +158,7 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      done('Boutique enregistrée.')(await adminApi.editSeller(id, form));
+      done('Niveau de risque enregistré.')(await adminApi.setRisk(id, risk));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -168,7 +166,8 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
     }
   };
 
-  const unpublishing = action && typeof action === 'object' ? action.unpublish : null;
+  const hiding = action && typeof action === 'object' && 'hide' in action ? action.hide : null;
+  const restoring = action && typeof action === 'object' && 'restore' in action ? action.restore : null;
 
   return (
     <Page
@@ -182,6 +181,7 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
       toolbar={
         <Tabs
           bare
+          segmented
           value={view}
           onChange={(v) => {
             const next = new URLSearchParams(params);
@@ -248,25 +248,26 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
       {view === 'boutique' && (
         <Panel
           title="Boutique"
+          description="Ces informations appartiennent au vendeur : vous ne pouvez que fixer le niveau de risque."
           bar={
             <div className="flex justify-end">
-              <Button type="submit" form={`seller-${id}`} variant="primary" loading={saving}>
+              <Button type="submit" form={`seller-${id}`} variant="primary" loading={saving} disabled={risk === seller.risk}>
                 Enregistrer
               </Button>
             </div>
           }
         >
-          <form id={`seller-${id}`} onSubmit={save} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Nom du vendeur">{(fid) => <Input id={fid} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />}</Field>
-            <Field label="Nom de la boutique">
-              {(fid) => <Input id={fid} value={form.storeName} onChange={(e) => setForm({ ...form, storeName: e.target.value })} />}
-            </Field>
-            <Field label="Accroche" className="sm:col-span-2">
-              {(fid) => <Input id={fid} value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} />}
-            </Field>
-            <Field label="Ville">{(fid) => <Input id={fid} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />}</Field>
+          <DescriptionList
+            items={[
+              { label: 'Nom du vendeur', value: seller.name },
+              { label: 'Nom de la boutique', value: seller.store_name },
+              { label: 'Accroche', value: seller.headline || '—' },
+              { label: 'Ville', value: seller.city || '—' },
+            ]}
+          />
+          <form id={`seller-${id}`} onSubmit={save} className="mt-5 max-w-sm">
             <Field label="Niveau de risque" hint="Faible : révision tous les 3 ans · Moyen : 2 ans · Élevé : chaque année.">
-              {(fid) => <Select id={fid} value={form.risk} options={RISKS} onChange={(risk) => setForm({ ...form, risk })} className="w-full" />}
+              {(fid) => <Select id={fid} value={risk} options={RISKS} onChange={setRisk} className="w-full" />}
             </Field>
           </form>
         </Panel>
@@ -275,20 +276,38 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
       {view === 'offres' && (
         <Panel title="Offres" count={listings.length} flush>
           {listings.length ? (
-            <List columns={{ main: 'Offre', meta: 'Statut', trailing: 'Prix' }}>
+            <List columns={{ main: 'Offre', meta: 'Étiquettes', trailing: 'Prix' }}>
               {listings.map((l) => (
                 <ListRow
                   key={l.id}
                   title={l.title}
-                  subtitle={plural(l.sales, 'vente')}
-                  meta={<Badge tone={l.status === 'published' ? 'success' : 'neutral'}>{l.status === 'published' ? 'En ligne' : 'Brouillon'}</Badge>}
+                  subtitle={l.hidden_reason ? `Masquée : ${l.hidden_reason}` : plural(l.sales, 'vente')}
+                  meta={
+                    <span className="flex flex-wrap gap-1">
+                      <Badge>{l.kind === 'digital' ? 'Produit numérique' : 'Service'}</Badge>
+                      <Badge>{categoryLabel(l.category as Category)}</Badge>
+                      {l.hidden_at ? (
+                        <Badge tone="danger" dot>
+                          Masquée par Salacope
+                        </Badge>
+                      ) : (
+                        <Badge tone={l.status === 'published' ? 'success' : 'neutral'} dot>
+                          {l.status === 'published' ? 'En ligne' : 'Brouillon'}
+                        </Badge>
+                      )}
+                    </span>
+                  }
                   trailing={<span className="text-sm font-medium text-gray-900">{formatXaf(l.price_xaf)}</span>}
                   actions={
-                    l.status === 'published' ? (
-                      <Button size="sm" variant="ghost" onClick={() => setAction({ unpublish: { id: l.id, title: l.title } })}>
-                        Retirer
+                    l.hidden_at ? (
+                      <Button size="sm" variant="ghost" onClick={() => setAction({ restore: { id: l.id, title: l.title } })}>
+                        Rétablir
                       </Button>
-                    ) : undefined
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => setAction({ hide: { id: l.id, title: l.title } })}>
+                        Masquer
+                      </Button>
+                    )
                   }
                 />
               ))}
@@ -416,14 +435,24 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
         }}
       />
       <ReasonDialog
-        open={Boolean(unpublishing)}
+        open={Boolean(hiding)}
         onClose={() => setAction(null)}
-        title="Retirer l’offre"
-        description={unpublishing?.title}
-        label="Message au vendeur"
+        title="Masquer l’offre"
+        description={`${hiding?.title ?? ''} — elle disparaît du catalogue et le vendeur ne peut pas la republier tant que vous ne l’avez pas rétablie.`}
+        label="Raison (visible par le vendeur)"
         danger
-        confirmLabel="Retirer"
-        onConfirm={async (reason) => done('Offre retirée.')(await adminApi.unpublish(unpublishing!.id, reason))}
+        confirmLabel="Masquer"
+        onConfirm={async (reason) => done('Offre masquée.')(await adminApi.hideListing(hiding!.id, reason))}
+      />
+      <ReasonDialog
+        open={Boolean(restoring)}
+        onClose={() => setAction(null)}
+        title="Rétablir l’offre"
+        description={`${restoring?.title ?? ''} — le vendeur pourra la publier de nouveau.`}
+        label="Note"
+        optional
+        confirmLabel="Rétablir"
+        onConfirm={async () => done('Offre rétablie.')(await adminApi.restoreListing(restoring!.id))}
       />
     </Page>
   );

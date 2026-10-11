@@ -153,6 +153,7 @@ export const AdminOverviewPage: React.FC = () => {
       toolbar={
         <Tabs
           bare
+          segmented
           value={view}
           onChange={(v) => {
             const next = new URLSearchParams(params);

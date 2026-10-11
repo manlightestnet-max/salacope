@@ -93,9 +93,15 @@ export const ListingsPage: React.FC = () => {
                       .filter(Boolean)
                       .join(' · ')}
                     meta={
-                      <Badge tone={published ? 'success' : 'neutral'} dot>
-                        {published ? 'En ligne' : 'Brouillon'}
-                      </Badge>
+                      listing.hiddenReason ? (
+                        <Badge tone="danger" dot>
+                          Masquée par Salacope
+                        </Badge>
+                      ) : (
+                        <Badge tone={published ? 'success' : 'neutral'} dot>
+                          {published ? 'En ligne' : 'Brouillon'}
+                        </Badge>
+                      )
                     }
                     trailing={
                       <span className="flex flex-col items-end gap-0.5">
@@ -108,14 +114,14 @@ export const ListingsPage: React.FC = () => {
                         items={[
                           { label: 'Modifier', to: ROUTES.seller.listing(listing.id) },
                           ...(published ? [{ label: 'Voir dans le catalogue', to: ROUTES.account.offer(listing.id) }] : []),
-                          {
+                          ...(listing.hiddenReason ? [] : [{
                             label: published ? 'Dépublier' : 'Publier',
                             onSelect: () =>
                               run(
                                 () => setListingStatus(listing.id, published ? 'draft' : 'published'),
                                 published ? 'Offre dépubliée' : 'Offre publiée'
                               ),
-                          },
+                          }]),
                           'divider',
                           { label: 'Supprimer', danger: true, onSelect: () => setToDelete(m) },
                         ]}

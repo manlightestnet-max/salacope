@@ -100,7 +100,7 @@ async function sellerDetail(id: string) {
       [id]
     ),
     query(
-      `SELECT l.id, l.title, l.category, l.price_xaf, l.status, l.published_at,
+      `SELECT l.id, l.title, l.kind, l.category, l.price_xaf, l.status, l.published_at, l.hidden_at, l.hidden_reason,
          (SELECT COUNT(*) FROM orders o WHERE o.listing_id = l.id AND o.status <> 'cancelled') AS sales
        FROM listings l WHERE l.seller_id = $1 ORDER BY l.created_at DESC`,
       [id]
@@ -182,23 +182,17 @@ route('POST', '/admin/sellers/:id/kyc', async (ctx) => {
 
 const RISKS: RiskLevel[] = ['low', 'medium', 'high'];
 
+/** The administration sets the risk level only: name, store, tagline and city are the seller's own. */
 route('PATCH', '/admin/sellers/:id', async (ctx) => {
   const admin = await requireAdmin(ctx);
   const id = ctx.params.id;
-  const name = text(ctx.body.name, 80);
-  const storeName = text(ctx.body.storeName, 60);
-  if (!name || !storeName) throw new DomainError('Le nom et le nom de la boutique sont obligatoires.');
-  const headline = text(ctx.body.headline, 140);
-  const city = text(ctx.body.city, 60);
-  const risk: RiskLevel = RISKS.includes(ctx.body.risk) ? ctx.body.risk : 'low';
+  if (!RISKS.includes(ctx.body.risk)) throw new DomainError('Niveau de risque inconnu.');
+  const risk: RiskLevel = ctx.body.risk;
   await tx(async (q) => {
-    const [before] = await q('SELECT u.name, m.store_name, m.headline, m.city, m.risk FROM merchants m JOIN users u ON u.id = m.user_id WHERE m.user_id = $1 FOR UPDATE', [id]);
+    const [before] = await q('SELECT risk FROM merchants WHERE user_id = $1 FOR UPDATE', [id]);
     if (!before) throw new DomainError('Vendeur introuvable.', 404);
-    const [taken] = await q('SELECT 1 FROM merchants WHERE LOWER(store_name) = LOWER($1) AND user_id <> $2', [storeName, id]);
-    if (taken) throw new DomainError('Ce nom de boutique est déjà pris.', 409);
-    await q('UPDATE users SET name = $2, updated_at = NOW() WHERE id = $1', [id, name]);
-    await q('UPDATE merchants SET store_name = $2, headline = $3, city = $4, risk = $5 WHERE user_id = $1', [id, storeName, headline, city, risk]);
-    await audit(q, admin, 'seller.edit', id, { before, after: { name, store_name: storeName, headline, city, risk } });
+    await q('UPDATE merchants SET risk = $2 WHERE user_id = $1', [id, risk]);
+    await audit(q, admin, 'seller.risk', id, { before: before.risk, after: risk });
   });
   return sellerDetail(id);
 });
@@ -231,17 +225,31 @@ route('POST', '/admin/sellers/:id/unsuspend', async (ctx) => {
   return sellerDetail(ctx.params.id);
 });
 
-/** Takes an offer offline (prohibited content, rights, fraud). The seller is told why. */
-route('POST', '/admin/listings/:id/unpublish', async (ctx) => {
+/** Hides an offer (prohibited content, rights, fraud): off the catalogue and not publishable again until restored. The seller is told why. */
+route('POST', '/admin/listings/:id/hide', async (ctx) => {
   const admin = await requireAdmin(ctx);
   const reason = reasonOf(ctx.body.reason);
   const sellerId = await tx(async (q) => {
-    const [l] = await q("UPDATE listings SET status = 'draft', updated_at = NOW() WHERE id = $1 AND status = 'published' RETURNING seller_id, title", [
+    const [l] = await q("UPDATE listings SET status = 'draft', hidden_at = NOW(), hidden_reason = $2, updated_at = NOW() WHERE id = $1 AND hidden_at IS NULL RETURNING seller_id, title", [
       ctx.params.id,
+      reason,
     ]);
-    if (!l) throw new DomainError('Cette offre n’est pas en ligne.', 409);
-    await audit(q, admin, 'listing.unpublish', l.seller_id, { listing: ctx.params.id, title: l.title, reason });
-    await notify(q, [{ userId: l.seller_id, title: `Offre retirée : ${l.title}`, body: reason, href: ROUTES.seller.listing(ctx.params.id) }]);
+    if (!l) throw new DomainError('Cette offre est déjà masquée.', 409);
+    await audit(q, admin, 'listing.hide', l.seller_id, { listing: ctx.params.id, title: l.title, reason });
+    await notify(q, [{ userId: l.seller_id, title: `Offre masquée par Salacope : ${l.title}`, body: reason, href: ROUTES.seller.listing(ctx.params.id) }]);
+    return l.seller_id as string;
+  });
+  return sellerDetail(sellerId);
+});
+
+/** Lifts the hiding: the seller can publish the offer again themselves. */
+route('POST', '/admin/listings/:id/restore', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const sellerId = await tx(async (q) => {
+    const [l] = await q('UPDATE listings SET hidden_at = NULL, hidden_reason = NULL, updated_at = NOW() WHERE id = $1 AND hidden_at IS NOT NULL RETURNING seller_id, title', [ctx.params.id]);
+    if (!l) throw new DomainError('Cette offre n’est pas masquée.', 409);
+    await audit(q, admin, 'listing.restore', l.seller_id, { listing: ctx.params.id, title: l.title, note: text(ctx.body.note, 300) });
+    await notify(q, [{ userId: l.seller_id, title: `Offre rétablie : ${l.title}`, body: 'Vous pouvez la publier de nouveau.', href: ROUTES.seller.listing(ctx.params.id) }]);
     return l.seller_id as string;
   });
   return sellerDetail(sellerId);

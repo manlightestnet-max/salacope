@@ -67,6 +67,7 @@ export const listingView = (r: any): Listing => ({
   briefQuestions: opt(r.brief_questions),
   file: opt(r.file),
   status: r.status,
+  hiddenReason: opt(r.hidden_reason),
   publishedAt: opt(r.published_at),
   createdAt: r.created_at,
   updatedAt: r.updated_at,

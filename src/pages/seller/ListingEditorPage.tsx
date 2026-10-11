@@ -38,9 +38,15 @@ export const ListingEditorPage: React.FC = () => {
       meta={
         listing && (
           <span className="ml-2">
-            <Badge tone={published ? 'success' : 'neutral'} dot>
-              {published ? 'En ligne' : 'Brouillon'}
-            </Badge>
+            {listing?.hiddenReason ? (
+              <Badge tone="danger" dot>
+                Masquée par Salacope
+              </Badge>
+            ) : (
+              <Badge tone={published ? 'success' : 'neutral'} dot>
+                {published ? 'En ligne' : 'Brouillon'}
+              </Badge>
+            )}
           </span>
         )
       }
@@ -59,6 +65,8 @@ export const ListingEditorPage: React.FC = () => {
             )}
             <Button
               size="sm"
+              disabled={Boolean(listing?.hiddenReason)}
+              title={listing?.hiddenReason ? `Masquée par Salacope : ${listing.hiddenReason}` : undefined}
               onClick={() =>
                 run(() => setListingStatus(listing!.id, published ? 'draft' : 'published'), published ? 'Offre dépubliée' : 'Offre publiée')
               }

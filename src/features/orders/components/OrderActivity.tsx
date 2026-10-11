@@ -43,6 +43,8 @@ const EVENT_STYLE: Record<OrderEventType, { icon: LucideIcon; tone: Tone }> = {
   completed: { icon: CheckCircle2, tone: 'success' },
   auto_completed: { icon: CheckCircle2, tone: 'success' },
   cancelled: { icon: XCircle, tone: 'neutral' },
+  funds_released: { icon: CheckCircle2, tone: 'success' },
+  funds_refunded: { icon: XCircle, tone: 'neutral' },
   disputed: { icon: AlertTriangle, tone: 'danger' },
   revision_requested: { icon: RotateCcw, tone: 'warning' },
   extension_requested: { icon: CalendarClock, tone: 'warning' },

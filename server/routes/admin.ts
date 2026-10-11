@@ -6,6 +6,7 @@ import { query, tx } from '../db.js';
 import { route } from '../http.js';
 import { newId } from '../ids.js';
 import { notify } from '../notify.js';
+import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
@@ -39,6 +40,8 @@ route('GET', '/admin/overview', async (ctx) => {
     (SELECT COUNT(*) FROM orders WHERE status <> 'cancelled') AS orders,
     (SELECT COUNT(*) FROM orders WHERE status = 'disputed') AS disputed,
     (SELECT COUNT(*) FROM tickets WHERE status = 'open') AS tickets_open,
+    (SELECT COUNT(*) FROM orders WHERE status IN ('paid', 'in_progress', 'delivered', 'disputed') AND lightpay_hold_id IS NOT NULL) AS held,
+    (SELECT COALESCE(SUM((amounts->>'total')::bigint), 0) FROM orders WHERE status IN ('paid', 'in_progress', 'delivered', 'disputed') AND lightpay_hold_id IS NOT NULL) AS held_total,
     (SELECT COALESCE(SUM((amounts->>'total')::bigint), 0) FROM orders WHERE status <> 'cancelled') AS volume,
     (SELECT COALESCE(SUM((amounts->>'fee')::bigint), 0) FROM orders WHERE status = 'completed') AS commission`);
   return { overview: row };
@@ -482,7 +485,8 @@ async function ticketDetail(id: string) {
   if (ticket.reference) {
     const [attempt] = await query('SELECT id, code, status, amount, channel, created_at FROM payment_attempts WHERE code = $1', [ticket.reference]);
     const [order] = await query(
-      `SELECT o.number, o.status, (o.amounts->>'total')::bigint AS total, o.item->>'title' AS title, o.created_at
+      `SELECT o.id, o.number, o.status, (o.amounts->>'total')::bigint AS total, o.item->>'title' AS title, o.created_at,
+         (o.status IN ('paid', 'in_progress', 'delivered', 'disputed') AND o.lightpay_hold_id IS NOT NULL) AS held
        FROM orders o WHERE o.number = $1 OR o.attempt_id = $2`,
       [ticket.reference, attempt?.id ?? null]
     );
@@ -523,3 +527,102 @@ route('POST', '/admin/tickets/:id/resolve', async (ctx) => {
   });
   return ticketDetail(ctx.params.id);
 });
+
+/**
+ * Blocked funds: every payment held in escrow on LightPay (paid, in progress, delivered, disputed) until the buyer validates.
+ * The administration can pay the seller or refund the buyer, which is how a dispute ends.
+ */
+const HELD = "o.status IN ('paid', 'in_progress', 'delivered', 'disputed') AND o.lightpay_hold_id IS NOT NULL";
+
+route('GET', '/admin/funds', async (ctx) => {
+  await requireAdmin(ctx);
+  const filter = ctx.search.get('filter') ?? 'disputed';
+  const where = { disputed: "o.status = 'disputed'", waiting: "o.status <> 'disputed'" }[filter] ?? 'TRUE';
+  const q = text(ctx.search.get('q'), 80);
+  const rows = await query(
+    `SELECT o.id, o.number, o.status, o.item->>'title' AS title, o.item->>'kind' AS kind, (o.amounts->>'total')::bigint AS total,
+       (o.amounts->>'fee')::bigint AS fee, (o.amounts->>'net')::bigint AS net, o.release_at, o.created_at, o.updated_at,
+       o.buyer->>'name' AS buyer_name, COALESCE(m.store_name, s.name) AS seller_name,
+       (SELECT COUNT(*)::int FROM tickets t WHERE t.reference = o.number AND t.status <> 'resolved') AS open_tickets
+     FROM orders o JOIN users s ON s.id = o.seller_id LEFT JOIN merchants m ON m.user_id = o.seller_id
+     WHERE ${HELD} AND ${where}
+       AND ($1 = '' OR o.number ILIKE $2 OR o.item->>'title' ILIKE $2 OR s.name ILIKE $2 OR m.store_name ILIKE $2 OR o.buyer->>'name' ILIKE $2)
+     ORDER BY (o.status = 'disputed') DESC, o.updated_at ASC LIMIT 300`,
+    [q, like(q)]
+  );
+  const [totals] = await query(
+    `SELECT COUNT(*)::int AS held, COALESCE(SUM((o.amounts->>'total')::bigint), 0) AS held_total,
+       COUNT(*) FILTER (WHERE o.status = 'disputed')::int AS disputed,
+       COALESCE(SUM((o.amounts->>'total')::bigint) FILTER (WHERE o.status = 'disputed'), 0) AS disputed_total
+     FROM orders o WHERE ${HELD}`
+  );
+  return { funds: rows, totals };
+});
+
+async function fundDetail(orderId: string) {
+  const [order] = await query(
+    `SELECT o.id, o.number, o.status, o.item, o.amounts, o.release_at, o.due_at, o.created_at, o.updated_at, o.delivery->>'note' AS delivery_note,
+       o.buyer_id, o.seller_id, o.buyer->>'name' AS buyer_name, bu.email AS buyer_email, su.name AS seller_name, su.email AS seller_email, m.store_name,
+       (${HELD}) AS held, o.payment->>'via' AS via
+     FROM orders o JOIN users su ON su.id = o.seller_id JOIN users bu ON bu.id = o.buyer_id LEFT JOIN merchants m ON m.user_id = o.seller_id
+     WHERE o.id = $1`,
+    [orderId]
+  );
+  if (!order) throw new DomainError('Commande introuvable.', 404);
+  const [events, messages, tickets] = await Promise.all([
+    query('SELECT id, type, actor_id, note, at FROM order_events WHERE order_id = $1 ORDER BY at, id', [orderId]),
+    query(
+      `SELECT m.id, m.author_id, m.body, m.at, jsonb_array_length(m.attachments)::int AS files, u.name
+       FROM order_messages m JOIN users u ON u.id = m.author_id WHERE m.order_id = $1 ORDER BY m.at DESC LIMIT 60`,
+      [orderId]
+    ),
+    query('SELECT id, number, subject, status FROM tickets WHERE reference = $1 ORDER BY created_at DESC', [order.number]),
+  ]);
+  return { order, events, messages: messages.reverse(), tickets };
+}
+
+route('GET', '/admin/funds/:id', async (ctx) => {
+  await requireAdmin(ctx);
+  return fundDetail(ctx.params.id);
+});
+
+/** Ends the hold: `release` pays the seller (net of commission), `refund` gives the buyer their money back. Both are logged and notified. */
+const settleFunds = (decision: 'release' | 'refund') =>
+  route('POST', `/admin/funds/:id/${decision}`, async (ctx) => {
+    const admin = await requireAdmin(ctx);
+    const reason = reasonOf(ctx.body.reason);
+    await tx(async (q) => {
+      const [row] = await q<OrderRow>(`SELECT o.* FROM orders o WHERE o.id = $1 AND ${HELD} FOR UPDATE`, [ctx.params.id]);
+      if (!row) throw new DomainError('Ces fonds ne sont plus bloqués : la commande est déjà clôturée.', 409);
+      const dispute = row.status === 'disputed';
+      // LightPay moves the money first: if it refuses, nothing changes here.
+      if (decision === 'release') await captureFunds(row, dispute);
+      else await refundFunds(row, dispute);
+      await transition(q, row, {
+        status: decision === 'release' ? 'completed' : 'cancelled',
+        event: decision === 'release' ? 'funds_released' : 'funds_refunded',
+        actorId: null,
+        note: reason,
+        set: { release_at: null },
+        notices:
+          decision === 'release'
+            ? [
+                toSeller(row, `Paiement libéré · ${row.number}`, `+${formatXaf(row.amounts.net)} sur votre wallet LightPay. ${reason}`),
+                toBuyer(row, `Décision sur ${row.number}`, `Les fonds sont versés au vendeur. ${reason}`),
+              ]
+            : [
+                toBuyer(row, `Remboursement · ${row.number}`, `Vous êtes remboursé de ${formatXaf(row.amounts.total)}. ${reason}`),
+                toSeller(row, `Commande ${row.number} remboursée au client`, reason),
+              ],
+      });
+      await audit(q, admin, decision === 'release' ? 'funds.release' : 'funds.refund', decision === 'release' ? row.seller_id : row.buyer_id, {
+        order: row.number,
+        amount: row.amounts.total,
+        dispute,
+        reason,
+      });
+    });
+    return fundDetail(ctx.params.id);
+  });
+settleFunds('release');
+settleFunds('refund');

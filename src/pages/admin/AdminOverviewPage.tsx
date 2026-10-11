@@ -22,10 +22,10 @@ export const AdminOverviewPage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <Panel title="Vendeurs et comptes">
-            <StatGrid>
+          <Panel title="À traiter">
+            <StatGrid columns={3}>
               <Stat
-                label="À examiner"
+                label="Identités à examiner"
                 value={o.kyc_pending}
                 emphasis={o.kyc_pending > 0}
                 help="Vendeurs qui attendent la vérification de leur identité."
@@ -46,6 +46,21 @@ export const AdminOverviewPage: React.FC = () => {
                   </Link>
                 }
               />
+              <Stat
+                label="Fonds bloqués"
+                value={formatXaf(o.held_total)}
+                emphasis={o.disputed > 0}
+                help="Paiements gardés en séquestre sur LightPay jusqu’à la validation de la commande."
+                hint={
+                  <Link to={ROUTES.admin.funds} className="hover:text-gray-900">
+                    {o.disputed ? `${o.disputed} en litige →` : `${formatNumber(o.held)} commande${o.held > 1 ? 's' : ''} →`}
+                  </Link>
+                }
+              />
+            </StatGrid>
+          </Panel>
+          <Panel title="Vendeurs et comptes">
+            <StatGrid columns={3}>
               <Stat label="Vendeurs" value={formatNumber(o.sellers)} hint={`${formatNumber(o.kyc_approved)} vérifiés`} />
               <Stat label="Comptes" value={formatNumber(o.accounts)} hint={`+ ${formatNumber(o.guests)} achats sans compte`} />
               <Stat

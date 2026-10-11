@@ -45,7 +45,10 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminBannersPage } from '@/pages/admin/AdminBannersPage';
 import { AdminStoragePage } from '@/pages/admin/AdminStoragePage';
+import { AdminStorageSectionPage } from '@/pages/admin/AdminStorageSectionPage';
 import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
+import { AdminFundsPage } from '@/pages/admin/AdminFundsPage';
+import { AdminFundPage } from '@/pages/admin/AdminFundPage';
 import { AdminTicketPage } from '@/pages/admin/AdminTicketPage';
 
 const NotFound = () => (
@@ -173,6 +176,9 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.audit, element: <AdminAuditPage /> },
               { path: ROUTES.admin.banners, element: <AdminBannersPage /> },
               { path: ROUTES.admin.storage, element: <AdminStoragePage /> },
+              { path: '/admin/stockage/:section', element: <AdminStorageSectionPage /> },
+              { path: ROUTES.admin.funds, element: <AdminFundsPage /> },
+              { path: '/admin/fonds/:id', element: <AdminFundPage /> },
               { path: ROUTES.admin.support, element: <AdminSupportPage /> },
               { path: '/admin/support/:id', element: <AdminTicketPage /> },
             ],

@@ -7,6 +7,7 @@ import {
   Heart,
   LayoutDashboard,
   LifeBuoy,
+  Lock,
   LucideIcon,
   Megaphone,
   Menu as MenuIcon,
@@ -191,6 +192,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void }> = ({ 
             {item({ to: ROUTES.admin.root, label: 'Aperçu', icon: ShieldCheck, end: true })}
             {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store })}
             {item({ to: ROUTES.admin.users, label: 'Comptes', icon: Users })}
+            {item({ to: ROUTES.admin.funds, label: 'Fonds bloqués', icon: Lock })}
             {item({ to: ROUTES.admin.support, label: 'Support', icon: LifeBuoy })}
             {item({ to: ROUTES.admin.banners, label: 'Publicité', icon: Megaphone })}
             {item({ to: ROUTES.admin.storage, label: 'Stockage', icon: HardDrive })}

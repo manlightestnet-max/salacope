@@ -8,7 +8,7 @@ const STEPS: { label: string; events: OrderEventType[] }[] = [
   { label: 'Payée', events: ['paid'] },
   { label: 'Acceptée', events: ['accepted'] },
   { label: 'Livrée', events: ['delivered'] },
-  { label: 'Terminée', events: ['completed', 'auto_completed'] },
+  { label: 'Terminée', events: ['completed', 'auto_completed', 'funds_released'] },
 ];
 
 const REACHED: Record<Order['status'], number> = {

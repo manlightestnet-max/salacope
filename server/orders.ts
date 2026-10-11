@@ -138,9 +138,9 @@ const requireHold = (row: OrderRow) => {
 };
 
 /** The buyer validates (or the window passed): LightPay pays the seller. */
-export const captureFunds = (row: OrderRow) => lightpay.capture(requireHold(row), `salacope:capture:${row.id}`);
+export const captureFunds = (row: OrderRow, resolveDispute = false) => lightpay.capture(requireHold(row), `salacope:capture:${row.id}`, resolveDispute);
 /** Cancelled: LightPay refunds the buyer (to their wallet, or to the number that paid). */
-export const refundFunds = (row: OrderRow) => lightpay.release(requireHold(row), `salacope:release:${row.id}`);
+export const refundFunds = (row: OrderRow, resolveDispute = false) => lightpay.release(requireHold(row), `salacope:release:${row.id}`, resolveDispute);
 export const freezeFunds = (row: OrderRow, reason: string) => lightpay.dispute(requireHold(row), reason);
 
 /**

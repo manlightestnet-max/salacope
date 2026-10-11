@@ -15,6 +15,8 @@ export interface AdminOverview {
   orders: number;
   disputed: number;
   tickets_open: number;
+  held: number;
+  held_total: number;
   volume: number;
   commission: number;
 }
@@ -137,8 +139,61 @@ export interface AdminTicketDetail {
   messages: { id: string; author_id: string | null; body: string; at: string }[];
   context: {
     attempt: { code: string; status: string; amount: number; channel: string; created_at: string } | null;
-    order: { number: string; status: string; total: number; title: string; created_at: string } | null;
+    order: { id: string; number: string; status: string; total: number; title: string; created_at: string; held: boolean } | null;
   } | null;
+}
+
+export type FundFilter = 'disputed' | 'waiting' | 'all';
+
+export interface AdminFundRow {
+  id: string;
+  number: string;
+  status: 'paid' | 'in_progress' | 'delivered' | 'disputed';
+  title: string;
+  kind: 'digital' | 'service' | string;
+  total: number;
+  fee: number;
+  net: number;
+  release_at: string | null;
+  created_at: string;
+  updated_at: string;
+  buyer_name: string;
+  seller_name: string;
+  open_tickets: number;
+}
+
+export interface AdminFundTotals {
+  held: number;
+  held_total: number;
+  disputed: number;
+  disputed_total: number;
+}
+
+export interface AdminFundDetail {
+  order: {
+    id: string;
+    number: string;
+    status: 'paid' | 'in_progress' | 'delivered' | 'completed' | 'cancelled' | 'disputed';
+    item: { title: string; kind: string };
+    amounts: { subtotal: number; discount: number; total: number; fee: number; net: number };
+    release_at: string | null;
+    due_at: string | null;
+    created_at: string;
+    updated_at: string;
+    delivery_note: string | null;
+    buyer_id: string;
+    seller_id: string;
+    buyer_name: string;
+    buyer_email: string;
+    seller_name: string;
+    seller_email: string;
+    store_name: string | null;
+    held: boolean;
+    via: string | null;
+  };
+  events: { id: string; type: string; actor_id: string | null; note: string | null; at: string }[];
+  messages: { id: string; author_id: string; name: string; body: string; at: string; files: number }[];
+  tickets: { id: string; number: string; subject: string; status: 'open' | 'answered' | 'resolved' }[];
 }
 
 export type SellerFilter = 'all' | 'pending' | 'approved' | 'unverified' | 'suspended';
@@ -183,6 +238,11 @@ export const adminApi = {
   replyTicket: (id: string, body: string, resolve: boolean) =>
     request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/reply`, { body, resolve }),
   resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
+  funds: (filter: FundFilter, q: string) =>
+    request<{ funds: AdminFundRow[]; totals: AdminFundTotals }>('GET', `/admin/funds?${qs({ filter, q })}`),
+  fund: (id: string) => request<AdminFundDetail>('GET', `/admin/funds/${encodeURIComponent(id)}`),
+  releaseFunds: (id: string, reason: string) => request<AdminFundDetail>('POST', `/admin/funds/${encodeURIComponent(id)}/release`, { reason }),
+  refundFunds: (id: string, reason: string) => request<AdminFundDetail>('POST', `/admin/funds/${encodeURIComponent(id)}/refund`, { reason }),
   audit: () => request<{ log: AdminAuditRow[] }>('GET', '/admin/audit').then((r) => r.log),
 };
 
@@ -200,6 +260,8 @@ export const AUDIT_LABEL: Record<string, string> = {
   'banner.save': 'Emplacement publicitaire enregistré',
   'storage.save': 'Stockage de fichiers configuré',
   'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'funds.release': 'Fonds libérés au vendeur',
+  'funds.refund': 'Fonds remboursés à l’acheteur',
   'ticket.reply': 'Réponse du support envoyée',
   'ticket.resolve': 'Ticket résolu',
   'banner.remove': 'Emplacement publicitaire retiré',

@@ -56,6 +56,8 @@ export const EVENT_LABEL: Record<OrderEventType, string> = {
   completed: 'Réception confirmée',
   auto_completed: 'Clôturée automatiquement',
   cancelled: 'Commande annulée, client remboursé',
+  funds_released: 'Décision de Salacope : vendeur payé',
+  funds_refunded: 'Décision de Salacope : client remboursé',
   disputed: 'Litige ouvert',
   revision_requested: 'Retouche demandée',
   extension_requested: 'Délai supplémentaire demandé',

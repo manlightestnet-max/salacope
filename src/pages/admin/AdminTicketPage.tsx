@@ -52,6 +52,14 @@ const Facts: React.FC<{ detail: AdminTicketDetail }> = ({ detail: { ticket, cont
             )}
             {context.order && (
               <>
+                {context.order.held && (
+                  <div className="py-3">
+                    <p className="text-sm text-gray-700">L’argent de cette commande est encore bloqué : fermer le ticket ne le libère pas.</p>
+                    <Button className="mt-2" size="sm" variant="secondary" to={ROUTES.admin.fund(context.order.id)}>
+                      Gérer les fonds
+                    </Button>
+                  </div>
+                )}
                 <Row label="Commande">{context.order.number}</Row>
                 <Row label="Offre">{context.order.title}</Row>
                 <Row label="Total">{formatXaf(Number(context.order.total))}</Row>

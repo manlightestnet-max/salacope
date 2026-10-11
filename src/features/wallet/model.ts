@@ -43,7 +43,7 @@ export const buildLedger = (orders: Order[]): LedgerEntry[] =>
     .filter((o) => o.status === 'completed')
     .map((o) => ({
       id: o.id,
-      at: [...o.events].reverse().find((e) => e.type === 'completed' || e.type === 'auto_completed')?.at ?? o.updatedAt,
+      at: [...o.events].reverse().find((e) => e.type === 'completed' || e.type === 'auto_completed' || e.type === 'funds_released')?.at ?? o.updatedAt,
       label: `Vente ${o.number}`,
       detail: o.item.title,
       amount: o.amounts.net,

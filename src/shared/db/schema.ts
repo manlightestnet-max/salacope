@@ -107,6 +107,8 @@ export type OrderEventType =
   | 'completed'
   | 'auto_completed'
   | 'cancelled'
+  | 'funds_released'
+  | 'funds_refunded'
   | 'disputed'
   | 'revision_requested'
   | 'extension_requested'

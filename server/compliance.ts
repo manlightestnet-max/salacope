@@ -1,5 +1,6 @@
 import { DomainError } from '../src/shared/domain/errors.js';
 import type { Identity } from './auth.js';
+import { signInVoid } from './lockdown.js';
 import type { Query } from './db.js';
 import type { Context } from './http.js';
 import { newId } from './ids.js';
@@ -22,6 +23,7 @@ export async function requireAdmin(ctx: Context): Promise<Identity> {
   const identity = await ctx.identity();
   if (!identity) throw new DomainError('Connectez-vous pour continuer.', 401);
   if (!isAdminUid(identity.uid)) throw new DomainError('Accès réservé à l’administration Salacope.', 403);
+  if (signInVoid(identity.authTime)) throw new DomainError('Votre session a été fermée : reconnectez-vous.', 401);
   return identity;
 }
 

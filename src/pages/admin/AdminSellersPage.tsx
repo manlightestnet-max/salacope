@@ -1,10 +1,10 @@
-import React, { useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Store } from 'lucide-react';
 import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { KycBadge, MoreRows, SellerDetail, SellerFilter, adminApi, useAdminPaged } from '@/features/admin';
+import { KycBadge, MoreRows, SellerFilter, adminApi, useAdminPaged } from '@/features/admin';
 
 const FILTERS: { value: SellerFilter; label: string }[] = [
   { value: 'all', label: 'Tous' },
@@ -14,24 +14,13 @@ const FILTERS: { value: SellerFilter; label: string }[] = [
   { value: 'suspended', label: 'Suspendus' },
 ];
 
-/** Sellers (identity checks first) and, beside them, the selected seller with every action. */
+/** Sellers, identity checks first: a tap opens the seller's own screen. */
 export const AdminSellersPage: React.FC = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filter = FILTERS.find((f) => f.value === params.get('filtre'))?.value ?? 'all';
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const { items: sellers, error, reload, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.sellers(filter, search, offset), [filter, search]);
-  const detailRef = useRef<HTMLDivElement>(null);
-
-  const select = (sellerId: string) => {
-    navigate({ pathname: ROUTES.admin.seller(sellerId), search: params.toString() });
-    // Phones: the detail sits under the list.
-    if (window.matchMedia('(max-width: 1023px)').matches) {
-      setTimeout(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-  };
+  const { items: sellers, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.sellers(filter, search, offset), [filter, search]);
 
   return (
     <Page
@@ -62,7 +51,6 @@ export const AdminSellersPage: React.FC = () => {
         />
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] gap-6 items-start">
         <Panel title="Répertoire" flush className="min-w-0">
           {error ? (
             <EmptyState title="Liste indisponible" description={error} />
@@ -76,8 +64,7 @@ export const AdminSellersPage: React.FC = () => {
               {sellers.map((s) => (
                 <ListRow
                   key={s.id}
-                  onClick={() => select(s.id)}
-                  selected={s.id === id}
+                  to={ROUTES.admin.seller(s.id)}
                   leading={<Avatar name={s.store_name} />}
                   title={s.store_name}
                   subtitle={`${s.name} · ${s.kyc_submitted_at ? `documents du ${formatDate(s.kyc_submitted_at)}` : `depuis le ${formatDate(s.activated_at)}`}`}
@@ -97,16 +84,6 @@ export const AdminSellersPage: React.FC = () => {
             <EmptyState icon={Store} title="Aucun vendeur" />
           )}
         </Panel>
-        <div ref={detailRef} className="scroll-mt-4 min-w-0">
-          {id ? (
-            <SellerDetail key={id} id={id} onChanged={reload} />
-          ) : (
-            <Panel>
-              <EmptyState title="Choisissez un vendeur" description="Son identité, sa boutique, ses offres et les mesures possibles s’affichent ici." />
-            </Panel>
-          )}
-        </div>
-      </div>
     </Page>
   );
 };

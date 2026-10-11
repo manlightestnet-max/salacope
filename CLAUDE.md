@@ -15,7 +15,7 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - Menu de gauche **épinglable** (état mémorisé), replié en rail sinon ; tiroir sur mobile.
 - En-tête du panneau (bouton retour, titre, actions, barre d'outils) **fixe, il ne défile jamais** : toujours passer par le composant `Page`.
 - **Un écran = une seule chose affichée.** Jamais plusieurs blocs empilés qu'il faut faire défiler pour atteindre le premier : on découpe en **onglets** (barre d'outils épinglée, `Tabs` / `Segmented`) ou en **cartes** qui ouvrent chacune leur écran (liste d'éléments marqués « Configuré », comme Admin → Stockage). Ce qui est important est visible sans scroller, jamais enterré sous d'autres blocs.
-- Contenu en **blocs cadrés** : `Panel` (titre, compteur, aide ⓘ, filtres `Segmented` à droite, note de pied), chiffres clés en `StatGrid`/`Stat`, lignes via `List`/`ListSection` avec `columns` (en-têtes en petites capitales). Liste + détail côte à côte quand on consulte un élément (ex. Clients).
+- Contenu en **blocs cadrés** : `Panel` (titre, compteur, aide ⓘ, filtres `Segmented` à droite, note de pied), chiffres clés en `StatGrid`/`Stat`, lignes via `List`/`ListSection` avec `columns` (en-têtes en petites capitales). **Jamais de détail à côté d'une liste ni empilé dessous** (pas un `LinearLayout` vertical qu'on fait défiler) : un appui sur une ligne ouvre l'élément dans **son propre écran** (flèche retour, comme une activity Android), découpé en **onglets** (Résumé, Identité, Mesures, Journal…).
 - Le catalogue est **incrusté dans le dashboard** (Explorer, aperçu, paiement) : on ne renvoie pas l'utilisateur connecté vers le site public. Les dialogues s'ouvrent dans le panneau.
 
 ## Catégories toujours épinglées

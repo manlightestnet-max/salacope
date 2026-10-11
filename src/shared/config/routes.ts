@@ -51,6 +51,7 @@ export const ROUTES = {
     sellers: '/admin/vendeurs',
     seller: (id: string) => `/admin/vendeurs/${id}`,
     users: '/admin/acs',
+    user: (id: string) => `/admin/acs/${id}`,
     audit: '/admin/journal',
     banners: '/admin/publicite',
     storage: '/admin/stockage',

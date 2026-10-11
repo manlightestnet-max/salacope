@@ -27,10 +27,12 @@ export interface LockdownState {
 }
 
 const KEY = 'lockdown';
+const SESSIONS = 'sessions';
 const OFF: LockdownState = { level: 'off', reason: '', since: null, by: null };
 const TTL = 5_000;
 
 let stored: LockdownState = OFF;
+let signedOutAll: { validAfter: string | null; by: string | null; reason: string } = { validAfter: null, by: null, reason: '' };
 let loadedAt = 0;
 
 /** The level imposed by the environment (`1` / `true` mean total). */
@@ -71,8 +73,11 @@ export async function refreshLockdown(): Promise<void> {
   loadedAt = Date.now();
   try {
     const { query } = await import('./db.js');
-    const [row] = await withBypass(() => query<{ value: string }>('SELECT value FROM app_settings WHERE key = $1', [KEY]));
-    stored = row ? { ...OFF, ...JSON.parse(row.value) } : OFF;
+    const rows = await withBypass(() => query<{ key: string; value: string }>('SELECT key, value FROM app_settings WHERE key IN ($1, $2)', [KEY, SESSIONS]));
+    const lock = rows.find((r) => r.key === KEY);
+    stored = lock ? { ...OFF, ...JSON.parse(lock.value) } : OFF;
+    const sessions = rows.find((r) => r.key === SESSIONS);
+    signedOutAll = sessions ? { validAfter: null, by: null, reason: '', ...JSON.parse(sessions.value) } : signedOutAll;
   } catch {
     // table not migrated yet, or the database is unreachable: the last known state stays
   }
@@ -85,6 +90,20 @@ export function setStored(state: LockdownState) {
 }
 
 export const KEY_NAME = KEY;
+export const SESSIONS_KEY = SESSIONS;
+
+/** The moment before which every sign-in is void (everybody was signed out), or null. */
+export const signedOutAllAt = () => signedOutAll.validAfter;
+export const signedOutAllState = () => signedOutAll;
+export function setSignedOutAll(state: { validAfter: string | null; by: string | null; reason: string }) {
+  signedOutAll = state;
+}
+
+/** The person signed in before they were signed out (individually or with everybody): the sign-in no longer counts. */
+export const signInVoid = (authTimeSeconds: number, userValidAfter?: string | null) => {
+  const limit = Math.max(userValidAfter ? new Date(userValidAfter).getTime() : 0, signedOutAll.validAfter ? new Date(signedOutAll.validAfter).getTime() : 0);
+  return limit > 0 && authTimeSeconds * 1000 < limit;
+};
 
 const WRITE = /\b(insert\s+into|delete\s+from|truncate|alter\s+table|drop\s+table|create\s+table|nextval)\b|(?<!for\s)\bupdate\s+[a-z_"(]/i;
 

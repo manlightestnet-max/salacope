@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Send } from 'lucide-react';
-import { Avatar, Badge, Button, Card, CardBody, EmptyState, Page, Panel, SkeletonRows, Textarea, useToast } from '@/shared/ui';
+import { Avatar, Badge, Button, Card, CardBody, EmptyState, Page, Panel, SkeletonRows, Tabs, Textarea, useToast } from '@/shared/ui';
 import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { topicLabel } from '@/features/support';
@@ -80,6 +80,13 @@ export const AdminTicketPage: React.FC = () => {
   const { id = '' } = useParams<{ id: string }>();
   const toast = useToast();
   const { data, error, set } = useAdminResource(() => adminApi.ticket(id), [id]);
+  const [params, setParams] = useSearchParams();
+  const view = (['conversation', 'repondre', 'demandeur'] as const).find((v) => v === params.get('vue')) ?? 'conversation';
+  const goTo = (v: string) => {
+    const next = new URLSearchParams(params);
+    next.set('vue', v);
+    setParams(next, { replace: true });
+  };
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const back = { to: ROUTES.admin.support, label: 'Support' };
@@ -90,6 +97,7 @@ export const AdminTicketPage: React.FC = () => {
       set(await work());
       setReply('');
       toast.success(done);
+      goTo('conversation');
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -126,6 +134,18 @@ export const AdminTicketPage: React.FC = () => {
           </Badge>
         </span>
       }
+      toolbar={
+        <Tabs
+          bare
+          value={view}
+          onChange={goTo}
+          items={[
+            { value: 'conversation', label: 'Conversation', count: messages.length },
+            { value: 'repondre', label: 'Répondre' },
+            { value: 'demandeur', label: 'Demandeur' },
+          ]}
+        />
+      }
       actions={
         ticket.status !== 'resolved' ? (
           <Button variant="secondary" disabled={busy} onClick={() => act(() => adminApi.resolveTicket(ticket.id), 'Ticket marqué comme résolu')}>
@@ -137,8 +157,7 @@ export const AdminTicketPage: React.FC = () => {
       <p className="mb-4 text-sm text-gray-500">
         {ticket.number} · {topicLabel(ticket.topic)} · ouvert {formatRelative(ticket.created_at)}
       </p>
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-6 items-start">
-        <div className="space-y-4 min-w-0">
+      {view === 'conversation' && (
           <Card>
             <ul className="divide-y divide-gray-100">
               {messages.map((m) => (
@@ -165,6 +184,8 @@ export const AdminTicketPage: React.FC = () => {
             </ul>
           </Card>
 
+      )}
+      {view === 'repondre' && (
           <Card>
             <CardBody className="pt-4 space-y-3">
               <Textarea
@@ -184,9 +205,8 @@ export const AdminTicketPage: React.FC = () => {
               </div>
             </CardBody>
           </Card>
-        </div>
-        <Facts detail={data} />
-      </div>
+      )}
+      {view === 'demandeur' && <Facts detail={data} />}
     </Page>
   );
 };

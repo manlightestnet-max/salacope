@@ -3,7 +3,7 @@ import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
 import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
-import { LockedError, levelNow, lockedMessage, refreshLockdown, withBypass } from './lockdown.js';
+import { LockedError, levelNow, lockedMessage, refreshLockdown, signInVoid, withBypass } from './lockdown.js';
 import { ensurePlatform } from './settings.js';
 
 export interface Context {
@@ -29,6 +29,13 @@ export interface Context {
 }
 
 type Handler = (ctx: Context) => Promise<unknown>;
+
+/** The sign-in was ended by the administration (or by everybody being signed out): the app signs out and starts again. */
+export class SessionEnded extends DomainError {
+  constructor() {
+    super('Votre session a été fermée par Salacope. Reconnectez-vous.', 401);
+  }
+}
 
 const routes: { method: string; pattern: RegExp; keys: string[]; handler: Handler }[] = [];
 
@@ -111,8 +118,10 @@ export async function handle(request: Request): Promise<Response> {
     if (!viewer) {
       viewer = getIdentity().then(async (id) => {
         if (id) {
-          const [row] = await query<{ id: string; blocked_at: string | null }>('SELECT id, blocked_at FROM users WHERE firebase_uid = $1', [id.uid]);
+          const [row] = await query<{ id: string; blocked_at: string | null; sessions_valid_after: string | null }>('SELECT id, blocked_at, sessions_valid_after FROM users WHERE firebase_uid = $1', [id.uid]);
           if (!row) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
+          // Signed out by Salacope: this sign-in is void, the person signs in again.
+          if (signInVoid(id.authTime, row.sessions_valid_after)) throw new SessionEnded();
           // Blocked by Salacope (AML/CFT policy): nothing can be done with the account any more.
           if (row.blocked_at) throw new DomainError('Votre compte est bloqué. Écrivez à contact@salacope.online.', 403);
           return { id: row.id, guest: false };
@@ -158,6 +167,7 @@ export async function handle(request: Request): Promise<Response> {
     if (result instanceof Response) return result;
     return reply(200, result ?? { ok: true });
   } catch (err) {
+    if (err instanceof SessionEnded) return reply(401, { error: err.message, signedOut: true });
     if (err instanceof LockedError) return reply(503, { error: err.message, locked: err.level });
     if (err instanceof DomainError) return reply(err.status, { error: err.message });
     console.error('[api]', method, path, err);

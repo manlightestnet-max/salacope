@@ -25,6 +25,11 @@ export async function request<T = any>(method: string, path: string, body?: unkn
   const data = await res.json().catch(() => ({}));
   // Refused because the emergency brake is on: the whole app learns it at once.
   if (res.status === 503 && data?.locked) reportLockdown(data.locked);
+  // Signed out by Salacope: this device forgets the session and starts again as a visitor.
+  if (res.status === 401 && data?.signedOut && auth.signedIn()) {
+    auth.signOut();
+    window.location.reload();
+  }
   if (!res.ok) throw new DomainError(data?.error ?? 'Erreur du serveur. Réessayez dans un instant.', res.status);
   return data as T;
 }

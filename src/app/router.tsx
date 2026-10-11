@@ -41,6 +41,8 @@ import { LightPayCallbackPage } from '@/pages/seller/LightPayCallbackPage';
 import { VerificationPage } from '@/pages/seller/VerificationPage';
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
 import { AdminSellersPage } from '@/pages/admin/AdminSellersPage';
+import { AdminSellerPage } from '@/pages/admin/AdminSellerPage';
+import { AdminUserPage } from '@/pages/admin/AdminUserPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminBannersPage } from '@/pages/admin/AdminBannersPage';
@@ -179,8 +181,9 @@ export const router = createBrowserRouter([
             children: [
               { path: ROUTES.admin.root, element: <AdminOverviewPage /> },
               { path: ROUTES.admin.sellers, element: <AdminSellersPage /> },
-              { path: '/admin/vendeurs/:id', element: <AdminSellersPage /> },
+              { path: '/admin/vendeurs/:id', element: <AdminSellerPage /> },
               { path: ROUTES.admin.users, element: <AdminUsersPage /> },
+              { path: '/admin/acs/:id', element: <AdminUserPage /> },
               { path: ROUTES.admin.audit, element: <AdminAuditPage /> },
               { path: ROUTES.admin.banners, element: <AdminBannersPage /> },
               { path: ROUTES.admin.storage, element: <AdminStoragePage /> },

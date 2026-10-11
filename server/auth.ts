@@ -14,6 +14,8 @@ export interface Identity {
   uid: string;
   email: string;
   name?: string;
+  /** When the person actually signed in (seconds since 1970): stays the same when the token is refreshed. */
+  authTime: number;
 }
 
 export async function verifyIdToken(token: string): Promise<Identity | null> {
@@ -24,7 +26,12 @@ export async function verifyIdToken(token: string): Promise<Identity | null> {
       algorithms: ['RS256'],
     });
     if (!payload.sub || typeof payload.email !== 'string') return null;
-    return { uid: payload.sub, email: payload.email.toLowerCase(), name: typeof payload.name === 'string' ? payload.name : undefined };
+    return {
+      uid: payload.sub,
+      email: payload.email.toLowerCase(),
+      name: typeof payload.name === 'string' ? payload.name : undefined,
+      authTime: typeof payload.auth_time === 'number' ? payload.auth_time : 0,
+    };
   } catch {
     return null;
   }

@@ -27,8 +27,24 @@ const production = process.argv.includes('--production');
 const url = production ? env.SALACOPE_DATABASE_URL_PRODUCTION : env.SALACOPE_DATABASE_URL;
 if (!url) throw new Error(production ? 'SALACOPE_DATABASE_URL_PRODUCTION missing' : 'SALACOPE_DATABASE_URL missing');
 
-const client = new pg.Client({ connectionString: url.replace('sslmode=require', 'sslmode=verify-full') });
-await client.connect();
+// Migrations go through Neon's direct endpoint (no "-pooler"): the pooler is made for short app queries, and a multi-statement
+// migration can be cut by it ("Connection terminated unexpectedly"). A sleeping Neon database may also drop the first
+// connection while it wakes up, so connecting is retried a few times.
+const direct = url.replace('-pooler.', '.').replace('sslmode=require', 'sslmode=verify-full');
+let client;
+for (let attempt = 1; ; attempt += 1) {
+  client = new pg.Client({ connectionString: direct, connectionTimeoutMillis: 20_000 });
+  client.on('error', () => undefined); // reported by the query that was running
+  try {
+    await client.connect();
+    break;
+  } catch (err) {
+    await client.end().catch(() => undefined);
+    if (attempt >= 5) throw err;
+    console.log(`connection failed (${err.message}), retry ${attempt}/4 in ${attempt * 3}s…`);
+    await new Promise((r) => setTimeout(r, attempt * 3000));
+  }
+}
 await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
 const done = new Set((await client.query('SELECT name FROM schema_migrations')).rows.map((r) => r.name));
 const dir = path.join(root, 'server', 'migrations');

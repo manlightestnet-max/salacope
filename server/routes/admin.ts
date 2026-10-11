@@ -9,6 +9,7 @@ import { notify } from '../notify.js';
 import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
 import { currentPlatform, savePlatform } from '../settings.js';
+import { SESSIONS_KEY, refreshLockdown, setSignedOutAll, signedOutAllState } from '../lockdown.js';
 import { signAttachments } from '../storage/attachments.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
@@ -786,4 +787,50 @@ route('POST', '/admin/funds/:id/ask', async (ctx) => {
     await audit(q, admin, 'funds.ask', row.seller_id, { order: row.number, to, message });
   });
   return { ok: true };
+});
+
+/** One account for the administration: who it is, and what was done about it. */
+route('GET', '/admin/users/:id', async (ctx) => {
+  await requireAdmin(ctx);
+  const [user] = await query(
+    `SELECT u.id, u.name, u.email, u.phone, u.created_at, u.blocked_at, u.blocked_reason, u.sessions_valid_after, m.store_name,
+       (SELECT COUNT(*) FROM orders o WHERE o.buyer_id = u.id AND o.status <> 'cancelled') AS purchases,
+       (SELECT COALESCE(SUM((o.amounts->>'total')::bigint), 0) FROM orders o WHERE o.buyer_id = u.id AND o.status <> 'cancelled') AS spent
+     FROM users u LEFT JOIN merchants m ON m.user_id = u.id WHERE u.id = $1 AND u.firebase_uid IS NOT NULL`,
+    [ctx.params.id]
+  );
+  if (!user) throw new DomainError('Compte introuvable.', 404);
+  const log = await query('SELECT id, admin_email, action, detail, created_at FROM admin_audit WHERE target_user_id = $1 ORDER BY created_at DESC LIMIT 50', [ctx.params.id]);
+  return { user, log };
+});
+
+/** Signs one person out everywhere: every sign-in they made before now is refused; they can sign in again unless blocked. */
+route('POST', '/admin/users/:id/signout', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const reason = text(ctx.body.reason, 300);
+  await tx(async (q) => {
+    const rows = await q('UPDATE users SET sessions_valid_after = NOW(), updated_at = NOW() WHERE id = $1 AND firebase_uid IS NOT NULL RETURNING id', [ctx.params.id]);
+    if (!rows.length) throw new DomainError('Compte introuvable.', 404);
+    await audit(q, admin, 'user.signout', ctx.params.id, { reason });
+  });
+  return { ok: true };
+});
+
+/** Signs everybody out (after a breach): every sign-in made before now is void, administrators included. */
+route('POST', '/admin/sessions/signout-all', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const reason = reasonOf(ctx.body.reason);
+  const state = { validAfter: new Date().toISOString(), by: admin.email, reason };
+  await tx(async (q) => {
+    await q(`INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`, [SESSIONS_KEY, JSON.stringify(state)]);
+    await audit(q, admin, 'sessions.signout_all', null, { reason });
+  });
+  setSignedOutAll(state);
+  return { state };
+});
+
+route('GET', '/admin/sessions', async (ctx) => {
+  await requireAdmin(ctx);
+  await refreshLockdown();
+  return { state: signedOutAllState() };
 });

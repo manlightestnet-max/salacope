@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Users } from 'lucide-react';
-import { Avatar, Badge, Button, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows, useToast } from '@/shared/ui';
+import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
-import { AdminUserRow, MoreRows, ReasonDialog, adminApi, useAdminPaged } from '@/features/admin';
+import { MoreRows, adminApi, useAdminPaged } from '@/features/admin';
 
 type Filter = 'all' | 'blocked';
 
@@ -20,9 +20,7 @@ export const AdminUsersPage: React.FC = () => {
     setQ(fromBar);
     setSearch(fromBar);
   }, [fromBar]);
-  const { items: users, error, reload, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.users(filter, search, offset), [filter, search]);
-  const [target, setTarget] = useState<AdminUserRow | null>(null);
-  const toast = useToast();
+  const { items: users, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.users(filter, search, offset), [filter, search]);
 
   return (
     <Page
@@ -65,7 +63,7 @@ export const AdminUsersPage: React.FC = () => {
             {users.map((u) => (
               <ListRow
                 key={u.id}
-                to={u.store_name ? ROUTES.admin.seller(u.id) : undefined}
+                to={ROUTES.admin.user(u.id)}
                 leading={<Avatar name={u.name} />}
                 title={u.name}
                 subtitle={`${u.email}${u.phone ? ` · ${u.phone}` : ''} · inscrit le ${formatDate(u.created_at)}`}
@@ -81,11 +79,6 @@ export const AdminUsersPage: React.FC = () => {
                     <span className="text-xs text-gray-500">{plural(u.purchases, 'achat')}</span>
                   </span>
                 }
-                actions={
-                  <Button size="sm" variant={u.blocked_at ? 'secondary' : 'ghost'} onClick={() => setTarget(u)}>
-                    {u.blocked_at ? 'Débloquer' : 'Bloquer'}
-                  </Button>
-                }
               />
             ))}
           </List>
@@ -96,22 +89,6 @@ export const AdminUsersPage: React.FC = () => {
         )}
       </Panel>
 
-      <ReasonDialog
-        open={Boolean(target)}
-        onClose={() => setTarget(null)}
-        title={target?.blocked_at ? `Débloquer ${target?.name}` : `Bloquer ${target?.name}`}
-        description={target?.blocked_at ? `Bloqué pour : ${target.blocked_reason}` : 'La personne ne pourra plus ni acheter ni vendre.'}
-        label={target?.blocked_at ? 'Note' : 'Raison'}
-        optional={Boolean(target?.blocked_at)}
-        danger={!target?.blocked_at}
-        confirmLabel={target?.blocked_at ? 'Débloquer' : 'Bloquer'}
-        onConfirm={async (reason) => {
-          if (target!.blocked_at) await adminApi.unblock(target!.id, reason);
-          else await adminApi.block(target!.id, reason);
-          toast.success(target!.blocked_at ? 'Compte débloqué.' : 'Compte bloqué.');
-          reload();
-        }}
-      />
     </Page>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ImagePlus } from 'lucide-react';
 import { AdminBanner, adminApi, useAdminResource } from '@/features/admin';
-import { Button, EmptyState, Field, Input, Page, Panel, SkeletonRows, useToast } from '@/shared/ui';
+import { Button, EmptyState, Field, Input, Page, Panel, SkeletonRows, Tabs, useToast } from '@/shared/ui';
 import { IMAGE_TYPES, cropImageFile, sniffImageType } from '@/shared/lib';
 
 const SLOTS = [1, 2, 3];
@@ -110,20 +111,33 @@ const Slot: React.FC<{ position: number; banner?: AdminBanner; onChange: (all: A
 /** The three advertising slots of the storefront banner: the administrator picks the image and the link of each. */
 export const AdminBannersPage: React.FC = () => {
   const { data, error, loading, set } = useAdminResource(() => adminApi.banners(), []);
+  const [params, setParams] = useSearchParams();
+  const position = SLOTS.find((n) => String(n) === params.get('emplacement')) ?? 1;
+  const banner = data?.find((b) => b.position === position);
 
   return (
-    <Page title="Publicité" help="Les trois emplacements de la bannière en haut de l’accueil. Chacun a une image (recadrée automatiquement), une légende et un lien ouvert au clic.">
+    <Page
+      title="Publicité"
+      help="Les trois emplacements de la bannière en haut de l’accueil. Chacun a une image (recadrée automatiquement), une légende et un lien ouvert au clic."
+      toolbar={
+        <Tabs
+          bare
+          value={String(position)}
+          onChange={(v) => {
+            const next = new URLSearchParams(params);
+            next.set('emplacement', v);
+            setParams(next, { replace: true });
+          }}
+          items={SLOTS.map((n) => ({ value: String(n), label: `Emplacement ${n}` }))}
+        />
+      }
+    >
       {error ? (
         <EmptyState title="Publicité indisponible" description={error} />
       ) : !data || loading ? (
         <SkeletonRows rows={3} />
       ) : (
-        <div className="space-y-4">
-          {SLOTS.map((n) => {
-            const banner = data.find((b) => b.position === n);
-            return <Slot key={`${n}:${banner?.updated_at ?? ''}`} position={n} banner={banner} onChange={set} />;
-          })}
-        </div>
+        <Slot key={`${position}:${banner?.updated_at ?? ''}`} position={position} banner={banner} onChange={set} />
       )}
     </Page>
   );

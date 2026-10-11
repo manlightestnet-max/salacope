@@ -95,6 +95,15 @@ export interface AdminUserRow {
   spent: number;
 }
 
+export interface AdminUserDetail {
+  user: AdminUserRow & { sessions_valid_after: string | null };
+  log: AdminAuditRow[];
+}
+
+export interface AdminSessions {
+  state: { validAfter: string | null; by: string | null; reason: string };
+}
+
 export interface AdminBanner {
   position: number;
   image: string;
@@ -273,6 +282,10 @@ export const adminApi = {
     request<AdminSellerDetail>('POST', `/admin/listings/${encodeURIComponent(listingId)}/unpublish`, { reason }),
   users: (filter: 'all' | 'blocked', q: string, offset = 0): Promise<PagedRows<AdminUserRow>> =>
     request<{ users: AdminUserRow[]; hasMore: boolean }>('GET', `/admin/users?${qs({ filter, q, offset: String(offset) })}`).then((r) => ({ items: r.users, hasMore: r.hasMore, extra: undefined })),
+  user: (id: string) => request<AdminUserDetail>('GET', `/admin/users/${encodeURIComponent(id)}`),
+  signOutUser: (id: string, reason: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/signout`, { reason }),
+  sessions: () => request<AdminSessions>('GET', '/admin/sessions'),
+  signOutAll: (reason: string) => request<AdminSessions>('POST', '/admin/sessions/signout-all', { reason }),
   block: (id: string, reason: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/block`, { reason }),
   unblock: (id: string, note: string) => request('POST', `/admin/users/${encodeURIComponent(id)}/unblock`, { note }),
   banners: () => request<{ banners: AdminBanner[] }>('GET', '/admin/banners').then((r) => r.banners),
@@ -320,6 +333,8 @@ export const AUDIT_LABEL: Record<string, string> = {
   'seller.suspend': 'Boutique suspendue',
   'seller.unsuspend': 'Boutique réactivée',
   'listing.unpublish': 'Offre retirée',
+  'user.signout': 'Sessions fermées (déconnexion)',
+  'sessions.signout_all': 'Tout le monde déconnecté',
   'user.block': 'Compte bloqué',
   'user.unblock': 'Compte débloqué',
   'banner.save': 'Emplacement publicitaire enregistré',

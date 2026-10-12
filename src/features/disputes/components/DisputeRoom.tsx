@@ -88,7 +88,10 @@ export const DisputeRoom: React.FC<{
   const attachments = useAttachments({ maxImages: 3 });
   const endRef = useRef<HTMLLIElement>(null);
   const count = detail?.messages.length ?? 0;
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [count, detail?.dispute.id]);
+  // Braces matter: scrollIntoView() returns a Promise in recent Chrome, and an effect must not return anything but a cleanup.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [count, detail?.dispute.id]);
 
   if (error && !detail) return <EmptyState title="Litige introuvable" description={error} className="rounded-2xl border border-gray-200/70 bg-surface" />;
   if (!detail) {

@@ -57,6 +57,7 @@ import { DisputesPage } from '@/pages/seller/DisputesPage';
 import { CustomerPage } from '@/pages/seller/CustomerPage';
 import { AdminLaunchBannerPage } from '@/pages/admin/AdminLaunchBannerPage';
 import { AdminSecurityPage } from '@/pages/admin/AdminSecurityPage';
+import { AdminIdentityFieldPage } from '@/pages/admin/AdminIdentityFieldPage';
 import { AdminIdentityPage } from '@/pages/admin/AdminIdentityPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 import { AdminSettingsSectionPage } from '@/pages/admin/AdminSettingsSectionPage';
@@ -207,6 +208,7 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.security, element: <AdminSecurityPage /> },
               { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
               { path: '/admin/parametres/identite', element: <AdminIdentityPage /> },
+              { path: '/admin/parametres/identite/:champ', element: <AdminIdentityFieldPage /> },
               { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
               { path: ROUTES.admin.disputes, element: <AdminDisputesPage /> },
               { path: ROUTES.admin.newDispute, element: <AdminNewDisputePage /> },

@@ -109,6 +109,7 @@ export const orderView = (r: any, events: OrderEvent[], messages: OrderMessage[]
     delivery: opt(r.delivery),
     revisionsUsed: r.revisions_used,
     extension: opt(r.extension),
+    refund: opt(r.refund),
     events,
     messages,
     chat: {

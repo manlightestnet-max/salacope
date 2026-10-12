@@ -5,4 +5,5 @@ export * from './components/CheckoutForm';
 export * from './components/LightPayStatus';
 export * from './components/PaymentChannelPicker';
 export * from './components/PaymentCode';
+export * from './components/RefundNotice';
 export * from './components/PaymentReturn';

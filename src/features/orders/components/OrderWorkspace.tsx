@@ -7,6 +7,7 @@ import { formatDateTime, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb, SellerCard } from '@/features/catalog';
 import { OrderReviewCard } from '@/features/reviews';
+import { RefundPreview, RefundReceipt } from '@/features/checkout';
 import { OrderView, useSellerTagList } from '../hooks';
 import { SellerOrderTools } from './SellerOrderTools';
 import { Perspective, fundsState, paymentMethodLabel } from '../model';
@@ -118,6 +119,9 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
               />
             </CardBody>
           </Card>
+
+          {!isSeller && order.refund && <RefundReceipt refund={order.refund} />}
+          {!isSeller && !order.refund && fundsState(order.status) === 'escrow' && <RefundPreview total={order.amounts.total} />}
 
           <Card>
             <CardHeader title={isSeller ? 'Client' : 'Vendeur'} />

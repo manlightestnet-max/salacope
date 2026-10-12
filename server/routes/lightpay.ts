@@ -109,3 +109,29 @@ route('GET', '/cron/settle', async (ctx) => {
   return { settled: total, checked: stale.length };
 });
 
+
+/**
+ * What a buyer gets back if an order of `total` is cancelled, shown before they pay and in the order:
+ * a mobile-money payer loses the payout fees (operator + LightPay), a wallet payer loses nothing.
+ * The answer comes from LightPay (its settings), kept a minute.
+ */
+const previews = new Map<number, { at: number; body: unknown }>();
+route('GET', '/checkout/refund-preview', async (ctx) => {
+  const total = Number(ctx.search.get('total'));
+  if (!Number.isInteger(total) || total <= 0 || total > 100_000_000) throw new DomainError('Montant invalide.');
+  const hit = previews.get(total);
+  if (hit && Date.now() - hit.at < 60_000) return hit.body;
+  const { quotes } = await lightpay.refundQuote(total);
+  const all = Object.values(quotes);
+  // The lowest of the networks, so the promise holds whichever one the buyer pays with.
+  const worst = all.reduce((a, b) => (Number(b.sent) < Number(a.sent) ? b : a));
+  const body = {
+    total,
+    sent: Number(worst.sent),
+    operatorFee: Number(worst.operator_fee),
+    lightpayFee: Number(worst.lightpay_fee),
+    varies: new Set(all.map((q) => q.sent)).size > 1,
+  };
+  previews.set(total, { at: Date.now(), body });
+  return body;
+});

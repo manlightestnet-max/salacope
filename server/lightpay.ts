@@ -104,6 +104,10 @@ export const lightpay = {
     return u.toString();
   },
 
+  /** What a mobile-money payer of `amount` would get back if refunded (LightPay's payout fees come out of it). */
+  refundQuote: (amount: number) =>
+    call<{ quotes: Record<string, { sent: string; operator_fee: string; lightpay_fee: string; fees: string }> }>('GET', `/checkout/refund-quote?amount=${Math.round(amount)}`),
+
   /** Asks LightPay whether this connection request is valid in this environment (app, return address, scopes), before leaving. */
   async checkAuthorize(p: { redirectUri: string; codeChallenge: string; scopes: string[] }) {
     const q = new URLSearchParams({ app_id: appId(), scope: p.scopes.join(' '), redirect_uri: p.redirectUri, code_challenge: p.codeChallenge, environment: lightpayEnv() });

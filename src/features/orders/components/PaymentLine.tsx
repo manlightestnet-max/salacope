@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown, Lock, LucideIcon, Undo2 } fro
 import { Order } from '@/shared/db';
 import { TONES, Tone } from '@/shared/ui';
 import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
+import { RefundPreview, RefundReceipt } from '@/features/checkout';
 import { FundsState, Perspective, fundsState, paymentMethodLabel } from '../model';
 
 const FUNDS: Record<FundsState, { label: string; icon: LucideIcon; tone: Tone }> = {
@@ -62,6 +63,8 @@ export const PaymentLine: React.FC<{ order: Order; perspective: Perspective; cla
       </span>
       {order.payment.code && <span className="font-mono text-gray-600">{order.payment.code}</span>}
       {open && <p className="basis-full rounded-xl border border-gray-200/70 bg-gray-50 px-3.5 py-2.5 text-gray-600 animate-fade-up motion-reduce:animate-none">{explain(order, state)}</p>}
+      {open && !seller && order.refund && <RefundReceipt refund={order.refund} className="basis-full" />}
+      {open && !seller && !order.refund && state === 'escrow' && <RefundPreview total={order.amounts.total} className="basis-full" />}
     </div>
   );
 };

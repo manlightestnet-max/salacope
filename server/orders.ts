@@ -1,6 +1,6 @@
 import { PLATFORM } from '../src/shared/config/platform.js';
 import { ROUTES } from '../src/shared/config/routes.js';
-import type { Order, OrderEventType, OrderStatus } from '../src/shared/db/schema.js';
+import type { Order, OrderEventType, OrderRefund, OrderStatus } from '../src/shared/db/schema.js';
 import { DomainError } from '../src/shared/domain/errors.js';
 import { OrderPermissions, Perspective, perspectiveOf, permissionsFor } from '../src/shared/domain/orders.js';
 import { Query, json, query, tx } from './db.js';
@@ -32,6 +32,7 @@ export interface OrderRow {
   release_at: string | null;
   revisions_used: number;
   extension: Order['extension'] | null;
+  refund: OrderRefund | null;
   lightpay_hold_id: string | null;
   ephemeral: boolean;
 }
@@ -63,12 +64,12 @@ export interface Transition {
   event: OrderEventType;
   actorId: string | null;
   note?: string;
-  set?: Partial<Record<'due_at' | 'release_at' | 'delivery' | 'revisions_used' | 'extension', unknown>>;
+  set?: Partial<Record<'due_at' | 'release_at' | 'delivery' | 'revisions_used' | 'extension' | 'refund', unknown>>;
   notices?: NotifyInput[];
   at?: string;
 }
 
-const JSON_COLUMNS = new Set(['delivery', 'extension']);
+const JSON_COLUMNS = new Set(['delivery', 'extension', 'refund']);
 
 /** Status + event + notifications, in the caller's transaction. */
 export async function transition(q: Query, row: OrderRow, t: Transition): Promise<void> {
@@ -140,7 +141,18 @@ const requireHold = (row: OrderRow) => {
 /** The buyer validates (or the window passed): LightPay pays the seller. */
 export const captureFunds = (row: OrderRow, resolveDispute = false) => lightpay.capture(requireHold(row), `salacope:capture:${row.id}`, resolveDispute);
 /** Cancelled: LightPay refunds the buyer (to their wallet, or to the number that paid). */
-export const refundFunds = (row: OrderRow, resolveDispute = false) => lightpay.release(requireHold(row), `salacope:release:${row.id}`, resolveDispute);
+export async function refundFunds(row: OrderRow, resolveDispute = false): Promise<OrderRefund> {
+  const result: any = await lightpay.release(requireHold(row), `salacope:release:${row.id}`, resolveDispute);
+  const paid = row.amounts.total;
+  const at = new Date().toISOString();
+  // No refund block: the buyer paid from a LightPay wallet and got everything back there. Otherwise LightPay sent it to the
+  // number that paid, minus the payout fees (operator + LightPay).
+  if (!result?.refund) return { paid, sent: paid, operatorFee: 0, lightpayFee: 0, via: 'wallet', at };
+  const sent = Number(result.refund.amount ?? 0);
+  const lightpayFee = Number(result.refund.lightpay_fee ?? 0);
+  const releaseAt = result.refund.release_at ? new Date(result.refund.release_at).toISOString() : undefined;
+  return { paid, sent, operatorFee: Math.max(0, paid - sent - lightpayFee), lightpayFee, via: 'mobile_money', at, ...(releaseAt ? { releaseAt } : {}) };
+}
 export const freezeFunds = (row: OrderRow, reason: string) => lightpay.dispute(requireHold(row), reason);
 
 /**

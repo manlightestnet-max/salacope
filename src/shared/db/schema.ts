@@ -207,6 +207,8 @@ export interface Order {
   /** When funds are released automatically if the buyer does nothing. */
   releaseAt?: string;
   delivery?: { note: string; files: Attachment[]; at: string };
+  /** Cancelled orders: what the buyer really got back (a phone refund loses the payout fees). */
+  refund?: OrderRefund;
   /** Revisions already requested by the buyer. */
   revisionsUsed?: number;
   /** Seller's request for more time; one at a time. */
@@ -216,6 +218,19 @@ export interface Order {
   chat: OrderChat;
   /** Seller only: their own tags and pin on the sale (never shown to the buyer). */
   sellerMeta?: { tags: string[]; pinnedAt?: string };
+}
+
+export interface OrderRefund {
+  /** What the buyer paid. */
+  paid: number;
+  /** What came back to them. */
+  sent: number;
+  operatorFee: number;
+  lightpayFee: number;
+  via: 'wallet' | 'mobile_money';
+  at: string;
+  /** LightPay waits a few minutes before sending a refund to a phone: when it leaves. */
+  releaseAt?: string;
 }
 
 export interface DeadlineExtension {

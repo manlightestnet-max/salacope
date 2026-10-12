@@ -4,6 +4,7 @@ import { ROUTES } from '../../src/shared/config/routes.js';
 import type { Attachment } from '../../src/shared/db/schema.js';
 import { CONTACT_BLOCKED, containsContact } from '../../src/shared/domain/contact.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
+import { refundSentence } from '../../src/shared/domain/refund.js';
 import { MAX_MESSAGE_IMAGES, isImageType, permissionsFor } from '../../src/shared/domain/orders.js';
 import { priceOrder } from '../../src/shared/domain/pricing.js';
 import { Query, json, query, tx } from '../db.js';
@@ -236,17 +237,17 @@ act('confirm', 'confirm', async (row, userId, _ctx, q) => {
 act('cancel', 'cancel', async (row, userId, ctx, q) => {
   const reason = text(ctx.body.reason, 500);
   if (!reason) throw new DomainError("Indiquez la raison de l'annulation.");
-  await refundFunds(row);
+  const refund = await refundFunds(row);
   const bySeller = row.seller_id === userId;
   await transition(q, row, {
     status: 'cancelled',
     event: 'cancelled',
     actorId: userId,
     note: reason,
-    set: { release_at: null },
+    set: { release_at: null, refund },
     notices: [
       bySeller
-        ? toBuyer(row, `Commande ${row.number} annulée`, `Vous êtes remboursé de ${formatXaf(row.amounts.total)}.`)
+        ? toBuyer(row, `Commande ${row.number} annulée`, refundSentence(refund, formatXaf))
         : toSeller(row, `Commande ${row.number} annulée par le client`),
     ],
   });

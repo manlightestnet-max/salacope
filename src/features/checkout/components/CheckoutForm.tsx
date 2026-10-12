@@ -13,6 +13,7 @@ import { ListingThumb } from '@/features/catalog';
 import { startCheckout } from '../api';
 import { loadLightPay, warmLightPay } from '../lightpay';
 import { LightPayLink, LightPayStatus } from './LightPayStatus';
+import { RefundPreview } from './RefundNotice';
 
 export interface CheckoutFormProps {
   listing: Listing;
@@ -175,6 +176,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
             </div>
             <p className="text-xs text-gray-500">Les frais de l’opérateur, s’il y en a, sont affichés sur la page de paiement avant validation.</p>
           </dl>
+
+          <RefundPreview total={amounts.total} />
 
           {error && (
             <p className="text-sm text-red-600" role="alert">

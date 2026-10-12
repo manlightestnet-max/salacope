@@ -1,5 +1,6 @@
 import { ROUTES } from '../../src/shared/config/routes.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
+import { refundSentence } from '../../src/shared/domain/refund.js';
 import type { KycDocumentKind, RiskLevel } from '../../src/shared/domain/kyc.js';
 import { audit, requireAdmin } from '../compliance.js';
 import { query, tx } from '../db.js';
@@ -663,14 +664,14 @@ const settleFunds = (decision: 'release' | 'refund') =>
       if (!row) throw new DomainError('Ces fonds ne sont plus bloqués : la commande est déjà clôturée.', 409);
       const dispute = row.status === 'disputed';
       // LightPay moves the money first: if it refuses, nothing changes here.
+      const refund = decision === 'release' ? null : await refundFunds(row, dispute);
       if (decision === 'release') await captureFunds(row, dispute);
-      else await refundFunds(row, dispute);
       await transition(q, row, {
         status: decision === 'release' ? 'completed' : 'cancelled',
         event: decision === 'release' ? 'funds_released' : 'funds_refunded',
         actorId: null,
         note: reason,
-        set: { release_at: null },
+        set: { release_at: null, ...(refund ? { refund } : {}) },
         notices:
           decision === 'release'
             ? [
@@ -678,7 +679,7 @@ const settleFunds = (decision: 'release' | 'refund') =>
                 toBuyer(row, `Décision sur ${row.number}`, `Les fonds sont versés au vendeur. ${reason}`),
               ]
             : [
-                toBuyer(row, `Remboursement · ${row.number}`, `Vous êtes remboursé de ${formatXaf(row.amounts.total)}. ${reason}`),
+                toBuyer(row, `Remboursement · ${row.number}`, `${refundSentence(refund!, formatXaf)} ${reason}`),
                 toSeller(row, `Commande ${row.number} remboursée au client`, reason),
               ],
       });

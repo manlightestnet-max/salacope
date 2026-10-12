@@ -16,6 +16,7 @@ export interface AdminOverview {
   orders: number;
   disputed: number;
   tickets_open: number;
+  disputes_waiting: number;
   held: number;
   held_total: number;
   volume: number;
@@ -261,6 +262,8 @@ export interface AdminFundDetail {
   downloads: { n: number; first: string | null; last: string | null } | null;
   seller: AdminTrackRecord;
   buyer: AdminTrackRecord;
+  /** The dispute room of this order, if one was opened. */
+  dispute: { id: string; label: string } | null;
   events: { id: string; type: string; actor_id: string | null; note: string | null; at: string }[];
   messages: { id: string; author_id: string; name: string; body: string; at: string; files: number }[];
   tickets: { id: string; number: string; subject: string; status: 'open' | 'answered' | 'resolved' }[];

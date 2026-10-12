@@ -11,3 +11,4 @@ export * from './useVisualViewport';
 export * from './useViewPosition';
 export * from './useScrollMemory';
 export * from './usePersistedState';
+export * from './usePagedList';

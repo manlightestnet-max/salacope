@@ -49,7 +49,9 @@ import { AdminBannersPage } from '@/pages/admin/AdminBannersPage';
 import { AdminStoragePage } from '@/pages/admin/AdminStoragePage';
 import { AdminStorageSectionPage } from '@/pages/admin/AdminStorageSectionPage';
 import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
+import { AdminDisputesPage } from '@/pages/admin/AdminDisputesPage';
 import { AdminFundsPage } from '@/pages/admin/AdminFundsPage';
+import { DisputesPage } from '@/pages/seller/DisputesPage';
 import { AdminLaunchBannerPage } from '@/pages/admin/AdminLaunchBannerPage';
 import { AdminSecurityPage } from '@/pages/admin/AdminSecurityPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
@@ -155,6 +157,8 @@ export const router = createBrowserRouter([
           { path: ROUTES.account.favorites, element: <FavoritesPage /> },
           { path: ROUTES.account.following, element: <FollowingPage /> },
           { path: ROUTES.account.settings, element: <SettingsPage /> },
+          { path: ROUTES.account.disputes, element: <DisputesPage as="buyer" /> },
+          { path: '/ac/litiges/:id', element: <DisputesPage as="buyer" /> },
           { path: ROUTES.account.support, element: <SupportPage /> },
           { path: ROUTES.account.newTicket, element: <NewTicketPage /> },
           { path: '/ac/support/:id', element: <TicketPage /> },
@@ -170,6 +174,8 @@ export const router = createBrowserRouter([
               { path: ROUTES.seller.customers, element: <CustomersPage /> },
               { path: ROUTES.seller.payouts, element: <PayoutsPage /> },
               { path: ROUTES.seller.verification, element: <VerificationPage /> },
+              { path: ROUTES.seller.disputes, element: <DisputesPage as="seller" /> },
+              { path: '/dashboard/litiges/:id', element: <DisputesPage as="seller" /> },
             ],
           },
         ],
@@ -193,6 +199,8 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.security, element: <AdminSecurityPage /> },
               { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
               { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
+              { path: ROUTES.admin.disputes, element: <AdminDisputesPage /> },
+              { path: '/admin/litiges/:id', element: <AdminDisputesPage /> },
               { path: ROUTES.admin.funds, element: <AdminFundsPage /> },
               { path: '/admin/fonds/:id', element: <AdminFundPage /> },
               { path: ROUTES.admin.support, element: <AdminSupportPage /> },

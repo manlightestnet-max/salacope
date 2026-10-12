@@ -31,6 +31,8 @@ export const ROUTES = {
     support: '/ac/support',
     newTicket: '/ac/support/nouveau',
     ticket: (id: string) => `/ac/support/${id}`,
+    disputes: '/ac/litiges',
+    dispute: (id: string) => `/ac/litiges/${id}`,
   },
 
   seller: {
@@ -43,6 +45,8 @@ export const ROUTES = {
     customers: '/dashboard/clients',
     payouts: '/dashboard/paiements',
     verification: '/dashboard/verification',
+    disputes: '/dashboard/litiges',
+    dispute: (id: string) => `/dashboard/litiges/${id}`,
   },
 
   /** Salacope administration (accounts listed in SALACOPE_ADMIN_UIDS). */
@@ -60,6 +64,8 @@ export const ROUTES = {
     security: '/admin/securite',
     settings: '/admin/parametres',
     settingsSection: (section: string) => `/admin/parametres/${section}`,
+    disputes: '/admin/litiges',
+    dispute: (id: string) => `/admin/litiges/${id}`,
     funds: '/admin/fonds',
     fund: (id: string) => `/admin/fonds/${id}`,
     support: '/admin/support',

@@ -30,6 +30,7 @@ import {
 } from '../orders.js';
 import { attemptView } from '../views.js';
 import { requireNotBlocked } from './chat.js';
+import { openDisputeRoom } from '../disputes.js';
 import { SELLABLE_SELLERS } from '../compliance.js';
 
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
@@ -188,7 +189,7 @@ act('accept', 'accept', async (row, userId, _ctx, q) => {
 });
 
 const MAX_ATTACHMENTS_BYTES = 3_000_000;
-const cleanAttachments = (list: unknown): Attachment[] => {
+export const cleanAttachments = (list: unknown): Attachment[] => {
   const files = (Array.isArray(list) ? list : []).slice(0, 10).map((f: any) => ({
     id: text(f.id, 60) || newId('att'),
     name: text(f.name, 160) || 'fichier',
@@ -253,13 +254,14 @@ act('cancel', 'cancel', async (row, userId, ctx, q) => {
 
 const openDispute = async (row: OrderRow, userId: string, reason: string, q: Query) => {
   await freezeFunds(row, reason);
+  // The dispute room is opened with the dispute: it tells the seller where to answer.
+  await openDisputeRoom(q, row, userId, reason);
   await transition(q, row, {
     status: 'disputed',
     event: 'disputed',
     actorId: userId,
     note: reason,
     set: { release_at: null },
-    notices: [toSeller(row, `Litige ouvert · ${row.number}`, reason)],
   });
 };
 

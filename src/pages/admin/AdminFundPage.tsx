@@ -328,14 +328,23 @@ export const AdminFundPage: React.FC = () => {
         </span>
       }
       actions={
-        order.held ? (
+        order.held || data.dispute ? (
           <>
-            <Button variant="secondary" onClick={() => setDeciding('refund')}>
-              Rembourser l’acheteur
-            </Button>
-            <Button variant="primary" onClick={() => setDeciding('release')}>
-              Payer le vendeur
-            </Button>
+            {data.dispute && (
+              <Button variant="ghost" to={ROUTES.admin.dispute(data.dispute.id)}>
+                {data.dispute.label}
+              </Button>
+            )}
+            {order.held && (
+              <>
+                <Button variant="secondary" onClick={() => setDeciding('refund')}>
+                  Rembourser l’acheteur
+                </Button>
+                <Button variant="primary" onClick={() => setDeciding('release')}>
+                  Payer le vendeur
+                </Button>
+              </>
+            )}
           </>
         ) : undefined
       }

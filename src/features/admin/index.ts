@@ -6,3 +6,4 @@ export * from './paged';
 export * from './components/MoreRows';
 export * from './components/LockdownControl';
 export * from './components/SessionsControl';
+export * from './components/DisputeActions';

@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   PanelTop,
   ReceiptText,
+  Scale,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -41,6 +42,7 @@ import { useCurrentUser } from '@/features/session';
 import { needsAction, useUnreadCount } from '@/features/orders';
 import { NotificationBell } from '@/features/notifications';
 import { useAnsweredTicketCount } from '@/features/support';
+import { useDisputeSummary } from '@/features/disputes';
 import { useFollowUpdates } from '@/features/library';
 import { adminApi } from '@/features/admin';
 import { UserMenu } from './UserMenu';
@@ -125,12 +127,12 @@ const NavGroup: React.FC<{ title: string; collapsed: boolean; children: React.Re
 
 /** What waits for the administration (identity checks, disputes, support), for the menu badges; refreshed on each page and every minute. */
 function useAdminTodo(enabled: boolean) {
-  const [todo, setTodo] = useState<{ kyc_pending: number; disputed: number; tickets_open: number }>();
+  const [todo, setTodo] = useState<{ kyc_pending: number; disputes_waiting: number; tickets_open: number }>();
   const { pathname } = useLocation();
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    const load = () => adminApi.overview().then((o) => alive && setTodo({ kyc_pending: Number(o.kyc_pending), disputed: Number(o.disputed), tickets_open: Number(o.tickets_open) }), () => undefined);
+    const load = () => adminApi.overview().then((o) => alive && setTodo({ kyc_pending: Number(o.kyc_pending), disputes_waiting: Number(o.disputes_waiting), tickets_open: Number(o.tickets_open) }), () => undefined);
     load();
     const timer = window.setInterval(load, 60_000);
     return () => {
@@ -152,6 +154,8 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
     [user.id]
   );
   const todo = useAdminTodo(area === 'admin');
+  const { pathname: here } = useLocation();
+  const disputes = useDisputeSummary(area === 'account' && !user.guest, here);
   const answered = useAnsweredTicketCount(user.id);
   const unread = useUnreadCount(user.id);
   const followUpdates = useFollowUpdates(user.id);
@@ -195,7 +199,8 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
             </NavGroup>
             <NavGroup title="Traitement quotidien" collapsed={collapsed}>
               {item({ to: ROUTES.admin.sellers, label: 'Vendeurs', icon: Store, badge: todo?.kyc_pending })}
-              {item({ to: ROUTES.admin.funds, label: 'Fonds bloqués', icon: Lock, badge: todo?.disputed })}
+              {item({ to: ROUTES.admin.disputes, label: 'Litiges', icon: Scale, badge: todo?.disputes_waiting })}
+              {item({ to: ROUTES.admin.funds, label: 'Fonds bloqués', icon: Lock })}
               {item({ to: ROUTES.admin.support, label: 'Support', icon: LifeBuoy, badge: todo?.tickets_open })}
             </NavGroup>
             <NavGroup title="Plateforme" collapsed={collapsed}>
@@ -219,6 +224,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
             {item({ to: ROUTES.account.orders, label: 'Mes achats', icon: ShoppingBag, badge: counts.toValidate })}
             {item({ to: ROUTES.account.favorites, label: 'Favoris', icon: Heart })}
             {item({ to: ROUTES.account.following, label: 'Abonnements', icon: UserRound, badge: followUpdates.total })}
+            {!user.merchant && !!disputes?.total && item({ to: ROUTES.account.disputes, label: 'Litiges', icon: Scale, badge: disputes.unread })}
           </NavGroup>
 
           {user.merchant ? (
@@ -228,6 +234,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
               {item({ to: ROUTES.seller.listings, label: 'Offres', icon: Package })}
               {item({ to: ROUTES.seller.customers, label: 'Clients', icon: Users })}
               {item({ to: ROUTES.seller.payouts, label: 'Paiements', icon: Wallet })}
+              {item({ to: ROUTES.seller.disputes, label: 'Litiges', icon: Scale, badge: disputes?.unread })}
               {user.merchant.kycStatus !== 'approved' &&
                 item({ to: ROUTES.seller.verification, label: 'Vérification', icon: UserCheck, badge: user.merchant.kycStatus === 'pending' ? undefined : 1 })}
             </NavGroup>

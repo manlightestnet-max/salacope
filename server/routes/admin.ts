@@ -11,6 +11,7 @@ import { secretsReady } from '../secrets.js';
 import { currentLaunchBanner, currentPlatform, saveLaunchBanner, savePlatform } from '../settings.js';
 import { SESSIONS_KEY, refreshLockdown, setSignedOutAll, signedOutAllState } from '../lockdown.js';
 import { signAttachments } from '../storage/attachments.js';
+import { closeDisputeRoom } from '../disputes.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
 import { PURPOSES, Purpose, StorageConfig, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
@@ -47,6 +48,7 @@ route('GET', '/admin/overview', async (ctx) => {
     (SELECT COUNT(*) FROM orders WHERE status <> 'cancelled') AS orders,
     (SELECT COUNT(*) FROM orders WHERE status = 'disputed') AS disputed,
     (SELECT COUNT(*) FROM tickets WHERE status = 'open') AS tickets_open,
+    (SELECT COUNT(*) FROM disputes d WHERE d.status = 'open' AND (SELECT x.author_id FROM dispute_messages x WHERE x.dispute_id = d.id ORDER BY x.at DESC, x.id DESC LIMIT 1) IS NOT NULL) AS disputes_waiting,
     (SELECT COUNT(*) FROM orders WHERE status IN ('paid', 'in_progress', 'delivered', 'disputed') AND lightpay_hold_id IS NOT NULL) AS held,
     (SELECT COALESCE(SUM((amounts->>'total')::bigint), 0) FROM orders WHERE status IN ('paid', 'in_progress', 'delivered', 'disputed') AND lightpay_hold_id IS NOT NULL) AS held_total,
     (SELECT COALESCE(SUM((amounts->>'total')::bigint), 0) FROM orders WHERE status <> 'cancelled') AS volume,
@@ -603,7 +605,7 @@ async function fundDetail(orderId: string) {
     [orderId]
   );
   if (!order) throw new DomainError('Commande introuvable.', 404);
-  const [events, messages, tickets, listing, downloads, seller, buyer] = await Promise.all([
+  const [events, messages, tickets, listing, downloads, seller, buyer, disputeRows] = await Promise.all([
     query('SELECT id, type, actor_id, note, at FROM order_events WHERE order_id = $1 ORDER BY at, id', [orderId]),
     query(
       `SELECT m.id, m.author_id, m.body, m.at, jsonb_array_length(m.attachments)::int AS files, u.name
@@ -616,6 +618,7 @@ async function fundDetail(orderId: string) {
     query('SELECT COUNT(*)::int AS n, MIN(at) AS first, MAX(at) AS last FROM order_downloads WHERE order_id = $1 AND user_id = $2', [orderId, order.buyer_id]).catch(() => []),
     trackRecord(order.seller_id, 'seller'),
     trackRecord(order.buyer_id, 'buyer'),
+    query('SELECT id, number FROM disputes WHERE order_id = $1', [orderId]).catch(() => []),
   ]);
   // What the seller delivered: pictures and files open through a short-lived address; a file kept in the database is only named.
   const files = (order.delivery?.files ?? []).map((f: any) => ({ ...f }));
@@ -635,6 +638,7 @@ async function fundDetail(orderId: string) {
     downloads: downloads[0] ?? null,
     seller,
     buyer,
+    dispute: disputeRows[0] ? { id: disputeRows[0].id as string, label: `Litige ${String(disputeRows[0].number).padStart(2, '0')}` } : null,
     events,
     messages: messages.reverse(),
     tickets,
@@ -675,6 +679,7 @@ const settleFunds = (decision: 'release' | 'refund') =>
                 toSeller(row, `Commande ${row.number} remboursée au client`, reason),
               ],
       });
+      await closeDisputeRoom(q, row.id, decision === 'release' ? 'seller' : 'buyer', reason, row.amounts.total);
       await audit(q, admin, decision === 'release' ? 'funds.release' : 'funds.refund', decision === 'release' ? row.seller_id : row.buyer_id, {
         order: row.number,
         amount: row.amounts.total,

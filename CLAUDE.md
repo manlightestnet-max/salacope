@@ -8,6 +8,7 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - `features/*` : `api.ts` pour les écritures (règles métier, `DomainError`), `hooks.ts` pour les lectures, `components`. Entre features, on importe uniquement via leur `index.ts`.
 - `shared/` : `ui`, `db`, `config`, `hooks`, `lib`. Alias `@/`.
 - Pas de widget ni de vue monolithique : un composant = une responsabilité, réutilisable.
+- **Réutiliser avant d'écrire.** Avant de construire un écran, chercher ce qui existe déjà pour la même chose (conversation, liste, formulaire, fiche, dialogue) et le réutiliser. Si une partie n'est pas réutilisable telle quelle, on l'**extrait** de l'existant en composant partagé (props, pas de copie) et l'ancien écran s'appuie dessus aussi. Jamais de seconde version « maison » d'une interface qui existe : mêmes bulles, même zone de saisie, mêmes lignes de liste, mêmes comportements partout. Exemple : la messagerie (`ChatMessage`, `ChatFeed`, `ChatComposer`, `ChatHeaderBar`, `ConversationRow` dans `features/orders/components/chat/ChatParts.tsx`) sert aux commandes **et** aux litiges.
 
 ## Scaffold du back-office (CRM)
 

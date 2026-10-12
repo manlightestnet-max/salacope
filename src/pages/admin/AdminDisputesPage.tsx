@@ -8,7 +8,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { AdminDisputeFilter, DisputeList, DisputeRoom, disputesApi, useDisputeRoom } from '@/features/disputes';
 import { DisputeActions } from '@/features/admin';
 
-const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
+const FILTERS: AdminDisputeFilter[] = ['open', 'waiting', 'resolved', 'all'];
 
 /**
  * `/admin/litiges[/:id]`: the dispute rooms, in the style of Messages. The room has the shortcuts of the administration
@@ -17,7 +17,8 @@ const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
 export const AdminDisputesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [params, setParams] = useSearchParams();
-  const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'waiting';
+  // Every open dispute by default: one where Salacope spoke last (a conduct dispute just opened) must not disappear.
+  const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'open';
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const list = usePagedList((offset) => disputesApi.adminList(filter, search, offset), [filter, search]);
@@ -60,8 +61,8 @@ export const AdminDisputesPage: React.FC = () => {
             setParams(next, { replace: true });
           }}
           items={[
-            { value: 'waiting', label: 'Réponse attendue', count: counts?.waiting },
             { value: 'open', label: 'Ouverts', count: counts?.open },
+            { value: 'waiting', label: 'Réponse attendue', count: counts?.waiting },
             { value: 'resolved', label: 'Clos' },
             { value: 'all', label: 'Tous' },
           ]}
@@ -77,7 +78,7 @@ export const AdminDisputesPage: React.FC = () => {
               <SkeletonRows rows={4} />
             </div>
           ) : list.items.length === 0 ? (
-            <EmptyState icon={Scale} title={filter === 'waiting' && !search ? 'Rien en attente' : 'Aucun litige'} description={filter === 'waiting' && !search ? 'Toutes les salles ont reçu une réponse de Salacope.' : undefined} />
+            <EmptyState icon={Scale} title={filter === 'waiting' && !search ? 'Rien en attente' : 'Aucun litige'} description={filter === 'waiting' && !search ? 'Toutes les salles ont reçu une réponse de Salacope.' : filter === 'open' && !search ? 'Aucun litige ouvert : ouvrez-en un avec le bouton en haut.' : undefined} />
           ) : (
             <>
               <DisputeList

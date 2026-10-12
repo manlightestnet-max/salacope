@@ -65,6 +65,7 @@ export const ROUTES = {
     settings: '/admin/parametres',
     settingsSection: (section: string) => `/admin/parametres/${section}`,
     disputes: '/admin/litiges',
+    newDispute: '/admin/litiges/nouveau',
     dispute: (id: string) => `/admin/litiges/${id}`,
     funds: '/admin/fonds',
     fund: (id: string) => `/admin/fonds/${id}`,

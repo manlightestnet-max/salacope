@@ -7,4 +7,3 @@ export * from './components/MoreRows';
 export * from './components/LockdownControl';
 export * from './components/SessionsControl';
 export * from './components/DisputeActions';
-export * from './components/OpenDisputeDialog';

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Scale } from 'lucide-react';
 import { Button, EmptyState, MoreRows, Page, SearchField, SkeletonRows, Tabs } from '@/shared/ui';
 import { usePagedList } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { AdminDisputeFilter, DisputeList, DisputeRoom, disputesApi, useDisputeRoom } from '@/features/disputes';
-import { DisputeActions, OpenDisputeDialog } from '@/features/admin';
+import { DisputeActions } from '@/features/admin';
 
 const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
 
@@ -16,8 +16,6 @@ const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
  */
 export const AdminDisputesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [opening, setOpening] = useState(false);
   const [params, setParams] = useSearchParams();
   const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'waiting';
   const [q, setQ] = useState('');
@@ -35,7 +33,7 @@ export const AdminDisputesPage: React.FC = () => {
       help="Chaque litige a sa salle : l’acheteur, le vendeur et vous. Écrivez au nom de Salacope, demandez des preuves, puis décidez dans « Fonds : payer ou rembourser »."
       actions={
         <>
-          <Button size="sm" variant="secondary" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setOpening(true)}>
+          <Button size="sm" variant="secondary" to={ROUTES.admin.newDispute} icon={<Plus className="w-3.5 h-3.5" />}>
             <span className="hidden sm:inline">Ouvrir un litige</span>
             <span className="sm:hidden">Ouvrir</span>
           </Button>
@@ -117,14 +115,6 @@ export const AdminDisputesPage: React.FC = () => {
           )}
         </div>
       </div>
-      <OpenDisputeDialog
-        open={opening}
-        onClose={() => setOpening(false)}
-        onOpened={(disputeId) => {
-          list.reload();
-          navigate(`${ROUTES.admin.dispute(disputeId)}${keep}`);
-        }}
-      />
     </Page>
   );
 };

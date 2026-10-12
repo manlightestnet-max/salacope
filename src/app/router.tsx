@@ -50,6 +50,7 @@ import { AdminStoragePage } from '@/pages/admin/AdminStoragePage';
 import { AdminStorageSectionPage } from '@/pages/admin/AdminStorageSectionPage';
 import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
 import { AdminDisputesPage } from '@/pages/admin/AdminDisputesPage';
+import { AdminNewDisputePage } from '@/pages/admin/AdminNewDisputePage';
 import { AdminFundsPage } from '@/pages/admin/AdminFundsPage';
 import { DisputesPage } from '@/pages/seller/DisputesPage';
 import { AdminLaunchBannerPage } from '@/pages/admin/AdminLaunchBannerPage';
@@ -200,6 +201,7 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
               { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
               { path: ROUTES.admin.disputes, element: <AdminDisputesPage /> },
+              { path: ROUTES.admin.newDispute, element: <AdminNewDisputePage /> },
               { path: '/admin/litiges/:id', element: <AdminDisputesPage /> },
               { path: ROUTES.admin.funds, element: <AdminFundsPage /> },
               { path: '/admin/fonds/:id', element: <AdminFundPage /> },

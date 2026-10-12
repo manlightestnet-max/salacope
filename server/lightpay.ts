@@ -9,7 +9,13 @@ import { guardPayments } from './lockdown.js';
 export const lightpayEnv = (): 'sandbox' | 'production' => {
   const raw = String(process.env.LIGHTWALLET_ENV ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase();
   // Never a silent default: an unset or misspelled value stops here, with the reason shown.
-  if (raw === 'production' || raw === 'sandbox') return raw;
+  if (raw === 'production' || raw === 'sandbox') {
+    // The live site never talks to the test ledger.
+    if (raw === 'sandbox' && process.env.VERCEL_ENV === 'production') {
+      throw new LightPayError('LightPay : le site en production ne peut pas utiliser l’environnement de test. Mettez LIGHTWALLET_ENV=production puis redéployez.', 500, 'CONFIG');
+    }
+    return raw;
+  }
   throw new LightPayError(`LightPay : LIGHTWALLET_ENV doit valoir « production » ou « sandbox » (valeur actuelle : ${raw || 'vide'}).`, 500, 'CONFIG');
 };
 

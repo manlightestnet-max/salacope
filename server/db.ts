@@ -10,8 +10,11 @@ let pool: pg.Pool | null = null;
 
 const getPool = () => {
   if (!pool) {
-    const url = process.env.SALACOPE_DATABASE_URL;
-    if (!url) throw new Error('SALACOPE_DATABASE_URL is not set');
+    // The live site (Vercel production) only ever reads the production database; the other one is for previews and local work.
+    const live = process.env.VERCEL_ENV === 'production';
+    const name = live ? 'SALACOPE_DATABASE_URL_PRODUCTION' : 'SALACOPE_DATABASE_URL';
+    const url = process.env[name];
+    if (!url) throw new Error(`${name} is not set`);
     pool = new pg.Pool({ connectionString: url.replace('sslmode=require', 'sslmode=verify-full'), max: 3, idleTimeoutMillis: 10_000 });
   }
   return pool;

@@ -6,7 +6,7 @@ import { guardPayments } from './lockdown.js';
  * LightPay (api.smlab.xyz): every franc goes through it. Salacope's secret key never leaves the server.
  * LIGHTWALLET_ENV picks the key: sandbox (test money) or production.
  */
-export const lightpayEnv = () => (process.env.LIGHTWALLET_ENV === 'production' ? 'production' : 'sandbox');
+export const lightpayEnv = () => (String(process.env.LIGHTWALLET_ENV ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase() === 'production' ? 'production' : 'sandbox');
 
 const apiBase = () => (process.env.LIGHTWALLET_API_URL || 'https://api.smlab.xyz').replace(/\/$/, '');
 const pagesBase = () => (process.env.LIGHTPAY_CHECKOUT_URL || 'https://checkout.smlab.xyz').replace(/\/$/, '');
@@ -15,7 +15,10 @@ const appId = () => process.env.LIGHTWALLET_APP_ID || 'salacope';
 const secretKey = () => {
   const key = lightpayEnv() === 'production' ? process.env.LIGHTWALLET_SECRET_KEY_PRODUCTION : process.env.LIGHTWALLET_SECRET_KEY_SANDBOX;
   if (!key) throw new Error('LightPay secret key is not configured');
-  return key;
+  // LightPay picks the ledger from the key itself (sec_test_ = test money, sec_live_ = real money), whatever the header says.
+  const expected = lightpayEnv() === 'production' ? 'sec_live_' : 'sec_test_';
+  if (!key.trim().startsWith(expected)) throw new Error(`LightPay: the ${lightpayEnv()} key must start with ${expected}`);
+  return key.trim();
 };
 
 export class LightPayError extends DomainError {
@@ -39,12 +42,13 @@ const FRIENDLY: Record<string, string> = {
 async function call<T = any>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
   // Emergency brake: no payment, payout or refund (and nothing at all when stopped) leaves the server.
   guardPayments(method);
+  const key = secretKey(); // a missing or wrong key must say so, not look like "LightPay ne répond pas"
   let res: Response;
   try {
     res = await fetch(`${apiBase()}/v1${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${secretKey()}`,
+        Authorization: `Bearer ${key}`,
         'X-Environment': lightpayEnv(),
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),

@@ -93,6 +93,7 @@ export const Page: React.FC<PageProps> = ({ title, help, back, meta, actions, to
             {toolbar && <div className="mt-2">{toolbar}</div>}
           </div>
         )}
+        {fill && toolbar && <div className={column}>{toolbar}</div>}
       </header>
       <div ref={scrollRef} className={clsx('flex-1 min-h-0', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
         <RouteTransition className={clsx(column, fill ? 'h-full py-3 sm:py-4' : 'py-6')}>{children}</RouteTransition>

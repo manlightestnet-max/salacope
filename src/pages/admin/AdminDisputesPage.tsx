@@ -50,27 +50,27 @@ export const AdminDisputesPage: React.FC = () => {
           />
         </>
       }
-      toolbar={
-        <Tabs
-          bare
-          segmented
-          value={filter}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('filtre', v);
-            setParams(next, { replace: true });
-          }}
-          items={[
-            { value: 'open', label: 'Ouverts', count: counts?.open },
-            { value: 'waiting', label: 'Réponse attendue', count: counts?.waiting },
-            { value: 'resolved', label: 'Clos' },
-            { value: 'all', label: 'Tous' },
-          ]}
-        />
-      }
     >
       <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] gap-4">
-        <section className={clsx('min-h-0 overflow-y-auto rounded-2xl border border-gray-200/70 bg-surface', id && 'hidden lg:block')}>
+        <section className={clsx('min-h-0 flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-surface', id && 'hidden lg:flex')}>
+          <div className="shrink-0 px-3 py-2 border-b border-gray-100">
+            <Tabs
+              segmented
+              value={filter}
+              onChange={(v) => {
+                const next = new URLSearchParams(params);
+                next.set('filtre', v);
+                setParams(next, { replace: true });
+              }}
+              items={[
+                { value: 'open', label: 'Ouverts', count: counts?.open },
+                { value: 'waiting', label: 'À répondre', count: counts?.waiting },
+                { value: 'resolved', label: 'Clos' },
+                { value: 'all', label: 'Tous' },
+              ]}
+            />
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {list.error && !list.items ? (
             <EmptyState title="Litiges indisponibles" description={list.error} />
           ) : !list.items ? (
@@ -97,6 +97,7 @@ export const AdminDisputesPage: React.FC = () => {
               <MoreRows hasMore={list.hasMore} loading={list.loadingMore} sentinelRef={list.sentinelRef} onMore={list.next} />
             </>
           )}
+          </div>
         </section>
         <div className={clsx('min-h-0', !id && 'hidden lg:block')}>
           {id ? (

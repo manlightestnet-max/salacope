@@ -51,12 +51,15 @@ export const MessagesPage: React.FC = () => {
       title="Messages"
       back={open ? back : undefined}
       toolbar={
-        <Tabs
-          bare
-          value={kind}
-          items={tabs}
-          onChange={(v) => navigate(`${ROUTES.account.messages}?type=${KINDS.find((k) => k.value === v)!.param}`)}
-        />
+        // On a phone, a room open on its own leaves the screen to the conversation.
+        <div className={clsx(open && 'max-lg:hidden')}>
+          <Tabs
+            bare
+            value={kind}
+            items={tabs}
+            onChange={(v) => navigate(`${ROUTES.account.messages}?type=${KINDS.find((k) => k.value === v)!.param}`)}
+          />
+        </div>
       }
     >
       {digital.length + services.length === 0 ? (

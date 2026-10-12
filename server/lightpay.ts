@@ -6,7 +6,12 @@ import { guardPayments } from './lockdown.js';
  * LightPay (api.smlab.xyz): every franc goes through it. Salacope's secret key never leaves the server.
  * LIGHTWALLET_ENV picks the key: sandbox (test money) or production.
  */
-export const lightpayEnv = () => (String(process.env.LIGHTWALLET_ENV ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase() === 'production' ? 'production' : 'sandbox');
+export const lightpayEnv = (): 'sandbox' | 'production' => {
+  const raw = String(process.env.LIGHTWALLET_ENV ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase();
+  // Never a silent default: an unset or misspelled value stops here, with the reason shown.
+  if (raw === 'production' || raw === 'sandbox') return raw;
+  throw new LightPayError(`LightPay : LIGHTWALLET_ENV doit valoir « production » ou « sandbox » (valeur actuelle : ${raw || 'vide'}).`, 500, 'CONFIG');
+};
 
 const apiBase = () => (process.env.LIGHTWALLET_API_URL || 'https://api.smlab.xyz').replace(/\/$/, '');
 const pagesBase = () => (process.env.LIGHTPAY_CHECKOUT_URL || 'https://checkout.smlab.xyz').replace(/\/$/, '');
@@ -14,10 +19,10 @@ const appId = () => process.env.LIGHTWALLET_APP_ID || 'salacope';
 
 const secretKey = () => {
   const key = lightpayEnv() === 'production' ? process.env.LIGHTWALLET_SECRET_KEY_PRODUCTION : process.env.LIGHTWALLET_SECRET_KEY_SANDBOX;
-  if (!key) throw new Error('LightPay secret key is not configured');
+  if (!key) throw new LightPayError(`LightPay : la clé secrète ${lightpayEnv()} n’est pas configurée (LIGHTWALLET_SECRET_KEY_${lightpayEnv().toUpperCase()}).`, 500, 'CONFIG');
   // LightPay picks the ledger from the key itself (sec_test_ = test money, sec_live_ = real money), whatever the header says.
   const expected = lightpayEnv() === 'production' ? 'sec_live_' : 'sec_test_';
-  if (!key.trim().startsWith(expected)) throw new Error(`LightPay: the ${lightpayEnv()} key must start with ${expected}`);
+  if (!key.trim().startsWith(expected)) throw new LightPayError(`LightPay : la clé ${lightpayEnv()} doit commencer par ${expected}. Elle envoie sinon l’argent vers l’autre environnement.`, 500, 'CONFIG');
   return key.trim();
 };
 
@@ -63,7 +68,7 @@ async function call<T = any>(method: string, path: string, body?: unknown, idemp
   if (!res.ok) {
     const code = String(data.error ?? 'LIGHTPAY_ERROR');
     console.error('[lightpay]', method, path, res.status, code, data.message);
-    throw new LightPayError(FRIENDLY[code] ?? 'Paiement impossible pour le moment. Réessayez.', res.status >= 500 ? 502 : 400, code);
+    throw new LightPayError(FRIENDLY[code] ?? `LightPay (${lightpayEnv()}) : ${data.message ?? code}`, res.status >= 500 ? 502 : 400, code);
   }
   return data as T;
 }
@@ -91,6 +96,21 @@ export const lightpay = {
       environment: lightpayEnv(),
     }).toString();
     return u.toString();
+  },
+
+  /** Asks LightPay whether this connection request is valid in this environment (app, return address, scopes), before leaving. */
+  async checkAuthorize(p: { redirectUri: string; codeChallenge: string; scopes: string[] }) {
+    const q = new URLSearchParams({ app_id: appId(), scope: p.scopes.join(' '), redirect_uri: p.redirectUri, code_challenge: p.codeChallenge, environment: lightpayEnv() });
+    let res: Response;
+    try {
+      res = await fetch(`${apiBase()}/v1/checkout/public/authorize?${q}`, { signal: AbortSignal.timeout(15_000) });
+    } catch {
+      throw new LightPayError('LightPay ne répond pas. Réessayez dans un instant.', 503, 'UNAVAILABLE');
+    }
+    if (!res.ok) {
+      const data: any = await res.json().catch(() => ({}));
+      throw new LightPayError(`LightPay (${lightpayEnv()}) refuse la connexion : ${data.message ?? data.error ?? res.status}`, 400, String(data.error ?? 'INVALID_REQUEST'));
+    }
   },
 
   /** The seller's LightPay account page (balance, withdrawals). */

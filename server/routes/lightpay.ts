@@ -14,6 +14,7 @@ route('POST', '/lightpay/connect', async (ctx) => {
   const [m] = await query('SELECT 1 FROM merchants WHERE user_id = $1', [userId]);
   if (!m) throw new DomainError('Ouvrez d’abord votre boutique.', 403);
   const { verifier, challenge } = pkce();
+  await lightpay.checkAuthorize({ redirectUri: `${ctx.origin}/lightpay/callback`, codeChallenge: challenge, scopes: SCOPES });
   const state = crypto.randomBytes(24).toString('base64url');
   const redirectUri = `${ctx.origin}/lightpay/callback`;
   await query("DELETE FROM lightpay_connect_requests WHERE user_id = $1 OR created_at < NOW() - INTERVAL '1 hour'", [userId]);
@@ -32,7 +33,12 @@ route('POST', '/lightpay/callback', async (ctx) => {
   const state = String(ctx.body.state ?? '');
   if (ctx.body.error) {
     await query('DELETE FROM lightpay_connect_requests WHERE state = $1 AND user_id = $2', [state, userId]);
-    throw new DomainError('Connexion refusée sur LightPay.');
+    const reason = String(ctx.body.error);
+    throw new DomainError(
+      reason === 'access_denied'
+        ? 'LightPay a renvoyé « accès refusé » : la connexion a été refusée ou la page quittée avant d’autoriser. Recommencez et touchez Autoriser.'
+        : `Connexion refusée par LightPay (${reason}).`
+    );
   }
   const [request] = await query(
     "DELETE FROM lightpay_connect_requests WHERE state = $1 AND user_id = $2 AND created_at > NOW() - INTERVAL '1 hour' RETURNING *",

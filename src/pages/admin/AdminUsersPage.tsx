@@ -4,13 +4,14 @@ import { Users } from 'lucide-react';
 import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
+import { usePersistedState } from '@/shared/hooks';
 import { MoreRows, adminApi, useAdminPaged } from '@/features/admin';
 
 type Filter = 'all' | 'blocked';
 
 /** Every account (buyers and sellers): blocking stops all use of the account. */
 export const AdminUsersPage: React.FC = () => {
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = usePersistedState<Filter>('admin.users.filter', 'all');
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get('q') ?? '');
   const [search, setSearch] = useState(params.get('q') ?? '');

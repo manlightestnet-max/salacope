@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Scale } from 'lucide-react';
 import { Button, EmptyState, MoreRows, Page, SearchField, SkeletonRows, Tabs } from '@/shared/ui';
-import { usePagedList } from '@/shared/hooks';
+import { usePagedList, useRememberedParam } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { AdminDisputeFilter, DisputeList, DisputeRoom, disputesApi, useDisputeRoom } from '@/features/disputes';
 import { DisputeActions } from '@/features/admin';
@@ -16,9 +16,9 @@ const FILTERS: AdminDisputeFilter[] = ['open', 'waiting', 'resolved', 'all'];
  */
 export const AdminDisputesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   // Every open dispute by default: one where Salacope spoke last (a conduct dispute just opened) must not disappear.
-  const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'open';
+  const [filter, setFilter] = useRememberedParam('admin.disputes', 'filtre', FILTERS, 'open');
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const list = usePagedList((offset) => disputesApi.adminList(filter, search, offset), [filter, search]);
@@ -57,11 +57,7 @@ export const AdminDisputesPage: React.FC = () => {
             <Tabs
               segmented
               value={filter}
-              onChange={(v) => {
-                const next = new URLSearchParams(params);
-                next.set('filtre', v);
-                setParams(next, { replace: true });
-              }}
+              onChange={setFilter}
               items={[
                 { value: 'open', label: 'Ouverts', count: counts?.open },
                 { value: 'waiting', label: 'À répondre', count: counts?.waiting },

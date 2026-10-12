@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { LifeBuoy } from 'lucide-react';
 import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatRelative } from '@/shared/lib';
+import { useRememberedParam } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { topicLabel } from '@/features/support';
 import { AdminTicketRow, MoreRows, TicketFilter, adminApi, useAdminPaged } from '@/features/admin';
@@ -17,8 +17,7 @@ const FILTERS: TicketFilter[] = ['open', 'answered', 'resolved', 'all'];
 
 /** Support inbox: what is waiting for Salacope first, oldest request at the top. */
 export const AdminSupportPage: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'open';
+  const [filter, setFilter] = useRememberedParam('admin.support', 'filtre', FILTERS, 'open');
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const { items: tickets, extra: counts, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.tickets(filter, search, offset), [filter, search]);
@@ -50,11 +49,7 @@ export const AdminSupportPage: React.FC = () => {
             { value: 'resolved', label: 'Résolus' },
             { value: 'all', label: 'Tous' },
           ]}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('filtre', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setFilter}
         />
       }
     >

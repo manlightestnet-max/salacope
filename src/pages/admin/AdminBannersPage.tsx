@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { ImagePlus } from 'lucide-react';
 import { AdminBanner, adminApi, useAdminResource } from '@/features/admin';
 import { Button, EmptyState, Field, Input, Page, Panel, SkeletonRows, Tabs, useToast } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { IMAGE_TYPES, cropImageFile, sniffImageType } from '@/shared/lib';
 
 const SLOTS = [1, 2, 3];
@@ -111,8 +111,8 @@ const Slot: React.FC<{ position: number; banner?: AdminBanner; onChange: (all: A
 /** The three advertising slots of the storefront banner: the administrator picks the image and the link of each. */
 export const AdminBannersPage: React.FC = () => {
   const { data, error, loading, set } = useAdminResource(() => adminApi.banners(), []);
-  const [params, setParams] = useSearchParams();
-  const position = SLOTS.find((n) => String(n) === params.get('emplacement')) ?? 1;
+  const [slot, setSlot] = useRememberedParam('admin.banners', 'emplacement', SLOTS.map(String), '1');
+  const position = Number(slot);
   const banner = data?.find((b) => b.position === position);
 
   return (
@@ -124,11 +124,7 @@ export const AdminBannersPage: React.FC = () => {
           bare
           segmented
           value={String(position)}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('emplacement', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setSlot}
           items={SLOTS.map((n) => ({ value: String(n), label: `Emplacement ${n}` }))}
         />
       }

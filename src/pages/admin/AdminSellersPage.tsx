@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Store } from 'lucide-react';
 import { Avatar, Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows } from '@/shared/ui';
 import { formatDate, formatXaf } from '@/shared/lib';
+import { useRememberedParam } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { KycBadge, MoreRows, SellerFilter, adminApi, useAdminPaged } from '@/features/admin';
 
@@ -16,8 +16,7 @@ const FILTERS: { value: SellerFilter; label: string }[] = [
 
 /** Sellers, identity checks first: a tap opens the seller's own screen. */
 export const AdminSellersPage: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const filter = FILTERS.find((f) => f.value === params.get('filtre'))?.value ?? 'all';
+  const [filter, setFilter] = useRememberedParam<SellerFilter>('admin.sellers', 'filtre', FILTERS.map((f) => f.value), 'all');
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const { items: sellers, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.sellers(filter, search, offset), [filter, search]);
@@ -43,11 +42,7 @@ export const AdminSellersPage: React.FC = () => {
           label="Filtre"
           value={filter}
           options={FILTERS}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('filtre', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setFilter}
         />
       }
     >

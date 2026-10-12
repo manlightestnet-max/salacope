@@ -1,14 +1,13 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Page, Tabs } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { LockdownControl, SessionsControl } from '@/features/admin';
 
 type View = 'verrou' | 'sessions';
 
 /** Security: the emergency brake, and signing everybody out. One thing per tab. */
 export const AdminSecurityPage: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const view: View = params.get('vue') === 'sessions' ? 'sessions' : 'verrou';
+  const [view, setView] = useRememberedParam<View>('admin.security', 'vue', ['verrou', 'sessions'], 'verrou');
   return (
     <Page
       title="Sécurité"
@@ -19,11 +18,7 @@ export const AdminSecurityPage: React.FC = () => {
           bare
           segmented
           value={view}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('vue', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setView}
           items={[
             { value: 'verrou', label: 'Verrou d’urgence' },
             { value: 'sessions', label: 'Sessions' },

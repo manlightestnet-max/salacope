@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { EmptyState, Button, Field, Input, Page, Panel, Segmented, SkeletonRows, Tabs, useToast } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { LaunchBannerView } from '@/shared/ui/LaunchBanner';
 import { LaunchBannerSettings, applyLaunchBanner } from '@/shared/config/launchBanner';
 import { adminApi, useAdminResource } from '@/features/admin';
@@ -10,8 +10,7 @@ type View = 'contenu' | 'apercu';
 /** The notice above the site's header: off, a line of text, or a line of text with a button. */
 export const AdminLaunchBannerPage: React.FC = () => {
   const toast = useToast();
-  const [params, setParams] = useSearchParams();
-  const view: View = params.get('vue') === 'apercu' ? 'apercu' : 'contenu';
+  const [view, setView] = useRememberedParam<View>('admin.launch', 'vue', ['contenu', 'apercu'], 'contenu');
   const { data, error } = useAdminResource(() => adminApi.launchBanner(), []);
   const [form, setForm] = useState<LaunchBannerSettings>();
   const [busy, setBusy] = useState(false);
@@ -45,11 +44,7 @@ export const AdminLaunchBannerPage: React.FC = () => {
           bare
           segmented
           value={view}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('vue', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setView}
           items={[
             { value: 'contenu', label: 'Contenu' },
             { value: 'apercu', label: 'Aperçu' },

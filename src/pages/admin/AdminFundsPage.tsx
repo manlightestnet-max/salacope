@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { Badge, EmptyState, List, ListRow, Page, Panel, SearchField, Segmented, SkeletonRows, Stat, StatGrid } from '@/shared/ui';
 import { formatDate, formatNumber, formatRelative, formatXaf } from '@/shared/lib';
+import { useRememberedParam } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { AdminFundRow, FundFilter, MoreRows, adminApi, useAdminPaged } from '@/features/admin';
 
@@ -19,8 +19,7 @@ const FILTERS: FundFilter[] = ['disputed', 'waiting', 'all'];
 
 /** Every franc held in escrow: disputes first, then what waits for the buyer's validation. */
 export const AdminFundsPage: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'disputed';
+  const [filter, setFilter] = useRememberedParam('admin.funds', 'filtre', FILTERS, 'disputed');
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const { items: funds, extra: totals, error, hasMore, loadingMore, sentinelRef, next } = useAdminPaged((offset) => adminApi.funds(filter, search, offset), [filter, search]);
@@ -50,11 +49,7 @@ export const AdminFundsPage: React.FC = () => {
             { value: 'waiting', label: 'En attente de validation' },
             { value: 'all', label: 'Tous' },
           ]}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('filtre', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setFilter}
         />
       }
     >

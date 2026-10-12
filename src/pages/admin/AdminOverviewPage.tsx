@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BarChart, Button, EmptyState, List, ListRow, Page, Panel, Segmented, SkeletonRows, Stat, StatGrid, Tabs } from '@/shared/ui';
 import { formatDateTime, formatNumber, formatXaf } from '@/shared/lib';
+import { useRememberedParam } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { AUDIT_LABEL, MoreRows, adminApi, useAdminPaged, useAdminResource } from '@/features/admin';
 
@@ -141,8 +142,7 @@ type View = 'benefices' | 'traiter' | 'plateforme' | 'activite';
 const VIEWS: View[] = ['benefices', 'traiter', 'plateforme', 'activite'];
 
 export const AdminOverviewPage: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const view = VIEWS.find((v) => v === params.get('vue')) ?? 'benefices';
+  const [view, setView] = useRememberedParam('admin.overview', 'vue', VIEWS, 'benefices');
   const { data, error, loading, reload } = useAdminResource(() => adminApi.overview(), []);
   const o = data;
 
@@ -155,11 +155,7 @@ export const AdminOverviewPage: React.FC = () => {
           bare
           segmented
           value={view}
-          onChange={(v) => {
-            const next = new URLSearchParams(params);
-            next.set('vue', v);
-            setParams(next, { replace: true });
-          }}
+          onChange={setView}
           items={[
             { value: 'benefices', label: 'Bénéfices' },
             { value: 'traiter', label: 'À traiter', count: o ? o.kyc_pending + o.tickets_open + o.disputed : undefined },

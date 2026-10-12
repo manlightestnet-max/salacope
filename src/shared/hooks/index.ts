@@ -13,3 +13,4 @@ export * from './useScrollMemory';
 export * from './usePersistedState';
 export * from './usePagedList';
 export * from './resourceCache';
+export * from './useRememberedParam';

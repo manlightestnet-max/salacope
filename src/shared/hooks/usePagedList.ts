@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cacheKey, cached, remember } from './resourceCache';
 
 const supported = typeof IntersectionObserver !== 'undefined';
 
@@ -13,9 +14,11 @@ export interface PagedRows<T, X = undefined> {
  * near the bottom of the scrolling pane. `extra` is what the first page carries besides rows (counts, totals).
  */
 export function usePagedList<T, X = undefined>(load: (offset: number) => Promise<PagedRows<T, X>>, deps: unknown[]) {
-  const [items, setItems] = useState<T[]>();
-  const [extra, setExtra] = useState<X>();
-  const [hasMore, setHasMore] = useState(false);
+  const key = cacheKey(load, deps);
+  const known = cached<{ items: T[]; extra: X; hasMore: boolean }>(key);
+  const [items, setItems] = useState<T[] | undefined>(known?.items);
+  const [extra, setExtra] = useState<X | undefined>(known?.extra);
+  const [hasMore, setHasMore] = useState(known?.hasMore ?? false);
   const [error, setError] = useState<string>();
   const [more, setMore] = useState(false);
   const seq = useRef(0);
@@ -24,21 +27,35 @@ export function usePagedList<T, X = undefined>(load: (offset: number) => Promise
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const run = useCallback(load, deps);
 
+  // The rows on screen, kept for the next visit: coming back shows them at once, as they were.
+  const latest = useRef({ items, extra, hasMore });
+  latest.current = { items, extra, hasMore };
+  useEffect(() => {
+    if (items) remember(key, { items, extra, hasMore });
+  }, [key, items, extra, hasMore]);
+
   const reload = useCallback(() => {
     const mine = ++seq.current;
     busy.current = false;
     setError(undefined);
-    setItems(undefined);
+    const before = cached<{ items: T[]; extra: X; hasMore: boolean }>(key);
+    setItems(before?.items);
+    setExtra(before?.extra);
+    setHasMore(before?.hasMore ?? false);
     run(0).then(
       (page) => {
         if (mine !== seq.current) return;
-        setItems(page.items);
+        // The first page is fresh; what had been scrolled to beyond it is kept (matched by id when rows have one).
+        const idOf = (r: T) => (r as { id?: string }).id;
+        const ids = new Set(page.items.map(idOf).filter((v): v is string => v !== undefined));
+        const rest = (before?.items ?? []).slice(page.items.length).filter((r) => !ids.has(idOf(r) as string));
+        setItems([...page.items, ...rest]);
         setExtra(page.extra);
-        setHasMore(page.hasMore);
+        setHasMore(rest.length ? (before?.hasMore ?? page.hasMore) : page.hasMore);
       },
       (e) => mine === seq.current && setError((e as Error).message)
     );
-  }, [run]);
+  }, [run, key]);
   useEffect(reload, [reload]);
 
   const loaded = items?.length ?? 0;

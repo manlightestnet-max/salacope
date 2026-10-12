@@ -21,7 +21,7 @@ import {
 import { notify } from '../notify.js';
 import { offloadImage, offloadImages, pruneImages } from '../storage/images.js';
 import { checkProductFile, pruneProductFiles } from '../storage/products.js';
-import { listingView } from '../views.js';
+import { IMG_PREFIX, listingView } from '../views.js';
 import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
 
 /** Who is asking: an account, else a guest who bought without one on this browser, else nobody. */
@@ -178,10 +178,17 @@ const checkedInput = (body: any): ListingInput => {
   return input;
 };
 
+/** The app shows the stored cover by its address (see imageUrl): sent back unchanged, it means "keep the picture you have". */
+const keptCover = async (cover: string, listingId: string) => {
+  if (!cover.startsWith(IMG_PREFIX)) return cover;
+  const [row] = await query('SELECT cover_image FROM listings WHERE id = $1', [listingId]);
+  return row?.cover_image ?? cover;
+};
+
 /** New pictures go to storage (when it is set up) and the listing keeps their short addresses. */
 const withStoredImages = async <T extends { coverImage: string; gallery?: string[] }>(sellerId: string, fields: T, listingId: string): Promise<T> => ({
   ...fields,
-  coverImage: await offloadImage(sellerId, fields.coverImage, listingId),
+  coverImage: await offloadImage(sellerId, await keptCover(fields.coverImage, listingId), listingId),
   gallery: fields.gallery === undefined ? undefined : await offloadImages(sellerId, fields.gallery, listingId),
 });
 

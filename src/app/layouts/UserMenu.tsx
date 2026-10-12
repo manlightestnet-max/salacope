@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Compass, LayoutDashboard, LifeBuoy, LogIn, LogOut, Settings, ShieldCheck, UserPlus } from 'lucide-react';
-import { Avatar, Menu, MenuItem } from '@/shared/ui';
+import { Avatar, Menu, MenuItem, Skeleton, useBooting } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { ADMIN_HOST, isPublicHost } from '@/shared/config/hosts';
 import { signOut, useSession } from '@/features/session';
@@ -10,7 +10,8 @@ import { signOut, useSession } from '@/features/session';
 export const UserMenu: React.FC<{ compact?: boolean; inApp?: boolean; admin?: boolean }> = ({ compact = false, inApp = false, admin = false }) => {
   const { user, isMerchant, isGuest } = useSession();
   const navigate = useNavigate();
-  if (!user) return null;
+  const booting = useBooting();
+  if (!user) return booting ? <Skeleton className="w-7 h-7 rounded-full" /> : null;
 
   if (isGuest) {
     // Bought without an account: nothing to sign out of, only an account to create.

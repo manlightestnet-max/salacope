@@ -12,3 +12,4 @@ export * from './useViewPosition';
 export * from './useScrollMemory';
 export * from './usePersistedState';
 export * from './usePagedList';
+export * from './resourceCache';

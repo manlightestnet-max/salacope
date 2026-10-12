@@ -13,7 +13,7 @@ const LIMITS: Record<string, number> = { catalogue: 150, preview: 600, public: 1
 /** Which bucket a request counts in. */
 export const bucketOf = (method: string, path: string) => {
   if (method === 'GET' && (path === '/bootstrap' || path === '/catalog')) return 'catalogue';
-  if (method === 'GET' && path.startsWith('/share/')) return 'preview';
+  if (method === 'GET' && (path.startsWith('/share/') || path.startsWith('/img/'))) return 'preview';
   return 'public';
 };
 

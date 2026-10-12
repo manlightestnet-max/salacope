@@ -21,6 +21,15 @@ export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
 const opt = <T>(v: T | null | undefined) => (v === null ? undefined : v);
 
+/**
+ * A picture kept in the database (a data URL of 100-200 KB) is not sent with the data: the app gets a short address that the
+ * browser loads on its own, keeps (the address changes with the picture) and shows when it is needed. Pictures already on
+ * the public bucket are addresses and pass through. Without this the catalogue weighs 2 MB and nothing shows until it is loaded.
+ */
+export const IMG_PREFIX = '/api/img/';
+export const imageUrl = (kind: 'l' | 's' | 'o', id: string, value: unknown, version: string | number): string | undefined =>
+  typeof value === 'string' && value.startsWith('data:') ? `${IMG_PREFIX}${kind}/${id}?v=${version}` : (opt(value as string | null | undefined) as string | undefined);
+
 /** `self`: the signed-in person sees their own e-mail and phone; nobody else does. */
 export const userView = (r: any, self: boolean): User => ({
   id: r.id,
@@ -37,7 +46,7 @@ export const userView = (r: any, self: boolean): User => ({
         storeName: r.store_name,
         headline: r.headline,
         city: r.city,
-        logo: opt(r.logo),
+        logo: imageUrl('s', r.id, r.logo, typeof r.logo === 'string' ? r.logo.length : 0),
         handle: opt(r.handle),
         verified: r.verified,
         activatedAt: r.activated_at,
@@ -61,7 +70,7 @@ export const listingView = (r: any): Listing => ({
   priceXaf: r.price_xaf,
   compareAtXaf: opt(r.compare_at_xaf),
   galleryCount: r.gallery_count ? Number(r.gallery_count) : undefined,
-  coverImage: r.cover_image,
+  coverImage: imageUrl('l', r.id, r.cover_image, new Date(r.updated_at).getTime()) ?? '',
   deliveryDays: opt(r.delivery_days),
   revisions: opt(r.revisions),
   briefQuestions: opt(r.brief_questions),
@@ -83,7 +92,7 @@ export const orderView = (r: any, events: OrderEvent[], messages: OrderMessage[]
     id: r.id,
     number: r.number,
     listingId: r.listing_id,
-    item: r.item,
+    item: r.item?.coverImage ? { ...r.item, coverImage: imageUrl('o', r.id, r.item.coverImage, 1) ?? '' } : r.item,
     sellerId: r.seller_id,
     buyerId: r.buyer_id,
     buyer: seller ? { name: r.buyer.name, email: '', phone: '' } : r.buyer,

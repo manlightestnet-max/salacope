@@ -32,7 +32,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, ThemeToggle } from '@/shared/ui';
+import { LaunchBanner, Logo, PageTrailContext, PaneContext, SearchField, Skeleton, ThemeToggle, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { LOCKDOWN_TEXT, useLockdown } from '@/shared/api';
 import { shortcutLabel, useFocusShortcut, useTrackHistory, useVisualViewportHeight } from '@/shared/hooks';
@@ -153,6 +153,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
     }),
     [user.id]
   );
+  const booting = useBooting();
   const todo = useAdminTodo(area === 'admin');
   const { pathname: here } = useLocation();
   const disputes = useDisputeSummary(area === 'account' && !user.guest, here);
@@ -227,7 +228,16 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate: () => void; area: A
             {!user.merchant && !!disputes?.total && item({ to: ROUTES.account.disputes, label: 'Litiges', icon: Scale, badge: disputes.unread })}
           </NavGroup>
 
-          {user.merchant ? (
+          {booting ? (
+            // The account is not loaded yet: whether there is a store is unknown, so "Ouvrir ma boutique" must not show.
+            <NavGroup title="" collapsed={collapsed}>
+              {[0, 1, 2, 3].map((n) => (
+                <div key={n} className="px-2.5 h-8 flex items-center">
+                  <Skeleton className={collapsed ? 'h-4 w-4' : 'h-3.5 w-full'} />
+                </div>
+              ))}
+            </NavGroup>
+          ) : user.merchant ? (
             <NavGroup title={user.merchant.storeName} collapsed={collapsed}>
               {item({ to: ROUTES.seller.root, label: "Vue d'ensemble", icon: LayoutDashboard, end: true })}
               {item({ to: ROUTES.seller.sales, label: 'Ventes', icon: ReceiptText, badge: counts.toProcess })}

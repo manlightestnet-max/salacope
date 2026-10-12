@@ -25,6 +25,14 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - La barre de catégories (`CategoryTabs`, pastilles avec compteur) reste **collée sous le header pendant le défilement** : toolbar sticky de `CatalogBrowser` sur la vitrine et la recherche, barre d'outils de `Page` dans le back-office.
 - Catégorie autre que « Tout », « Voir tout » ou recherche → **grille seule** avec défilement infini. On retire tout ce qui distrait (hero, créateurs, encarts) et le footer reste caché tant que tout n'est pas chargé.
 
+## Persistance et fraîcheur
+
+- **Revenir sur un onglet, un écran ou une liste ne montre jamais de shimmer ni de rechargement visible** : on réaffiche tout de suite le dernier état connu (stale-while-revalidate, comme l'Explorer), puis on vérifie auprès du serveur en arrière-plan. Le shimmer n'existe que pour la **toute première** charge d'une donnée jamais vue.
+- Toute donnée d'un écran passe par les hooks qui gardent la dernière réponse : `useAdminResource`, `usePagedList`, `useDisputeRoom` (admin, listes, salles), le store et `refreshCatalog` (compte et catalogue). **Jamais** de `fetch` dans un `useEffect` local qui repart de zéro à chaque affichage.
+- Une réponse identique à celle affichée ne remplace rien (un formulaire en cours de saisie n'est pas écrasé). Une liste revient avec ses pages déjà chargées et sa position.
+- Tant que le compte n'est pas chargé, on n'affiche **rien de faux** (pas de « Ouvrir ma boutique » ni d'avatar absent) : des placeholders neutres.
+- **Les réponses restent légères** : jamais d'image en base64 dans une liste ou un catalogue (adresses mises en cache par le navigateur, voir `imageUrl`). Un catalogue lourd rend tout lent et empêche la copie locale de se garder.
+
 ## Minimalisme
 
 - Sobre, façon Stripe / Linear / Kubeta : peu d'éléments, textes courts, pas de décoration gratuite (ni dégradé, ni emoji, ni bordure colorée sur le côté).

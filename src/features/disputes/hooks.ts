@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cacheKey, cached, remember } from '@/shared/hooks';
 import { DisputeDetail, disputesApi } from './api';
 
 /** One room, kept fresh while it is open (the other parties write at any time). */
 export function useDisputeRoom(id: string | undefined, load: (id: string) => Promise<DisputeDetail>, everyMs = 8_000) {
-  const [detail, setDetail] = useState<DisputeDetail>();
+  const key = cacheKey(load, [id]);
+  const [detail, setDetail] = useState<DisputeDetail | undefined>(() => cached<DisputeDetail>(key));
   const [error, setError] = useState<string>();
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
@@ -11,21 +13,26 @@ export function useDisputeRoom(id: string | undefined, load: (id: string) => Pro
   const refresh = useCallback(() => {
     if (!id) return Promise.resolve();
     return load(id).then(
-      (d) => alive.current && (setDetail(d), setError(undefined)),
+      (d) => {
+        remember(key, d);
+        if (alive.current) (setDetail(d), setError(undefined));
+      },
       (e) => alive.current && setError((e as Error).message)
     );
-  }, [id, load]);
+  }, [id, load, key]);
 
   useEffect(() => {
-    setDetail(undefined);
+    // The conversation seen last is shown at once, and refreshed.
+    setDetail(cached<DisputeDetail>(key));
     setError(undefined);
     if (!id) return;
     void refresh();
     const timer = window.setInterval(() => document.visibilityState === 'visible' && void refresh(), everyMs);
     return () => window.clearInterval(timer);
-  }, [id, refresh, everyMs]);
+  }, [id, key, refresh, everyMs]);
 
-  return { detail, error, refresh, set: setDetail };
+  const set = useCallback((d: DisputeDetail) => (remember(key, d), setDetail(d)), [key]);
+  return { detail, error, refresh, set };
 }
 
 /** Open disputes and unread messages for the menu badges; checked on each page and every minute. */

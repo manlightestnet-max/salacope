@@ -121,12 +121,12 @@ const DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})
 const CACHE = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400';
 
 /** A stored picture (kept as a data URL) as the image file the preview needs. */
-const image = (dataUrl: string | null | undefined) => {
+export const image = (dataUrl: string | null | undefined, cache = CACHE) => {
   // Stored on the public bucket: send the reader there.
-  if (/^https:\/\//.test(String(dataUrl ?? ''))) return new Response(null, { status: 302, headers: { Location: String(dataUrl), 'Cache-Control': CACHE } });
+  if (/^https:\/\//.test(String(dataUrl ?? ''))) return new Response(null, { status: 302, headers: { Location: String(dataUrl), 'Cache-Control': cache } });
   const m = String(dataUrl ?? '').match(DATA_URL);
   if (!m) return new Response(JSON.stringify({ error: 'Image introuvable.' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
-  return new Response(Buffer.from(m[2], 'base64'), { status: 200, headers: { 'Content-Type': m[1], 'Cache-Control': CACHE, 'X-Content-Type-Options': 'nosniff' } });
+  return new Response(Buffer.from(m[2], 'base64'), { status: 200, headers: { 'Content-Type': m[1], 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' } });
 };
 
 /** The offer's cover. */

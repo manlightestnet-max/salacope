@@ -88,6 +88,7 @@ export const AdminDisputesPage: React.FC = () => {
                   id: d.id,
                   label: d.label,
                   name: d.kind === 'conduct' ? `Conduite : ${d.subject_name}` : `${d.seller_name} ↔ ${d.buyer_name}`,
+                  avatarName: (d.kind === 'conduct' ? d.subject_name : d.seller_name) ?? d.title,
                   subtitle: d.last_body ?? d.title,
                   at: d.updated_at,
                   open: d.status === 'open',

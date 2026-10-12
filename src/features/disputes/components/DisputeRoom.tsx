@@ -71,6 +71,7 @@ export const DisputeRoom: React.FC<{
                 )
               }
               mine={viewerId === null ? m.role === 'salacope' : m.authorId === viewerId}
+              ownName={viewerId === null ? 'Salacope' : undefined}
             />
           ))}
         </ChatFeed>

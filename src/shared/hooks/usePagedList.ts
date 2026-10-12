@@ -27,12 +27,9 @@ export function usePagedList<T, X = undefined>(load: (offset: number) => Promise
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const run = useCallback(load, deps);
 
-  // The rows on screen, kept for the next visit: coming back shows them at once, as they were.
-  const latest = useRef({ items, extra, hasMore });
-  latest.current = { items, extra, hasMore };
-  useEffect(() => {
-    if (items) remember(key, { items, extra, hasMore });
-  }, [key, items, extra, hasMore]);
+  // What the screen shows, for `next` (read at call time).
+  const latest = useRef({ extra, hasMore });
+  latest.current = { extra, hasMore };
 
   const reload = useCallback(() => {
     const mine = ++seq.current;
@@ -49,9 +46,13 @@ export function usePagedList<T, X = undefined>(load: (offset: number) => Promise
         const idOf = (r: T) => (r as { id?: string }).id;
         const ids = new Set(page.items.map(idOf).filter((v): v is string => v !== undefined));
         const rest = (before?.items ?? []).slice(page.items.length).filter((r) => !ids.has(idOf(r) as string));
-        setItems([...page.items, ...rest]);
+        const merged = [...page.items, ...rest];
+        const more_ = rest.length ? (before?.hasMore ?? page.hasMore) : page.hasMore;
+        // Kept for the next visit under the key these rows belong to, and only here (never "whatever is on screen").
+        remember(key, { items: merged, extra: page.extra, hasMore: more_ });
+        setItems(merged);
         setExtra(page.extra);
-        setHasMore(rest.length ? (before?.hasMore ?? page.hasMore) : page.hasMore);
+        setHasMore(more_);
       },
       (e) => mine === seq.current && setError((e as Error).message)
     );
@@ -67,7 +68,8 @@ export function usePagedList<T, X = undefined>(load: (offset: number) => Promise
     run(items.length)
       .then((page) => {
         if (mine !== seq.current) return;
-        setItems((cur) => [...(cur ?? []), ...page.items]);
+        remember(key, { items: [...items, ...page.items], extra: latest.current.extra, hasMore: page.hasMore });
+        setItems([...items, ...page.items]);
         setHasMore(page.hasMore);
       })
       .catch((e) => mine === seq.current && (setError((e as Error).message), setHasMore(false)))
@@ -75,7 +77,7 @@ export function usePagedList<T, X = undefined>(load: (offset: number) => Promise
         busy.current = false;
         setMore(false);
       });
-  }, [items, run]);
+  }, [items, run, key]);
 
   useEffect(() => {
     const el = sentinelRef.current;

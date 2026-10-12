@@ -25,7 +25,9 @@ export const ChatMessage: React.FC<{
   ticks?: React.ReactNode;
   /** A card shown before the text (payment request). */
   card?: React.ReactNode;
-}> = ({ message, name, avatar, mine, ticks, card }) => {
+  /** What own messages are signed with ("Vous" by default; the administration writes as Salacope). */
+  ownName?: string;
+}> = ({ message, name, avatar, mine, ticks, card, ownName = 'Vous' }) => {
   const [viewing, setViewing] = useState<number | null>(null);
   // Images open in the viewer; other files stay downloadable chips.
   const photos = (message.attachments ?? []).filter((a) => isImageType(a.type) && a.dataUrl);
@@ -72,7 +74,7 @@ export const ChatMessage: React.FC<{
           </div>
         )}
         <span className="mt-1 px-1 inline-flex items-center gap-1 text-[11px] text-gray-400" title={formatDateTime(message.at)}>
-          {mine ? 'Vous' : name} · {formatRelative(message.at)}
+          {mine ? ownName : name} · {formatRelative(message.at)}
           {mine && ticks}
         </span>
       </div>

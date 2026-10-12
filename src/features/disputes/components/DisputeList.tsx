@@ -6,6 +6,8 @@ export interface DisputeListItem {
   id: string;
   label: string;
   name: string;
+  /** Whose picture/initial: the person concerned (not the composite title). Defaults to `name`. */
+  avatarName?: string;
   subtitle: string;
   at: string;
   open: boolean;
@@ -23,7 +25,7 @@ export const DisputeList: React.FC<{ items: DisputeListItem[]; hrefFor: (id: str
         href={hrefFor(d.id)}
         selected={d.id === selectedId}
         name={`${d.label} · ${d.name}`}
-        avatar={{ name: d.name }}
+        avatar={{ name: d.avatarName ?? d.name }}
         at={d.at}
         unread={d.unread ?? 0}
         preview={d.subtitle}

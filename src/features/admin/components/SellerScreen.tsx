@@ -206,6 +206,7 @@ export const SellerScreen: React.FC<{ id: string }> = ({ id }) => {
             <Badge tone={seller.risk === 'high' ? 'danger' : seller.risk === 'medium' ? 'warning' : 'neutral'}>Risque {RISK_LABEL[seller.risk].toLowerCase()}</Badge>
             {seller.suspended_at && <Badge tone="danger">Boutique suspendue</Badge>}
             {seller.blocked_at && <Badge tone="danger">Compte bloqué</Badge>}
+            {data.warnings > 0 && <Badge tone="warning">{plural(data.warnings, 'avertissement')}</Badge>}
             <Badge tone={seller.wallet ? 'success' : 'neutral'}>{seller.wallet ? 'Wallet LightPay connecté' : 'Wallet non connecté'}</Badge>
           </div>
           <StatGrid columns={4}>

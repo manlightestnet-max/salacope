@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { Scale } from 'lucide-react';
-import { EmptyState, MoreRows, Page, SearchField, SkeletonRows, Tabs } from '@/shared/ui';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Plus, Scale } from 'lucide-react';
+import { Button, EmptyState, MoreRows, Page, SearchField, SkeletonRows, Tabs } from '@/shared/ui';
 import { usePagedList } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { AdminDisputeFilter, DisputeList, DisputeRoom, disputesApi, useDisputeRoom } from '@/features/disputes';
-import { DisputeActions } from '@/features/admin';
+import { DisputeActions, OpenDisputeDialog } from '@/features/admin';
 
 const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
 
@@ -16,6 +16,8 @@ const FILTERS: AdminDisputeFilter[] = ['waiting', 'open', 'resolved', 'all'];
  */
 export const AdminDisputesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
   const [params, setParams] = useSearchParams();
   const filter = FILTERS.find((f) => f === params.get('filtre')) ?? 'waiting';
   const [q, setQ] = useState('');
@@ -32,7 +34,12 @@ export const AdminDisputesPage: React.FC = () => {
       back={id ? { to: `${ROUTES.admin.disputes}${keep}`, label: 'Litiges' } : undefined}
       help="Chaque litige a sa salle : l’acheteur, le vendeur et vous. Écrivez au nom de Salacope, demandez des preuves, puis décidez dans « Fonds : payer ou rembourser »."
       actions={
-        <SearchField
+        <>
+          <Button size="sm" variant="secondary" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setOpening(true)}>
+            <span className="hidden sm:inline">Ouvrir un litige</span>
+            <span className="sm:hidden">Ouvrir</span>
+          </Button>
+          <SearchField
           value={q}
           onChange={(v) => {
             setQ(v);
@@ -41,7 +48,8 @@ export const AdminDisputesPage: React.FC = () => {
           onSubmit={() => setSearch(q.trim())}
           placeholder="Litige, commande, nom"
           className="w-40 sm:w-64"
-        />
+          />
+        </>
       }
       toolbar={
         <Tabs
@@ -80,7 +88,7 @@ export const AdminDisputesPage: React.FC = () => {
                 items={list.items.map((d) => ({
                   id: d.id,
                   label: d.label,
-                  name: `${d.seller_name} ↔ ${d.buyer_name}`,
+                  name: d.kind === 'conduct' ? `Conduite : ${d.subject_name}` : `${d.seller_name} ↔ ${d.buyer_name}`,
                   subtitle: d.last_body ?? d.title,
                   at: d.updated_at,
                   open: d.status === 'open',
@@ -100,7 +108,7 @@ export const AdminDisputesPage: React.FC = () => {
               onSend={async (body, files) => {
                 room.set(await disputesApi.adminSend(id, body, files));
               }}
-              actions={room.detail && <DisputeActions detail={room.detail} />}
+              actions={room.detail && <DisputeActions detail={room.detail} onChange={room.set} />}
             />
           ) : (
             <div className="h-full rounded-2xl border border-dashed border-gray-200 flex items-center justify-center">
@@ -109,6 +117,14 @@ export const AdminDisputesPage: React.FC = () => {
           )}
         </div>
       </div>
+      <OpenDisputeDialog
+        open={opening}
+        onClose={() => setOpening(false)}
+        onOpened={(disputeId) => {
+          list.reload();
+          navigate(`${ROUTES.admin.dispute(disputeId)}${keep}`);
+        }}
+      />
     </Page>
   );
 };

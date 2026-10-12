@@ -8,15 +8,21 @@ export interface DisputeMessage {
   id: string;
   /** `null` = Salacope. */
   authorId: string | null;
-  role: 'buyer' | 'seller' | 'salacope';
+  role: 'buyer' | 'seller' | 'salacope' | 'accused';
   name: string;
   body: string;
   attachments: Attachment[];
   at: string;
 }
 
+export type DisputeOutcome = 'seller' | 'buyer' | 'warning' | 'cleared';
+
+/**
+ * kind `order`: buyer, seller and Salacope about a disputed order (`order` is set).
+ * kind `conduct`: opened by the administration about an account (`subject` is set), not tied to an order.
+ */
 export interface DisputeDetail {
-  dispute: { id: string; number: number; label: string; status: 'open' | 'resolved'; outcome: 'seller' | 'buyer' | null; createdAt: string; closedAt: string | null };
+  dispute: { id: string; number: number; label: string; kind: 'order' | 'conduct'; title: string | null; status: 'open' | 'resolved'; outcome: DisputeOutcome | null; createdAt: string; closedAt: string | null };
   order: {
     id: string;
     number: string;
@@ -30,22 +36,24 @@ export interface DisputeDetail {
     sellerName: string;
     buyerName: string;
     held: boolean;
-  };
+  } | null;
+  subject: { id: string; name: string; isSeller: boolean; warnings: number; warningsHere: number; listing: { id: string; title: string } | null } | null;
   messages: DisputeMessage[];
-  me: 'buyer' | 'seller' | 'admin';
+  me: 'buyer' | 'seller' | 'accused' | 'admin';
 }
 
 export interface DisputeRow {
   id: string;
   number: number;
   label: string;
+  kind: 'order' | 'conduct';
   status: 'open' | 'resolved';
-  outcome: 'seller' | 'buyer' | null;
+  outcome: DisputeOutcome | null;
   updated_at: string;
-  order_number: string;
+  order_number: string | null;
   title: string;
   counterpart: string;
-  side: 'seller' | 'buyer';
+  side: 'seller' | 'buyer' | 'accused';
   last_body: string | null;
   last_author: string | null;
   unread: number;
@@ -55,14 +63,16 @@ export interface AdminDisputeRow {
   id: string;
   number: number;
   label: string;
+  kind: 'order' | 'conduct';
   status: 'open' | 'resolved';
-  outcome: 'seller' | 'buyer' | null;
+  outcome: DisputeOutcome | null;
   updated_at: string;
-  order_number: string;
+  order_number: string | null;
   title: string;
-  total: number;
-  seller_name: string;
-  buyer_name: string;
+  total: number | null;
+  seller_name: string | null;
+  buyer_name: string | null;
+  subject_name: string | null;
   last_body: string | null;
   last_from_salacope: boolean;
 }
@@ -86,4 +96,8 @@ export const disputesApi = {
     })),
   adminDetail: (id: string) => request<DisputeDetail>('GET', `/admin/disputes/${encodeURIComponent(id)}`),
   adminSend: (id: string, body: string, attachments: Attachment[]) => request<DisputeDetail>('POST', `/admin/disputes/${encodeURIComponent(id)}/messages`, { body, attachments }),
+  /** A dispute about an account's conduct (copied content...), opened by the administration. */
+  open: (input: { subjectId: string; listingId?: string; title: string; message: string }) => request<DisputeDetail>('POST', '/admin/disputes', input),
+  warn: (id: string, reason: string) => request<DisputeDetail>('POST', `/admin/disputes/${encodeURIComponent(id)}/warn`, { reason }),
+  close: (id: string, note: string) => request<DisputeDetail>('POST', `/admin/disputes/${encodeURIComponent(id)}/close`, { note }),
 };

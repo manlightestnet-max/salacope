@@ -33,7 +33,7 @@ export const AdminUserPage: React.FC = () => {
       </Page>
     );
   }
-  const { user, log } = data;
+  const { user, log, warnings } = data;
   const done = (message: string) => {
     toast.success(message);
     reload();
@@ -82,6 +82,18 @@ export const AdminUserPage: React.FC = () => {
             <Stat label="Inscrit le" value={formatDate(user.created_at)} />
           </StatGrid>
           {user.blocked_reason && <p className="mt-4 text-sm text-gray-700">Blocage : {user.blocked_reason}.</p>}
+          {warnings.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium text-gray-900">{plural(warnings.length, 'avertissement')}</p>
+              <ul className="mt-1 space-y-1 text-sm text-gray-600">
+                {warnings.map((w) => (
+                  <li key={w.id}>
+                    {formatDate(w.created_at)} · {w.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {user.store_name && (
             <p className="mt-4 text-sm">
               <Link to={ROUTES.admin.seller(user.id)} className="text-gray-700 hover:underline">

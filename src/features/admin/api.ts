@@ -92,6 +92,7 @@ export interface AdminSellerDetail {
     sales: number;
   }[];
   stats: { orders: number; disputed: number; cancelled: number; volume: number; commission: number };
+  warnings: number;
   log: AdminAuditRow[];
 }
 
@@ -111,6 +112,7 @@ export interface AdminUserRow {
 export interface AdminUserDetail {
   user: AdminUserRow & { sessions_valid_after: string | null };
   log: AdminAuditRow[];
+  warnings: { id: string; reason: string; given_by: string; created_at: string }[];
 }
 
 export interface AdminSessions {
@@ -360,6 +362,9 @@ export const AUDIT_LABEL: Record<string, string> = {
   'banner.save': 'Emplacement publicitaire enregistré',
   'storage.save': 'Stockage de fichiers configuré',
   'storage.migrate': 'Fichiers existants déplacés vers le stockage',
+  'dispute.open': 'Litige de conduite ouvert',
+  'dispute.close': 'Litige de conduite clos',
+  'user.warn': 'Avertissement donné',
   'launch.save': 'Bannière du site modifiée',
   'lockdown.set': 'Verrou d’urgence modifié',
   'lockdown.denied': 'Levée du verrou refusée (code incorrect)',

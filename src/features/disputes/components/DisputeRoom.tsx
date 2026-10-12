@@ -37,7 +37,9 @@ const Files: React.FC<{ files: Attachment[]; mine: boolean }> = ({ files, mine }
     </ul>
   );
 
-const ROLE = { buyer: 'acheteur', seller: 'vendeur', salacope: '' } as const;
+const ROLE = { buyer: 'acheteur', seller: 'vendeur', salacope: '', accused: 'mis en cause' } as const;
+
+const CLOSED: Record<string, string> = { seller: 'Clos : vendeur payé', buyer: 'Clos : acheteur remboursé', warning: 'Clos : avertissement', cleared: 'Clos : sans suite' };
 
 const Bubble: React.FC<{ m: DisputeMessage; mine: boolean }> = ({ m, mine }) => {
   const salacope = m.role === 'salacope';
@@ -96,7 +98,7 @@ export const DisputeRoom: React.FC<{
       </Card>
     );
   }
-  const { dispute, order, messages } = detail;
+  const { dispute, order, subject, messages } = detail;
   const open = dispute.status === 'open';
 
   const send = async () => {
@@ -119,14 +121,16 @@ export const DisputeRoom: React.FC<{
       <div className="shrink-0 min-h-14 px-4 sm:px-5 py-2 flex items-center gap-3 border-b border-gray-100">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900 truncate">
-            {dispute.label} · {order.title}
+            {dispute.label} · {order ? order.title : dispute.title}
           </p>
           <p className="text-xs text-gray-500 truncate">
-            {order.number} · {formatXaf(order.total)} · {order.sellerName} ↔ {order.buyerName}
+            {order
+              ? `${order.number} · ${formatXaf(order.total)} · ${order.sellerName} ↔ ${order.buyerName}`
+              : `Mis en cause : ${subject?.name}${subject?.listing ? ` · ${subject.listing.title}` : ''}${subject?.warnings ? ` · ${subject.warnings} avertissement${subject.warnings > 1 ? 's' : ''}` : ''}`}
           </p>
         </div>
         <Badge tone={open ? 'danger' : 'neutral'} dot>
-          {open ? 'Ouvert' : dispute.outcome === 'seller' ? 'Clos : vendeur payé' : 'Clos : acheteur remboursé'}
+          {open ? 'Ouvert' : CLOSED[dispute.outcome ?? ''] ?? 'Clos'}
         </Badge>
         {actions}
       </div>

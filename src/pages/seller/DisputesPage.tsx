@@ -66,7 +66,7 @@ export const DisputesPage: React.FC<{ as: 'seller' | 'buyer' }> = ({ as }) => {
                   room.set(await disputesApi.send(id, body, files));
                 }}
                 actions={
-                  room.detail && (
+                  room.detail?.order && (
                     <Button size="sm" variant="ghost" to={as === 'seller' ? ROUTES.seller.sale(room.detail.order.id) : ROUTES.account.order(room.detail.order.id)}>
                       Commande
                     </Button>

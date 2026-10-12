@@ -90,6 +90,7 @@ async function sellerDetail(id: string) {
     [id]
   );
   if (!seller) throw new DomainError('Vendeur introuvable.', 404);
+  const [warnings] = await query('SELECT COUNT(*)::int AS n FROM account_warnings WHERE user_id = $1', [id]).catch(() => [{ n: 0 }]);
   const [submissions, documents, listings, stats, log] = await Promise.all([
     query(
       `SELECT id, full_name, birth_date::text, nationality, id_type, id_number, id_expires::text, address, pep, status, note,
@@ -123,6 +124,7 @@ async function sellerDetail(id: string) {
     submissions: submissions.map((s) => ({ ...s, documents: documents.filter((d) => d.submission_id === s.id).map((d) => d.kind) })),
     listings,
     stats: stats[0],
+    warnings: warnings?.n ?? 0,
     log,
   };
 }
@@ -813,8 +815,11 @@ route('GET', '/admin/users/:id', async (ctx) => {
     [ctx.params.id]
   );
   if (!user) throw new DomainError('Compte introuvable.', 404);
-  const log = await query('SELECT id, admin_email, action, detail, created_at FROM admin_audit WHERE target_user_id = $1 ORDER BY created_at DESC LIMIT 50', [ctx.params.id]);
-  return { user, log };
+  const [log, warnings] = await Promise.all([
+    query('SELECT id, admin_email, action, detail, created_at FROM admin_audit WHERE target_user_id = $1 ORDER BY created_at DESC LIMIT 50', [ctx.params.id]),
+    query('SELECT id, reason, given_by, created_at FROM account_warnings WHERE user_id = $1 ORDER BY created_at DESC', [ctx.params.id]).catch(() => []),
+  ]);
+  return { user, log, warnings };
 });
 
 /** Signs one person out everywhere: every sign-in they made before now is refused; they can sign in again unless blocked. */

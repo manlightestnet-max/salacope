@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LifeBuoy, Plus } from 'lucide-react';
-import { Button, EmptyState, ListSection, Page } from '@/shared/ui';
+import { Button, EmptyState, ListSection, Page, Tabs } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
@@ -14,6 +15,8 @@ export const SupportPage: React.FC = () => {
   const listings = useDb((s) => s.listings, []);
   const titles = useMemo(() => new Map(listings.map((l) => [l.id, l.title])), [listings]);
 
+  const [view, setView] = useRememberedParam<'tickets' | 'paiements'>('account.support', 'vue', ['tickets', 'paiements'], 'tickets');
+
   return (
     <Page
       title="Support"
@@ -24,30 +27,37 @@ export const SupportPage: React.FC = () => {
           Nouveau ticket
         </Button>
       }
+      toolbar={
+        attempts.length > 0 && (
+          <Tabs
+            bare
+            value={view}
+            onChange={setView}
+            items={[
+              { value: 'tickets', label: 'Mes tickets', count: tickets.length || undefined },
+              { value: 'paiements', label: 'Paiements récents', count: attempts.length },
+            ]}
+          />
+        )
+      }
     >
-      <div className="space-y-6">
+      {view === 'paiements' && attempts.length > 0 ? (
+        <ListSection
+          title="Paiements récents"
+          count={attempts.length}
+          help="Chaque tentative a un code unique. Débité sans commande ? Signalez la tentative : le support la retrouve tout de suite."
+        >
+          <PaymentAttemptList attempts={attempts} titles={titles} />
+        </ListSection>
+      ) : (
         <ListSection title="Mes tickets" count={tickets.length}>
           {tickets.length ? (
             <TicketList tickets={tickets} />
           ) : (
-            <EmptyState
-              icon={LifeBuoy}
-              title="Aucun ticket"
-              description="Un souci de paiement ou de commande ? Ouvrez un ticket avec le code concerné."
-            />
+            <EmptyState icon={LifeBuoy} title="Aucun ticket" description="Un souci de paiement ou de commande ? Ouvrez un ticket avec le code concerné." />
           )}
         </ListSection>
-
-        {attempts.length > 0 && (
-          <ListSection
-            title="Paiements récents"
-            count={attempts.length}
-            help="Chaque tentative a un code unique. Débité sans commande ? Signalez la tentative : le support la retrouve tout de suite."
-          >
-            <PaymentAttemptList attempts={attempts} titles={titles} />
-          </ListSection>
-        )}
-      </div>
+      )}
     </Page>
   );
 };

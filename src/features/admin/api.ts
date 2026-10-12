@@ -1,5 +1,6 @@
 import { request } from '@/shared/api';
 import type { LaunchBannerSettings } from '@/shared/config/launchBanner';
+import type { SiteIdentity } from '@/shared/config/identity';
 import type { KycDocumentKind, KycIdType, KycStatus, RiskLevel } from '@/shared/domain';
 
 /** Salacope administration: raw rows from /api/admin/* (reserved to administrators). */
@@ -328,6 +329,8 @@ export const adminApi = {
   resolveTicket: (id: string) => request<AdminTicketDetail>('POST', `/admin/tickets/${encodeURIComponent(id)}/resolve`),
   launchBanner: () => request<{ banner: LaunchBannerSettings }>('GET', '/admin/launch-banner').then((r) => r.banner),
   saveLaunchBanner: (input: LaunchBannerSettings) => request<{ banner: LaunchBannerSettings }>('PUT', '/admin/launch-banner', input).then((r) => r.banner),
+  identity: () => request<{ identity: SiteIdentity }>('GET', '/admin/identity').then((r) => r.identity),
+  saveIdentity: (input: SiteIdentity) => request<{ identity: SiteIdentity }>('PUT', '/admin/identity', input).then((r) => r.identity),
   lockdown: () => request<AdminLockdown>('GET', '/admin/lockdown'),
   setLockdown: (level: string, reason: string, code: string) => request<AdminLockdown>('POST', '/admin/lockdown', { level, reason, code }),
   settings: () => request<{ settings: AdminSettings }>('GET', '/admin/settings').then((r) => r.settings),
@@ -365,6 +368,7 @@ export const AUDIT_LABEL: Record<string, string> = {
   'dispute.open': 'Litige de conduite ouvert',
   'dispute.close': 'Litige de conduite clos',
   'user.warn': 'Avertissement donné',
+  'identity.save': 'Identité du site modifiée',
   'launch.save': 'Bannière du site modifiée',
   'lockdown.set': 'Verrou d’urgence modifié',
   'lockdown.denied': 'Levée du verrou refusée (code incorrect)',

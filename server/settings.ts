@@ -1,5 +1,6 @@
 import { PLATFORM, PlatformSettings, applyPlatform } from '../src/shared/config/platform.js';
 import { DEFAULT_LAUNCH_BANNER, LaunchBannerSettings } from '../src/shared/config/launchBanner.js';
+import { DEFAULT_IDENTITY, SiteIdentity, mergeIdentity } from '../src/shared/config/identity.js';
 import { query } from './db.js';
 
 /**
@@ -8,8 +9,12 @@ import { query } from './db.js';
  */
 const KEY = 'platform';
 const BANNER_KEY = 'launch_banner';
+const IDENTITY_KEY = 'identity';
 let loadedAt = 0;
 let banner: LaunchBannerSettings = DEFAULT_LAUNCH_BANNER;
+let identity: SiteIdentity = DEFAULT_IDENTITY;
+
+export const currentIdentity = () => identity;
 
 export const currentLaunchBanner = () => banner;
 
@@ -25,9 +30,11 @@ export async function ensurePlatform(): Promise<void> {
   if (Date.now() - loadedAt < 30_000) return;
   loadedAt = Date.now();
   try {
-    const rows = await query<{ key: string; value: string }>('SELECT key, value FROM app_settings WHERE key IN ($1, $2)', [KEY, BANNER_KEY]);
+    const rows = await query<{ key: string; value: string }>('SELECT key, value FROM app_settings WHERE key IN ($1, $2, $3)', [KEY, BANNER_KEY, IDENTITY_KEY]);
     const platform = rows.find((r) => r.key === KEY);
     if (platform) applyPlatform(JSON.parse(platform.value));
+    const ident = rows.find((r) => r.key === IDENTITY_KEY);
+    if (ident) identity = mergeIdentity(JSON.parse(ident.value));
     const launch = rows.find((r) => r.key === BANNER_KEY);
     if (launch) banner = { ...DEFAULT_LAUNCH_BANNER, ...JSON.parse(launch.value) };
   } catch {
@@ -44,5 +51,11 @@ export async function savePlatform(settings: PlatformSettings): Promise<void> {
 export async function saveLaunchBanner(next: LaunchBannerSettings): Promise<void> {
   await query(`INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`, [BANNER_KEY, JSON.stringify(next)]);
   banner = next;
+  loadedAt = Date.now();
+}
+
+export async function saveIdentity(next: SiteIdentity): Promise<void> {
+  await query(`INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`, [IDENTITY_KEY, JSON.stringify(next)]);
+  identity = next;
   loadedAt = Date.now();
 }

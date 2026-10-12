@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Plus } from 'lucide-react';
 import { Order } from '@/shared/db';
-import { BarChart, BarDatum, Button, EmptyState, List, ListRow, ListSection, Page, Panel, Segmented, Stat, StatGrid, UpdatedAt } from '@/shared/ui';
+import { BarChart, BarDatum, Button, EmptyState, List, ListRow, ListSection, Page, Panel, Segmented, Stat, StatGrid, Tabs, UpdatedAt } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { formatXaf, plural } from '@/shared/lib';
 import { useLastSync } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
@@ -15,6 +16,7 @@ import { VerificationNotice } from '@/features/verification';
 
 const DAY = 86_400_000;
 
+type View = 'ventes' | 'traiter' | 'offres';
 type Period = '7' | '30' | '90' | 'all';
 const PERIODS = [
   { value: '7' as const, label: '7 j' },
@@ -84,6 +86,8 @@ export const DashboardPage: React.FC = () => {
   const todo = orders.filter((o) => needsAction(o, 'seller')).sort((a, b) => urgency(a) - urgency(b) || a.createdAt.localeCompare(b.createdAt));
   const topListings = [...listings].filter((l) => l.sales > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
+  const [view, setView] = useRememberedParam<View>('seller.dashboard', 'vue', ['ventes', 'traiter', 'offres'], 'ventes');
+
   return (
     <Page
       title="Vue d'ensemble"
@@ -93,9 +97,21 @@ export const DashboardPage: React.FC = () => {
           Nouvelle offre
         </Button>
       }
+      toolbar={
+        <Tabs
+          bare
+          value={view}
+          onChange={setView}
+          items={[
+            { value: 'ventes', label: 'Ventes' },
+            { value: 'traiter', label: 'À traiter', count: todo.length || undefined },
+            { value: 'offres', label: 'Meilleures offres' },
+          ]}
+        />
+      }
     >
-      <div className="space-y-6">
-        {user.merchant && <VerificationNotice merchant={user.merchant} />}
+      {user.merchant && <VerificationNotice merchant={user.merchant} className="mb-4" />}
+      {view === 'ventes' && (
         <Panel
           title="Aperçu des ventes"
           actions={<Segmented label="Période" value={period} options={PERIODS} onChange={setPeriod} />}
@@ -130,64 +146,60 @@ export const DashboardPage: React.FC = () => {
             />
           </div>
         </Panel>
+      )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start">
-          <ListSection
-            title="À traiter"
-            count={todo.length}
-            help="Commandes qui attendent une action de votre part : litiges, retards, à accepter, à livrer."
-            action={
-              todo.length > TODO_PREVIEW && (
-                <Link to={ROUTES.seller.sales} className="text-sm text-gray-500 hover:text-gray-900">
-                  Tout voir
-                </Link>
-              )
-            }
-            className="min-w-0"
-          >
-            {todo.length ? (
-              <OrderList
-                orders={todo.slice(0, TODO_PREVIEW)}
-                perspective="seller"
-                counterpartyName={(o) => o.buyer.name}
-                hrefFor={(o) => ROUTES.seller.sale(o.id)}
-              />
-            ) : (
-              <EmptyState icon={CheckCircle2} title="Tout est à jour" />
-            )}
-          </ListSection>
-
-          <ListSection
-            title="Meilleures offres"
-            action={
-              <Link to={ROUTES.seller.listings} className="text-sm text-gray-500 hover:text-gray-900">
+      {view === 'traiter' && (
+        <ListSection
+          title="À traiter"
+          count={todo.length}
+          help="Commandes qui attendent une action de votre part : litiges, retards, à accepter, à livrer."
+          action={
+            todo.length > TODO_PREVIEW && (
+              <Link to={ROUTES.seller.sales} className="text-sm text-gray-500 hover:text-gray-900">
                 Tout voir
               </Link>
-            }
-          >
-            {topListings.length ? (
-              <List>
-                {topListings.map(({ listing, sales, revenue }) => (
-                  <ListRow
-                    key={listing.id}
-                    to={ROUTES.seller.listing(listing.id)}
-                    leading={<ListingThumb src={listing.coverImage} category={listing.category} size="md" />}
-                    title={listing.title}
-                    subtitle={plural(sales, 'vente')}
-                    trailing={<span className="font-medium text-gray-900">{formatXaf(revenue)}</span>}
-                  />
-                ))}
-              </List>
-            ) : (
-              <EmptyState
-                title="Pas encore de vente"
-                description={listings.length ? 'Partagez le lien de vos offres pour vos premières ventes.' : 'Publiez votre première offre.'}
-                action={!listings.length ? <Button to={ROUTES.seller.newListing}>Créer une offre</Button> : undefined}
-              />
-            )}
-          </ListSection>
-        </div>
-      </div>
+            )
+          }
+        >
+          {todo.length ? (
+            <OrderList orders={todo.slice(0, TODO_PREVIEW)} perspective="seller" counterpartyName={(o) => o.buyer.name} hrefFor={(o) => ROUTES.seller.sale(o.id)} />
+          ) : (
+            <EmptyState icon={CheckCircle2} title="Tout est à jour" />
+          )}
+        </ListSection>
+      )}
+
+      {view === 'offres' && (
+        <ListSection
+          title="Meilleures offres"
+          action={
+            <Link to={ROUTES.seller.listings} className="text-sm text-gray-500 hover:text-gray-900">
+              Tout voir
+            </Link>
+          }
+        >
+          {topListings.length ? (
+            <List>
+              {topListings.map(({ listing, sales, revenue }) => (
+                <ListRow
+                  key={listing.id}
+                  to={ROUTES.seller.listing(listing.id)}
+                  leading={<ListingThumb src={listing.coverImage} category={listing.category} size="md" />}
+                  title={listing.title}
+                  subtitle={plural(sales, 'vente')}
+                  trailing={<span className="font-medium text-gray-900">{formatXaf(revenue)}</span>}
+                />
+              ))}
+            </List>
+          ) : (
+            <EmptyState
+              title="Pas encore de vente"
+              description={listings.length ? 'Partagez le lien de vos offres pour vos premières ventes.' : 'Publiez votre première offre.'}
+              action={!listings.length ? <Button to={ROUTES.seller.newListing}>Créer une offre</Button> : undefined}
+            />
+          )}
+        </ListSection>
+      )}
     </Page>
   );
 };

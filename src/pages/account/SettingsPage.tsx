@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Card, CardBody, CardFooter, CardHeader, Field, Input, Page, useToast } from '@/shared/ui';
-import { useServiceAction } from '@/shared/hooks';
+import { Button, Card, CardBody, CardFooter, CardHeader, Field, Input, Page, Tabs, useToast } from '@/shared/ui';
+import { useRememberedParam, useServiceAction } from '@/shared/hooks';
 import { GuestPrompt, LightPayConnect, MerchantForm, StoreHandleField, StoreLogoField, updateMerchant, updateProfile, useCurrentUser, useSession } from '@/features/session';
 
 const ProfileCard: React.FC = () => {
@@ -45,53 +45,74 @@ const StoreCard: React.FC = () => {
   if (!user.merchant) return null;
 
   return (
-    <>
-      <Card>
-        <CardHeader title="Boutique" />
-        <CardBody className="space-y-5">
-          <StoreLogoField />
-          <StoreHandleField />
-          <MerchantForm
-            initial={user.merchant}
-            submitLabel="Enregistrer la boutique"
-            error={error}
-            busy={busy}
-            onSubmit={async (input) => {
-              setBusy(true);
-              try {
-                await updateMerchant(input);
-                setError(undefined);
-                toast.success('Boutique enregistrée');
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          />
-        </CardBody>
-      </Card>
-      <Card>
-        <CardHeader title="Versements" />
-        <CardBody>
-          <LightPayConnect />
-        </CardBody>
-      </Card>
-    </>
+    <Card>
+      <CardHeader title="Boutique" />
+      <CardBody className="space-y-5">
+        <StoreLogoField />
+        <StoreHandleField />
+        <MerchantForm
+          initial={user.merchant}
+          submitLabel="Enregistrer la boutique"
+          error={error}
+          busy={busy}
+          onSubmit={async (input) => {
+            setBusy(true);
+            try {
+              await updateMerchant(input);
+              setError(undefined);
+              toast.success('Boutique enregistrée');
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      </CardBody>
+    </Card>
   );
 };
 
+type View = 'profil' | 'boutique' | 'versements';
+
+/** `/ac/parametres`: the account in tabs (profile, store, payouts) instead of one long page. */
 export const SettingsPage: React.FC = () => {
-  const { isGuest } = useSession();
+  const { isGuest, isMerchant } = useSession();
+  const views: View[] = isMerchant ? ['profil', 'boutique', 'versements'] : ['profil'];
+  const [view, setView] = useRememberedParam<View>('account.settings', 'vue', views, 'profil');
   return (
-    <Page title="Paramètres" width="narrow">
+    <Page
+      title="Paramètres"
+      width="narrow"
+      toolbar={
+        !isGuest &&
+        isMerchant && (
+          <Tabs
+            bare
+            value={view}
+            onChange={setView}
+            items={[
+              { value: 'profil', label: 'Profil' },
+              { value: 'boutique', label: 'Boutique' },
+              { value: 'versements', label: 'Versements' },
+            ]}
+          />
+        )
+      }
+    >
       {isGuest ? (
         <GuestPrompt title="Achats sans compte" />
+      ) : view === 'profil' ? (
+        <ProfileCard />
+      ) : view === 'boutique' ? (
+        <StoreCard />
       ) : (
-        <div className="space-y-6">
-          <ProfileCard />
-          <StoreCard />
-        </div>
+        <Card>
+          <CardHeader title="Versements" />
+          <CardBody>
+            <LightPayConnect />
+          </CardBody>
+        </Card>
       )}
     </Page>
   );

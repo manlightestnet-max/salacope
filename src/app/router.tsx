@@ -6,6 +6,7 @@ import { RequireAdmin, RequireAuth, RequireMerchant } from '@/features/session';
 import { PublicLayout } from './layouts/PublicLayout';
 import { MinimalLayout } from './layouts/MinimalLayout';
 import { AdminLayout, AppLayout } from './layouts/AppLayout';
+import { RouteError } from './RouteError';
 import { LegalLayout } from './layouts/LegalLayout';
 
 import { HomePage } from '@/pages/public/HomePage';
@@ -53,8 +54,10 @@ import { AdminDisputesPage } from '@/pages/admin/AdminDisputesPage';
 import { AdminNewDisputePage } from '@/pages/admin/AdminNewDisputePage';
 import { AdminFundsPage } from '@/pages/admin/AdminFundsPage';
 import { DisputesPage } from '@/pages/seller/DisputesPage';
+import { CustomerPage } from '@/pages/seller/CustomerPage';
 import { AdminLaunchBannerPage } from '@/pages/admin/AdminLaunchBannerPage';
 import { AdminSecurityPage } from '@/pages/admin/AdminSecurityPage';
+import { AdminIdentityPage } from '@/pages/admin/AdminIdentityPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 import { AdminSettingsSectionPage } from '@/pages/admin/AdminSettingsSectionPage';
 import { AdminFundPage } from '@/pages/admin/AdminFundPage';
@@ -97,6 +100,7 @@ const LEGACY_REDIRECTS: [string, string][] = [
 
 export const router = createBrowserRouter([
   {
+    errorElement: <RouteError />,
     element: <PublicLayout />,
     children: [
       { path: ROUTES.home, element: isAdminHost() ? <Navigate to={ROUTES.admin.root} replace /> : <HomePage /> },
@@ -128,6 +132,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <RouteError />,
     element: <MinimalLayout />,
     children: [
       { path: ROUTES.signIn, element: <SignInPage /> },
@@ -135,6 +140,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <RouteError />,
     element: <RequireAuth />,
     children: [
       {
@@ -173,6 +179,7 @@ export const router = createBrowserRouter([
               { path: ROUTES.seller.newListing, element: <ListingEditorPage /> },
               { path: '/dashboard/offres/:id', element: <ListingEditorPage /> },
               { path: ROUTES.seller.customers, element: <CustomersPage /> },
+              { path: '/dashboard/clients/:id', element: <CustomerPage /> },
               { path: ROUTES.seller.payouts, element: <PayoutsPage /> },
               { path: ROUTES.seller.verification, element: <VerificationPage /> },
               { path: ROUTES.seller.disputes, element: <DisputesPage as="seller" /> },
@@ -199,6 +206,7 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.launchBanner, element: <AdminLaunchBannerPage /> },
               { path: ROUTES.admin.security, element: <AdminSecurityPage /> },
               { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
+              { path: '/admin/parametres/identite', element: <AdminIdentityPage /> },
               { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
               { path: ROUTES.admin.disputes, element: <AdminDisputesPage /> },
               { path: ROUTES.admin.newDispute, element: <AdminNewDisputePage /> },

@@ -104,6 +104,7 @@ export const SellerProfile: React.FC<{ seller: User }> = ({ seller }) => {
       <div className="sticky top-[var(--sticky-offset,0px)] z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 py-2.5 mt-6 bg-canvas sm:bg-canvas/80 sm:backdrop-blur-xl border-b border-gray-200/60">
         <div className="flex items-center gap-3">
         <Tabs
+          pills
           className="shrink-0"
           value={tab}
           onChange={setTab}

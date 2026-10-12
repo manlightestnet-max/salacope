@@ -12,14 +12,16 @@ export interface TabsProps<V extends string> {
   onChange: (value: V) => void;
   /** Inside a pinned page bar: adds the bar's vertical padding. */
   bare?: boolean;
-  /** The look of `Segmented` (one framed bar, the current one shaded) instead of separate pills. */
+  /** Separate pills instead of the app's tab look (one framed bar, the current one shaded, as `Segmented`). */
+  pills?: boolean;
+  /** @deprecated the framed bar is the default. */
   segmented?: boolean;
   className?: string;
 }
 
 /** View switcher as pills (filters a list, not a route); the active one is filled. */
-export function Tabs<V extends string>({ value, items, onChange, bare, segmented, className }: TabsProps<V>) {
-  if (segmented) {
+export function Tabs<V extends string>({ value, items, onChange, bare, pills, className }: TabsProps<V>) {
+  if (!pills) {
     return (
       <div className={clsx(bare && 'py-2', 'max-w-full overflow-x-auto scrollbar-none', className)}>
         <div role="tablist" className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-surface p-0.5">

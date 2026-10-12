@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
-import { Button, Card, CardBody, CardHeader, DescriptionList, Page } from '@/shared/ui';
+import { Button, Card, CardBody, CardHeader, DescriptionList, Page, Tabs } from '@/shared/ui';
+import { useUrlParam } from '@/shared/hooks';
 import { formatDateTime, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { ListingThumb, SellerCard } from '@/features/catalog';
@@ -36,6 +37,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
   const [receiptOpen, setReceiptOpen] = useState(false);
   const isSeller = perspective === 'seller';
   const knownTags = useSellerTagList(order.sellerId);
+  const [tab, setTab] = useUrlParam<'suivi' | 'activite' | 'paiement'>('vue', ['suivi', 'activite', 'paiement'], 'suivi');
 
   // A bought file: show the product, not the order machinery.
   if (!isSeller && order.item.kind === 'digital') return <DigitalPurchaseView view={view} userId={userId} />;
@@ -54,8 +56,21 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
           </Button>
         </>
       }
+      width="narrow"
+      toolbar={
+        <Tabs
+          bare
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: 'suivi', label: 'Suivi' },
+            { value: 'activite', label: 'Activité' },
+            { value: 'paiement', label: 'Paiement' },
+          ]}
+        />
+      }
     >
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <ListingThumb src={order.item.coverImage} category={order.item.category} size="md" />
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-gray-900 truncate">{order.item.title}</h2>
@@ -63,17 +78,24 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
-        <div className="space-y-4 min-w-0">
+      {tab === 'suivi' && (
+        <div className="space-y-4">
           <NextStepCard order={order} perspective={perspective} userId={userId} />
           <OrderReviewCard order={order} isBuyer={!isSeller} userId={userId} />
           <BriefCard order={order} perspective={perspective} />
           <DeliveryCard order={order} perspective={perspective} />
         </div>
+      )}
 
+      {tab === 'activite' && (
         <div className="space-y-4">
           <ChatPreviewCard order={order} perspective={perspective} userId={userId} users={users} />
           <OrderTimeline order={order} users={users} />
+        </div>
+      )}
+
+      {tab === 'paiement' && (
+        <div className="space-y-4">
           <Card>
             <CardHeader title="Paiement" />
             <CardBody className="pt-0">
@@ -124,7 +146,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
             </Link>
           </div>
         </div>
-      </div>
+      )}
 
       <OrderReceipt order={order} seller={seller} open={receiptOpen} onClose={() => setReceiptOpen(false)} />
     </Page>

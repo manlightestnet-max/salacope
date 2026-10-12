@@ -1,0 +1,24 @@
+{
+  "name": "Salacope",
+  "short_name": "Salacope",
+  "description": "Salacope est la marketplace congolaise des produits numériques et des services : e-books, formations, templates, design, coaching. Paiement MTN MoMo et Airtel Money en FCFA, argent protégé jusqu'à la livraison.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

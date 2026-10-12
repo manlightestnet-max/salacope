@@ -43,6 +43,7 @@ export const ROUTES = {
     sales: '/dashboard/ventes',
     sale: (id: string) => `/dashboard/ventes/${id}`,
     customers: '/dashboard/clients',
+    customer: (id: string) => `/dashboard/clients/${id}`,
     payouts: '/dashboard/paiements',
     verification: '/dashboard/verification',
     disputes: '/dashboard/litiges',

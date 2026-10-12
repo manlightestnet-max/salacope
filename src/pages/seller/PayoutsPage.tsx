@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ArrowDownLeft, ExternalLink, Wallet } from 'lucide-react';
-import { Badge, Button, EmptyState, List, ListRow, Page, Panel, Segmented, Stat, StatGrid } from '@/shared/ui';
+import { Badge, Button, EmptyState, List, ListRow, Page, Panel, Stat, StatGrid, Tabs } from '@/shared/ui';
+import { useRememberedParam } from '@/shared/hooks';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { LightPayConnect, useCurrentUser } from '@/features/session';
@@ -8,7 +9,7 @@ import { useLightPayWallet, useWallet } from '@/features/wallet';
 import { ListingThumb } from '@/features/catalog';
 import { OrderStatusBadge } from '@/features/orders';
 
-type View = 'releases' | 'movements';
+type View = 'overview' | 'releases' | 'movements';
 
 /**
  * What Salacope paid the seller: held by LightPay until buyers validate, then paid into the
@@ -18,7 +19,7 @@ export const PayoutsPage: React.FC = () => {
   const user = useCurrentUser();
   const { balance, ledger, releases } = useWallet(user.id);
   const { wallet, error, reload } = useLightPayWallet();
-  const [view, setView] = useState<View>('releases');
+  const [view, setView] = useRememberedParam<View>('seller.payouts', 'vue', ['overview', 'releases', 'movements'], 'overview');
   const connected = wallet ? wallet.connected : Boolean(user.merchant?.lightpayConnected);
 
   return (
@@ -32,14 +33,26 @@ export const PayoutsPage: React.FC = () => {
           </Button>
         )
       }
+      toolbar={
+        connected && (
+          <Tabs
+            bare
+            value={view}
+            onChange={setView}
+            items={[
+              { value: 'overview', label: 'Aperçu' },
+              { value: 'releases', label: 'À venir', count: releases.length || undefined },
+              { value: 'movements', label: 'Versées', count: ledger.length || undefined },
+            ]}
+          />
+        )
+      }
     >
-      <div className="space-y-6">
-        {!connected && (
-          <Panel>
-            <LightPayConnect revoked={wallet?.revoked} />
-          </Panel>
-        )}
-
+      {!connected ? (
+        <Panel>
+          <LightPayConnect revoked={wallet?.revoked} />
+        </Panel>
+      ) : view === 'overview' ? (
         <Panel
           title="Aperçu des paiements"
           actions={wallet?.environment === 'sandbox' ? <Badge tone="warning">Mode test</Badge> : undefined}
@@ -79,84 +92,69 @@ export const PayoutsPage: React.FC = () => {
             />
           </StatGrid>
         </Panel>
-
+      ) : view === 'releases' ? (
         <Panel
-          title={view === 'releases' ? 'Déblocages à venir' : 'Ventes versées'}
-          count={view === 'releases' ? releases.length : ledger.length}
-          help={
-            view === 'releases'
-              ? 'Argent encore bloqué, avec la date prévue du versement : ferme après livraison, estimée tant que le service est en cours.'
-              : 'Ventes validées par le client (ou automatiquement), versées sur votre wallet LightPay.'
-          }
-          actions={
-            <Segmented
-              label="Vue"
-              value={view}
-              onChange={setView}
-              options={[
-                { value: 'releases', label: 'À venir' },
-                { value: 'movements', label: 'Versées' },
-              ]}
-            />
-          }
+          title="Déblocages à venir"
+          count={releases.length}
+          help="Argent encore bloqué, avec la date prévue du versement : ferme après livraison, estimée tant que le service est en cours."
           flush
         >
-          {view === 'releases' &&
-            (releases.length ? (
-              <List columns={{ main: 'Commande', meta: 'Statut', trailing: 'Versement' }}>
-                {releases.map(({ order, at, estimated }) => (
-                  <ListRow
-                    key={order.id}
-                    to={ROUTES.seller.sale(order.id)}
-                    leading={<ListingThumb src={order.item.coverImage} category={order.item.category} size="md" />}
-                    title={order.item.title}
-                    subtitle={`${order.number} · ${order.buyer.name}`}
-                    meta={<OrderStatusBadge order={order} perspective="seller" />}
-                    trailing={
-                      <span className="flex flex-col items-end gap-0.5">
-                        <span className="font-medium text-gray-900">{formatXaf(order.amounts.net)}</span>
-                        <span className="text-xs text-gray-500">{at ? `${estimated ? 'vers le' : 'le'} ${formatDate(at)}` : 'après livraison'}</span>
-                      </span>
-                    }
-                  />
-                ))}
-              </List>
-            ) : (
-              <EmptyState icon={Wallet} title="Aucun paiement en attente" />
-            ))}
-
-          {view === 'movements' &&
-            (ledger.length ? (
-              <List columns={{ main: 'Vente', trailing: 'Montant' }}>
-                {ledger.map((e) => (
-                  <ListRow
-                    key={e.id}
-                    to={ROUTES.seller.sale(e.id)}
-                    leading={
-                      <span className="w-9 h-9 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-700">
-                        <ArrowDownLeft className="w-4 h-4" />
-                      </span>
-                    }
-                    title={e.label}
-                    subtitle={`${e.detail} · ${formatDate(e.at)}`}
-                    trailing={
-                      <span className="flex flex-col items-end gap-0.5">
-                        <span className="font-medium text-emerald-700">+{formatXaf(e.amount)}</span>
-                        {e.commission > 0 && (
-                          <span className="text-xs text-gray-500">
-                            {formatXaf(e.sale)} − {formatXaf(e.commission)} commission
-                          </span>
-                        )}
-                      </span>
-                    }
-                  />
-                ))}
-              </List>
-            ) : (
-              <EmptyState icon={Wallet} title="Aucune vente versée pour l’instant" />
-            ))}
+          {releases.length ? (
+            <List columns={{ main: 'Commande', meta: 'Statut', trailing: 'Versement' }}>
+              {releases.map(({ order, at, estimated }) => (
+                <ListRow
+                  key={order.id}
+                  to={ROUTES.seller.sale(order.id)}
+                  leading={<ListingThumb src={order.item.coverImage} category={order.item.category} size="md" />}
+                  title={order.item.title}
+                  subtitle={`${order.number} · ${order.buyer.name}`}
+                  meta={<OrderStatusBadge order={order} perspective="seller" />}
+                  trailing={
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span className="font-medium text-gray-900">{formatXaf(order.amounts.net)}</span>
+                      <span className="text-xs text-gray-500">{at ? `${estimated ? 'vers le' : 'le'} ${formatDate(at)}` : 'après livraison'}</span>
+                    </span>
+                  }
+                />
+              ))}
+            </List>
+          ) : (
+            <EmptyState icon={Wallet} title="Aucun paiement en attente" />
+          )}
         </Panel>
-      </div>
+      ) : (
+        <Panel title="Ventes versées" count={ledger.length} help="Ventes validées par le client (ou automatiquement), versées sur votre wallet LightPay." flush>
+          {ledger.length ? (
+            <List columns={{ main: 'Vente', trailing: 'Montant' }}>
+              {ledger.map((e) => (
+                <ListRow
+                  key={e.id}
+                  to={ROUTES.seller.sale(e.id)}
+                  leading={
+                    <span className="w-9 h-9 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-700">
+                      <ArrowDownLeft className="w-4 h-4" />
+                    </span>
+                  }
+                  title={e.label}
+                  subtitle={`${e.detail} · ${formatDate(e.at)}`}
+                  trailing={
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span className="font-medium text-emerald-700">+{formatXaf(e.amount)}</span>
+                      {e.commission > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {formatXaf(e.sale)} − {formatXaf(e.commission)} commission
+                        </span>
+                      )}
+                    </span>
+                  }
+                />
+              ))}
+            </List>
+          ) : (
+            <EmptyState icon={Wallet} title="Aucune vente versée pour l’instant" />
+          )}
+        </Panel>
+      )}
     </Page>
   );
 };

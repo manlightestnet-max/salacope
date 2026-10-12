@@ -38,3 +38,15 @@ export function useRememberedParam<T extends string>(scope: string, name: string
   };
   return [value, set];
 }
+
+/** A tab kept in the address only (a link can point to it), with no memory: a detail screen starts on its first tab. */
+export function useUrlParam<T extends string>(name: string, allowed: readonly T[], fallback: T): [T, (value: T) => void] {
+  const [params, setParams] = useSearchParams();
+  const value = allowed.find((v) => v === params.get(name)) ?? fallback;
+  const set = (next: T) => {
+    const copy = new URLSearchParams(params);
+    copy.set(name, next);
+    setParams(copy, { replace: true });
+  };
+  return [value, set];
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarClock, Percent } from 'lucide-react';
+import { CalendarClock, Globe, Percent } from 'lucide-react';
 import { adminApi, useAdminResource } from '@/features/admin';
 import { EmptyState, List, ListRow, Page, Panel, SkeletonRows } from '@/shared/ui';
 import { percent } from '@/shared/config/platform';
@@ -37,6 +37,12 @@ export const AdminSettingsPage: React.FC = () => {
               leading={icon(CalendarClock)}
               title="Délais de paiement du vendeur"
               subtitle={`${s.digitalHoldDays} jours produits numériques · ${s.serviceValidationDays} jours services`}
+            />
+            <ListRow
+              to={ROUTES.admin.settingsSection('identite')}
+              leading={icon(Globe)}
+              title="Identité du site"
+              subtitle="Contact, description, image de partage et réseaux sociaux"
             />
           </List>
         </Panel>

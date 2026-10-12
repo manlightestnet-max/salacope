@@ -4,7 +4,7 @@ import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
 import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
 import { LockedError, levelNow, lockedMessage, refreshLockdown, signInVoid, withBypass } from './lockdown.js';
-import { ensurePlatform } from './settings.js';
+import { currentIdentity, ensurePlatform } from './settings.js';
 
 export interface Context {
   method: string;
@@ -86,7 +86,10 @@ export async function handle(request: Request): Promise<Response> {
   const level = levelNow();
   const lockRoute = path === '/status' || path === '/admin/lockdown';
   const admin = path.startsWith('/admin');
-  if (level !== 'off' && !lockRoute) {
+  // The pages that serve the app itself (home page, shared links) still answer when stopped: their database reads fail and
+  // they fall back to the plain app, which then shows the "stopped" screen instead of a blank error.
+  const servesApp = path === '/share/home' || path.startsWith('/share/');
+  if (level !== 'off' && !lockRoute && !servesApp) {
     if (level === 'total' || (level === 'readonly' && method !== 'GET' && !admin)) {
       return reply(503, { error: lockedMessage(level), locked: level });
     }
@@ -123,7 +126,7 @@ export async function handle(request: Request): Promise<Response> {
           // Signed out by Salacope: this sign-in is void, the person signs in again.
           if (signInVoid(id.authTime, row.sessions_valid_after)) throw new SessionEnded();
           // Blocked by Salacope (AML/CFT policy): nothing can be done with the account any more.
-          if (row.blocked_at) throw new DomainError('Votre compte est bloqué. Écrivez à contact@salacope.online.', 403);
+          if (row.blocked_at) throw new DomainError(`Votre compte est bloqué. Écrivez à ${currentIdentity().contactEmail}.`, 403);
           return { id: row.id, guest: false };
         }
         const guest = await guestIdFromKey(guestKey);

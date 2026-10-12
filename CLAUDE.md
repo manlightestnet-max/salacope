@@ -7,6 +7,7 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - `app/` : router et layouts. `pages/` : composition uniquement, aucune logique métier.
 - `features/*` : `api.ts` pour les écritures (règles métier, `DomainError`), `hooks.ts` pour les lectures, `components`. Entre features, on importe uniquement via leur `index.ts`.
 - `shared/` : `ui`, `db`, `config`, `hooks`, `lib`. Alias `@/`.
+- **Rien de ce que le fondateur peut vouloir changer n'est écrit en dur** : e-mail de contact, description du site, liens sociaux, image de partage, bannière, commission, délais, clés de stockage… tout est un réglage éditable dans l'administration (table `app_settings`, envoyé à l'app avec les données) ; le code ne garde que des valeurs par défaut.
 - Pas de widget ni de vue monolithique : un composant = une responsabilité, réutilisable.
 - **Réutiliser avant d'écrire.** Avant de construire un écran, chercher ce qui existe déjà pour la même chose (conversation, liste, formulaire, fiche, dialogue) et le réutiliser. Si une partie n'est pas réutilisable telle quelle, on l'**extrait** de l'existant en composant partagé (props, pas de copie) et l'ancien écran s'appuie dessus aussi. Jamais de seconde version « maison » d'une interface qui existe : mêmes bulles, même zone de saisie, mêmes lignes de liste, mêmes comportements partout. Exemple : la messagerie (`ChatMessage`, `ChatFeed`, `ChatComposer`, `ChatHeaderBar`, `ConversationRow` dans `features/orders/components/chat/ChatParts.tsx`) sert aux commandes **et** aux litiges.
 

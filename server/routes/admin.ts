@@ -8,7 +8,8 @@ import { newId } from '../ids.js';
 import { notify } from '../notify.js';
 import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
-import { currentLaunchBanner, currentPlatform, saveLaunchBanner, savePlatform } from '../settings.js';
+import { currentIdentity, currentLaunchBanner, currentPlatform, saveIdentity, saveLaunchBanner, savePlatform } from '../settings.js';
+import { SOCIALS } from '../../src/shared/config/identity.js';
 import { SESSIONS_KEY, refreshLockdown, setSignedOutAll, signedOutAllState } from '../lockdown.js';
 import { signAttachments } from '../storage/attachments.js';
 import { closeDisputeRoom } from '../disputes.js';
@@ -876,4 +877,30 @@ route('PUT', '/admin/launch-banner', async (ctx) => {
   await saveLaunchBanner(next);
   await tx(async (q) => audit(q, admin, 'launch.save', null, { enabled, style, text }));
   return { banner: next };
+});
+
+/** What the site says about itself: contact, description, share picture, social profiles. Read by the footer, the previews and search engines. */
+route('GET', '/admin/identity', async (ctx) => {
+  await requireAdmin(ctx);
+  return { identity: currentIdentity() };
+});
+
+route('PUT', '/admin/identity', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const email = text(ctx.body.contactEmail, 120).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new DomainError('Adresse e-mail de contact invalide.');
+  const description = text(ctx.body.description, 320);
+  if (description.length < 20) throw new DomainError('La description du site est trop courte (20 caractères minimum).');
+  const shareImage = String(ctx.body.shareImage ?? '').trim().slice(0, 300);
+  if (shareImage && !/^https:\/\/\S+$/.test(shareImage) && !/^\/(?!\/)\S*$/.test(shareImage)) throw new DomainError('L’image de partage est une adresse https://… ou un chemin du site (/…).');
+  const socials: Record<string, string> = {};
+  for (const { key, label } of SOCIALS) {
+    const url = String(ctx.body.socials?.[key] ?? '').trim().slice(0, 300);
+    if (url && !/^https:\/\/\S+$/.test(url)) throw new DomainError(`${label} : indiquez l’adresse complète, qui commence par https://`);
+    socials[key] = url;
+  }
+  const next = { contactEmail: email, headquarters: text(ctx.body.headquarters, 120), description, shareImage, socials } as ReturnType<typeof currentIdentity>;
+  await saveIdentity(next);
+  await tx(async (q) => audit(q, admin, 'identity.save', null, { contactEmail: email, socials: Object.keys(socials).filter((k) => socials[k]) }));
+  return { identity: next };
 });

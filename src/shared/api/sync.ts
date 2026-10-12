@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { Database, db, emptyDatabase } from '@/shared/db';
 import { PlatformSettings, applyPlatform } from '@/shared/config/platform';
 import { LaunchBannerSettings, applyLaunchBanner } from '@/shared/config/launchBanner';
+import { SiteIdentity, applyIdentity } from '@/shared/config/identity';
 import { auth } from './auth';
 import { reportLockdown } from './lockdown';
 import { guest } from './guest';
@@ -31,6 +32,7 @@ interface BootstrapResponse {
   catalogVersion?: string;
   platform?: PlatformSettings;
   launchBanner?: LaunchBannerSettings;
+  identity?: SiteIdentity;
   lockdown?: string;
   needsAccount: boolean;
   serverTime: string;
@@ -78,6 +80,7 @@ export async function boot(): Promise<void> {
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     applyPlatform(res.platform);
     applyLaunchBanner(res.launchBanner);
+    applyIdentity(res.identity);
     reportLockdown(res.lockdown);
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
@@ -104,7 +107,7 @@ export function refreshCatalog(force = false): Promise<void> {
   if (status !== 'ready') return Promise.resolve();
   if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
   if (catalogRequest) return catalogRequest;
-  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; launchBanner?: LaunchBannerSettings; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; launchBanner?: LaunchBannerSettings; identity?: SiteIdentity; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
     `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
   )
@@ -112,6 +115,7 @@ export function refreshCatalog(force = false): Promise<void> {
       catalogAt = Date.now();
       applyPlatform(res.platform);
       applyLaunchBanner(res.launchBanner);
+      applyIdentity(res.identity);
       reportLockdown(res.lockdown);
       if (res.unchanged || !res.data) return;
       catalogVersion = res.version;

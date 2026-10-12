@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /ac/
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /connexion
+Disallow: /checkout/
+
+Sitemap: https://salacope.online/sitemap.xml

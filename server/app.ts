@@ -9,6 +9,7 @@ import './routes/lightpay.js';
 import './routes/admin.js';
 import './routes/share.js';
 import './routes/img.js';
+import './routes/seo.js';
 import './routes/files.js';
 import './routes/lockdown.js';
 import './routes/disputes.js';

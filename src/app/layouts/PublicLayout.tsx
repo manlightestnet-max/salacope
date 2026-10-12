@@ -5,6 +5,7 @@ import { Compass, LayoutDashboard, LucideIcon, MapPin, Search, ShoppingBag, Stor
 import { Button, Container, LaunchBanner, Logo, OperatorLogo, RouteTransition, SearchField, ThemeToggle } from '@/shared/ui';
 import { FooterVisibilityContext, shortcutLabel, useFocusShortcut } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
+import { socialLinks, useSiteIdentity } from '@/shared/config/identity';
 import { PLATFORM } from '@/shared/config/platform';
 import { PAYMENT_CHANNEL_LIST } from '@/shared/config/payment';
 import { CATEGORIES, ListingQuickView } from '@/features/catalog';
@@ -127,20 +128,34 @@ const FOOTER_COLUMNS = [
   },
 ];
 
-const Footer: React.FC = () => (
+const Footer: React.FC = () => {
+  const identity = useSiteIdentity();
+  const socials = socialLinks(identity);
+  return (
   <footer className="mt-24 border-t border-gray-200/60">
     <Container className="pt-14 pb-7">
       <div className="grid gap-10 grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
         <div className="col-span-2 lg:col-span-1 space-y-3.5 text-sm">
           <Logo />
           <p className="text-gray-500 max-w-xs">Produits numériques et services · {PLATFORM.country}</p>
-          <a href={`mailto:${PLATFORM.supportEmail}`} className="block w-fit text-primary-700 hover:underline underline-offset-2">
-            {PLATFORM.supportEmail}
+          <a href={`mailto:${identity.contactEmail}`} className="block w-fit text-primary-700 hover:underline underline-offset-2">
+            {identity.contactEmail}
           </a>
-          <p className="flex items-center gap-1.5 text-gray-500">
-            <MapPin className="w-3.5 h-3.5 shrink-0" />
-            {PLATFORM.headquarters}
-          </p>
+          {identity.headquarters && (
+            <p className="flex items-center gap-1.5 text-gray-500">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              {identity.headquarters}
+            </p>
+          )}
+          {socials.length > 0 && (
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-gray-500">
+              {socials.map((l) => (
+                <a key={l.key} href={l.url} target="_blank" rel="noreferrer noopener me" className="hover:text-gray-900 transition-colors">
+                  {l.label.replace(/ \(.*\)$/, '')}
+                </a>
+              ))}
+            </p>
+          )}
         </div>
         {FOOTER_COLUMNS.map((column) => (
           <nav key={column.title} aria-label={column.title} className="flex flex-col gap-2.5 text-sm">
@@ -164,7 +179,8 @@ const Footer: React.FC = () => (
       </div>
     </Container>
   </footer>
-);
+  );
+};
 
 /** Height of the sticky header (h-16 + border); sticky content sits below it. */
 const HEADER_OFFSET = { '--sticky-offset': 'calc(4rem + 1px)' } as React.CSSProperties;

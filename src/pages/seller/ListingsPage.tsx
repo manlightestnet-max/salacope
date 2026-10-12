@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Package, Plus } from 'lucide-react';
-import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Menu, Page, Panel, Segmented, Skeleton, Stat, StatGrid } from '@/shared/ui';
-import { useServiceAction } from '@/shared/hooks';
+import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Menu, Page, Panel, Segmented, Skeleton, Stat, StatGrid, Tabs } from '@/shared/ui';
+import { useRememberedParam, useServiceAction } from '@/shared/hooks';
 import { formatDate, formatNumber, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
@@ -15,7 +15,8 @@ export const ListingsPage: React.FC = () => {
   const user = useCurrentUser();
   const listings = useManagedListings(user.id);
   const run = useServiceAction();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useRememberedParam<Filter>('seller.listings.filter', 'filtre', ['all', 'published', 'draft'], 'all');
+  const [view, setView] = useRememberedParam<'offres' | 'performance'>('seller.listings', 'vue', ['offres', 'performance'], 'offres');
   const [toDelete, setToDelete] = useState<ManagedListing | null>(null);
   const insights = useListingInsights();
   const totals = insights && [...insights.values()].reduce((t, i) => ({ views: t.views + i.views30, clicks: t.clicks + i.clicks30 }), { views: 0, clicks: 0 });
@@ -34,8 +35,21 @@ export const ListingsPage: React.FC = () => {
           Nouvelle offre
         </Button>
       }
+      toolbar={
+        listings.length > 0 && (
+          <Tabs
+            bare
+            value={view}
+            onChange={setView}
+            items={[
+              { value: 'offres', label: 'Offres', count: listings.length },
+              { value: 'performance', label: 'Performance' },
+            ]}
+          />
+        )
+      }
     >
-      {user.merchant && <VerificationNotice merchant={user.merchant} className="mb-6" />}
+      {user.merchant && <VerificationNotice merchant={user.merchant} className="mb-4" />}
       {listings.length === 0 ? (
         <EmptyState
           icon={Package}
@@ -45,7 +59,8 @@ export const ListingsPage: React.FC = () => {
           className="rounded-2xl border border-gray-200/70 bg-surface"
         />
       ) : (
-        <div className="space-y-6">
+        <>
+        {view === 'performance' && (
         <Panel title="Performance" help="Vues : fiche de l’offre ouverte (une fois par visite, les vôtres ne comptent pas). Clics : « Acheter » ou « Commander ». Sur les 30 derniers jours ; revenus : ventes non annulées, net pour vous.">
           <StatGrid columns={4}>
             <Stat label="Vues · 30 j" value={figure(formatNumber(totals?.views ?? 0))} />
@@ -54,6 +69,8 @@ export const ListingsPage: React.FC = () => {
             <Stat label="Revenus" value={formatXaf(revenue)} />
           </StatGrid>
         </Panel>
+        )}
+        {view === 'offres' && (
         <Panel
           title="Vos offres"
           count={visible.length}
@@ -142,7 +159,8 @@ export const ListingsPage: React.FC = () => {
             </List>
           )}
         </Panel>
-        </div>
+        )}
+        </>
       )}
 
       {toDelete && (

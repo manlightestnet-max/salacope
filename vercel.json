@@ -34,6 +34,18 @@
       "destination": "/api?__path=/share/s/:id"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "/api?__path=/sitemap.xml"
+    },
+    {
+      "source": "/",
+      "destination": "/api?__path=/share/home"
+    },
+    {
+      "source": "/llms.txt",
+      "destination": "/api?__path=/llms.txt"
+    },
+    {
       "source": "/((?!api/|api$|__/).*)",
       "destination": "/index.html"
     }
@@ -42,6 +54,33 @@
     {
       "path": "/api/cron/settle",
       "schedule": "0 3 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), payment=(self)"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        }
+      ]
     }
   ]
 }

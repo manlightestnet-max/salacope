@@ -13,3 +13,4 @@ export * from './components/chat/CounterpartOrders';
 export * from './components/SellerOrderTools';
 export { useAttachments } from './useAttachments';
 export { AttachmentList } from './components/OrderDialogs';
+export * from './components/chat/ChatParts';

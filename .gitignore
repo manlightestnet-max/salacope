@@ -37,3 +37,5 @@ screenshot_*.png
 # Flutter app: build outputs and screenshots stay local
 mobile/android/build/
 mobile/*.png
+mobile/android/app/google-services.json
+/google-services.json

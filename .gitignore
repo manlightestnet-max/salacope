@@ -33,3 +33,7 @@ screenshot_*.png
 
 # Vercel
 .vercel
+
+# Flutter app: build outputs and screenshots stay local
+mobile/android/build/
+mobile/*.png

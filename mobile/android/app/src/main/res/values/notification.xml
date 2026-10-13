@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tint of the small notification icon (the logo green). -->
+    <color name="salacope_notification">#059669</color>
+</resources>

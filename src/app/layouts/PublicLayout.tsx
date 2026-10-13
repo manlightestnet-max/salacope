@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Compass, LayoutDashboard, LucideIcon, MapPin, Search, ShoppingBag, Store, UserPlus } from 'lucide-react';
-import { Button, Container, LaunchBanner, Logo, OperatorLogo, RouteTransition, SearchField, ThemeToggle } from '@/shared/ui';
+import { Avatar, Button, Container, LaunchBanner, Logo, OperatorLogo, RouteTransition, SearchField, ThemeToggle } from '@/shared/ui';
+import { User } from '@/shared/db';
 import { FooterVisibilityContext, shortcutLabel, useFocusShortcut } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { socialLinks, useSiteIdentity } from '@/shared/config/identity';
 import { PLATFORM } from '@/shared/config/platform';
 import { PAYMENT_CHANNEL_LIST } from '@/shared/config/payment';
-import { CATEGORIES, ListingQuickView } from '@/features/catalog';
+import { CATEGORIES, ListingQuickView, storeHref, useShopFrontSeller } from '@/features/catalog';
 import { useSession } from '@/features/session';
 import { NotificationBell } from '@/features/notifications';
 import { UserMenu } from './UserMenu';
@@ -182,23 +183,79 @@ const Footer: React.FC = () => {
   );
 };
 
+/**
+ * A private store's own chrome: its name instead of the marketplace (no search, no Explorer, no other categories), so its
+ * buyers stay in that shop. Signing in and the theme stay.
+ */
+const ShopHeader: React.FC<{ seller: User }> = ({ seller }) => {
+  const { user, isAuthenticated } = useSession();
+  const name = seller.merchant?.storeName ?? seller.name;
+  return (
+    <header className="sticky top-0 z-30 bg-canvas sm:bg-canvas/75 sm:backdrop-blur-xl border-b border-gray-200/60">
+      <Container size="lg" className="h-16 flex items-center gap-3">
+        <Link to={storeHref(seller)} className="min-w-0 flex items-center gap-2.5">
+          <Avatar name={name} src={seller.merchant?.logo} />
+          <span className="text-[15px] font-semibold tracking-tight text-gray-900 truncate">{name}</span>
+        </Link>
+        <div className="ml-auto flex items-center gap-1.5">
+          <ThemeToggle className="w-10 h-10 rounded-full" />
+          {isAuthenticated && user ? (
+            <>
+              <NotificationBell userId={user.id} className="mr-1" />
+              <UserMenu compact />
+            </>
+          ) : (
+            <Button to={ROUTES.account.orders} variant="ghost" size="lg" pill className="text-gray-900">
+              Mes achats
+            </Button>
+          )}
+        </div>
+      </Container>
+    </header>
+  );
+};
+
+const ShopFooter: React.FC<{ seller: User }> = ({ seller }) => (
+  <footer className="mt-24 border-t border-gray-200/60">
+    <Container size="lg" className="py-7 flex flex-wrap items-center justify-between gap-4 text-[12.5px] text-gray-500">
+      <span>
+        © {new Date().getFullYear()} {seller.merchant?.storeName ?? seller.name} · Paiement sécurisé par Salacope
+      </span>
+      <span className="flex items-center gap-4">
+        <Link to={ROUTES.legal.terms} className="hover:text-gray-900">
+          Conditions
+        </Link>
+        <Link to={ROUTES.legal.refund} className="hover:text-gray-900">
+          Remboursements
+        </Link>
+        <span className="flex items-center gap-2">
+          {PAYMENT_CHANNEL_LIST.map((c) => (
+            <OperatorLogo key={c.id} channel={c.id} className="w-6 h-6" />
+          ))}
+        </span>
+      </span>
+    </Container>
+  </footer>
+);
+
 /** Height of the sticky header (h-16 + border); sticky content sits below it. */
 const HEADER_OFFSET = { '--sticky-offset': 'calc(4rem + 1px)' } as React.CSSProperties;
 
 export const PublicLayout: React.FC = () => {
   const [footerHidden, setFooterHidden] = useState(false);
+  const shop = useShopFrontSeller();
 
   return (
     <FooterVisibilityContext.Provider value={setFooterHidden}>
       <div className="flex-1 flex flex-col bg-canvas" style={HEADER_OFFSET}>
         <LaunchBanner />
-        <Header />
+        {shop ? <ShopHeader seller={shop} /> : <Header />}
         <main className="flex-1">
           <RouteTransition>
             <Outlet />
           </RouteTransition>
         </main>
-        {!footerHidden && <Footer />}
+        {!footerHidden && (shop ? <ShopFooter seller={shop} /> : <Footer />)}
         <ListingQuickView />
         {/* A new page opens at the top (the window kept the previous page's offset, so a store
             reached from deep in the catalogue looked empty); back/forward restore the position.

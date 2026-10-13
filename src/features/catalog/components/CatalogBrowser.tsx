@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { SearchX } from 'lucide-react';
 import { Button, EmptyState, Pending, SkeletonCards, useBooting } from '@/shared/ui';
 import { useHideFooter, useInfiniteList } from '@/shared/hooks';
+import { useExploreSettings } from '@/shared/config/explore';
 import { plural } from '@/shared/lib';
 import { ListingView, categoryLabel, placeholderViews, queryListings } from '../model';
-import { useCatalogQuery, usePublishedListings } from '../hooks';
+import { useCatalogQuery, usePublishedListings, useRankContext } from '../hooks';
 import { SortSelect } from './CatalogFilters';
 import { ListingGrid } from './ListingCard';
 import { ListingMasonry } from './ListingMasonry';
-import { ListingSections } from './ListingSections';
 
 const PAGE_SIZE = 24;
 
@@ -45,7 +45,8 @@ export interface CatalogBrowserProps {
 /**
  * The catalogue body shared by the storefront, the search page and the back-office Explorer.
  * Driven by the URL:
- * - nothing selected → one panel per category, with "Voir tout";
+ * - nothing selected → "À la une" (chosen by the administration), then one feed of every kind of offer, ranked by the
+ *   Explorer's algorithm (services are never set apart: the visitor filters if they want);
  * - a category, a search or a price filter → a single grid with infinite scroll
  *   (uniform for one category, packed columns when cover shapes are mixed).
  */
@@ -53,7 +54,10 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
   const views = usePublishedListings();
   const { query, setQuery, hasFilters } = useCatalogQuery();
   const booting = useBooting();
-  const found = useMemo(() => queryListings(views, query), [views, query]);
+  const rank = useRankContext();
+  const { featured: featuredIds } = useExploreSettings();
+  const found = useMemo(() => queryListings(views, query, rank), [views, query, rank]);
+  const featured = useMemo(() => featuredIds.map((id) => views.find((v) => v.listing.id === id)).filter((v): v is ListingView => Boolean(v)), [featuredIds, views]);
   // Before the offers arrive the same blocks are drawn with stand-in cards painted as shimmer.
   const pending = booting && found.length === 0;
   const results = useMemo(
@@ -62,11 +66,11 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
   );
   const topRef = useRef<HTMLDivElement>(null);
 
-  const filtered = Boolean(query.text || query.minPrice || query.maxPrice);
+  const filtered = Boolean(query.text || query.kind || query.minPrice || query.maxPrice);
   const gridMode = alwaysGrid || Boolean(query.category) || filtered;
   const listKey = gridMode
-    ? ['grid', query.category, query.text, query.sort, query.minPrice, query.maxPrice].join(':')
-    : 'panels';
+    ? ['grid', query.category, query.kind, query.text, query.sort, query.minPrice, query.maxPrice].join(':')
+    : 'feed';
 
   // Switching view (category, "Voir tout", search) brings the top of the list back into view.
   const shownKey = useRef(listKey);
@@ -77,12 +81,24 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [listKey]);
 
-  const resetFilters = () => setQuery({ q: undefined, cat: undefined, min: undefined, max: undefined });
+  const resetFilters = () => setQuery({ q: undefined, cat: undefined, type: undefined, min: undefined, max: undefined });
 
   let content: React.ReactNode;
   if (!gridMode) {
+    const pinned = new Set(featured.map((v) => v.listing.id));
     content = results.length ? (
-      <ListingSections views={results} mode="panels" onViewAll={(cat) => setQuery({ cat })} />
+      <div className="space-y-8">
+        {featured.length > 0 && !pending && (
+          <section aria-label="À la une" className="sm:rounded-[22px] sm:border sm:border-gray-200/60 sm:bg-surface sm:p-6">
+            <h2 className="mb-5 text-lg font-semibold tracking-tight text-gray-900">À la une</h2>
+            <ListingMasonry views={featured} />
+          </section>
+        )}
+        <section aria-label="Pour vous">
+          {featured.length > 0 && !pending && <h2 className="mb-5 text-lg font-semibold tracking-tight text-gray-900">Pour vous</h2>}
+          <ResultsGrid views={results.filter((v) => !pinned.has(v.listing.id))} mixed resetKey={listKey} />
+        </section>
+      </div>
     ) : (
       <EmptyState title="Aucune offre pour le moment" />
     );
@@ -112,7 +128,7 @@ export const CatalogBrowser: React.FC<CatalogBrowserProps> = ({ toolbar, toolbar
           {!hideControls && (
             <div className="flex flex-wrap items-center gap-2">
               {toolbarExtra}
-              <SortSelect value={query.sort ?? 'popular'} onChange={(sort) => setQuery({ sort })} />
+              <SortSelect value={query.sort ?? 'for_you'} onChange={(sort) => setQuery({ sort })} />
             </div>
           )}
         </div>

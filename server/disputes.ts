@@ -18,7 +18,7 @@ export async function openDisputeRoom(q: Query, row: OrderRow, openedBy: string,
   await q('INSERT INTO disputes (id, number, order_id, opened_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $5)', [id, n, row.id, openedBy, at]);
   await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body, at) VALUES ($1, $2, $3, $4, $5)', [newId('dmg'), id, openedBy, reason, at]);
   await q('INSERT INTO dispute_reads (dispute_id, user_id, read_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [id, openedBy, at]);
-  await notify(q, [{ userId: row.seller_id, title: `${disputeLabel(n)} · ${row.number}`, body: reason, href: ROUTES.seller.dispute(id) }]);
+  await notify(q, [{ userId: row.seller_id, event: 'dispute.opened', vars: { litige: disputeLabel(n), commande: row.number, raison: reason }, href: ROUTES.seller.dispute(id) }]);
   return id;
 }
 

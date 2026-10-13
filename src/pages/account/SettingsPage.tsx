@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Card, CardBody, CardFooter, CardHeader, Field, Input, Page, Tabs, useToast } from '@/shared/ui';
 import { useRememberedParam, useServiceAction } from '@/shared/hooks';
-import { GuestPrompt, LightPayConnect, MerchantForm, StoreHandleField, StoreLogoField, updateMerchant, updateProfile, useCurrentUser, useSession } from '@/features/session';
+import { GuestPrompt, LightPayConnect, MerchantForm, StoreHandleField, StoreLogoField, StoreVisibilityField, updateMerchant, updateProfile, useCurrentUser, useSession } from '@/features/session';
 
 const ProfileCard: React.FC = () => {
   const user = useCurrentUser();
@@ -50,6 +50,7 @@ const StoreCard: React.FC = () => {
       <CardBody className="space-y-5">
         <StoreLogoField />
         <StoreHandleField />
+        <StoreVisibilityField />
         <MerchantForm
           initial={user.merchant}
           submitLabel="Enregistrer la boutique"

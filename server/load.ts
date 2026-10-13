@@ -79,31 +79,41 @@ export const loadListing = async (id: string, q: Query = query) => {
   return row ? listingView(row) : undefined;
 };
 
-/** People the viewer may see: every store, the viewer, and the other party of their orders. */
-export async function loadUsers(userId: string | null) {
+/**
+ * People the viewer may see: every public store (and the private ones opened by their link, `stores`), the viewer, and the
+ * other party of their orders.
+ */
+export async function loadUsers(userId: string | null, stores: string[] = []) {
   const rows = await query(
     `SELECT ${USER_COLUMNS} FROM ${USER_FROM}
-     WHERE m.user_id IS NOT NULL OR u.id = $1
+     WHERE (m.user_id IS NOT NULL AND (NOT m.private_store OR m.user_id = ANY($2))) OR u.id = $1
         OR u.id IN (SELECT buyer_id FROM orders WHERE seller_id = $1 UNION SELECT seller_id FROM orders WHERE buyer_id = $1)`,
-    [userId]
+    [userId, stores]
   );
   return rows.map((r) => userView(r, r.id === userId));
 }
 
-/** Public figures: sales per offer, completed sales, followers and rating per store. */
+/** Public figures: sales per offer, completed sales, followers and rating per store, and what the Explorer ranks with. */
 export async function loadStats() {
-  const [sales, sellers, followers, ratings] = await Promise.all([
+  const [sales, sellers, followers, ratings, views, favorites] = await Promise.all([
     query("SELECT listing_id, COUNT(*) AS n FROM orders WHERE status <> 'cancelled' GROUP BY listing_id"),
     query("SELECT seller_id, COUNT(*) AS n FROM orders WHERE status = 'completed' GROUP BY seller_id"),
     query('SELECT seller_id, COUNT(*) AS n FROM follows GROUP BY seller_id'),
     query('SELECT seller_id, COUNT(*) AS n, AVG(rating)::float AS avg FROM reviews GROUP BY seller_id'),
+    query('SELECT listing_id, SUM(views)::int AS n FROM listing_daily_stats WHERE day > CURRENT_DATE - 30 GROUP BY listing_id').catch(() => []),
+    query('SELECT listing_id, COUNT(*)::int AS n FROM favorites GROUP BY listing_id'),
   ]);
+  // Visits (30 days) and favourites per offer: counts only, never who.
+  const signals: Record<string, { views: number; favorites: number }> = {};
+  const signal = (id: string) => (signals[id] ??= { views: 0, favorites: 0 });
+  views.forEach((r: any) => (signal(r.listing_id).views = r.n));
+  favorites.forEach((r: any) => (signal(r.listing_id).favorites = r.n));
   const seller: Record<string, { completedSales: number; followers: number; reviews: number; rating: number }> = {};
   const entry = (id: string) => (seller[id] ??= { completedSales: 0, followers: 0, reviews: 0, rating: 0 });
   sellers.forEach((r) => (entry(r.seller_id).completedSales = r.n));
   followers.forEach((r) => (entry(r.seller_id).followers = r.n));
   ratings.forEach((r) => Object.assign(entry(r.seller_id), { reviews: r.n, rating: r.avg }));
-  return { listings: Object.fromEntries(sales.map((r) => [r.listing_id, r.n])), sellers: seller };
+  return { listings: Object.fromEntries(sales.map((r) => [r.listing_id, r.n])), sellers: seller, signals };
 }
 
 export const loadReviews = async (where = 'TRUE', params: unknown[] = [], q: Query = query) =>

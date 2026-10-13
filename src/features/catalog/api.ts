@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { request } from '@/shared/api';
-import { Listing } from '@/shared/db';
+import { Listing, db } from '@/shared/db';
+import { noteListing } from '@/shared/lib';
 
 /** Extra images of each offer, fetched once per version of the offer. */
 const galleries = new Map<string, Promise<string[]>>();
@@ -57,6 +58,9 @@ export function trackListing(listingId: string, type: 'view' | 'click') {
       // private mode: count it anyway
     }
   }
+  // The visitor's interests, remembered on this device for the Explorer (never sent).
+  const listing = db.get().listings.find((l) => l.id === listingId);
+  if (listing && listing.sellerId !== db.get().sessionUserId) noteListing(listing, type);
   void request('POST', `/listings/${encodeURIComponent(listingId)}/track`, { type }).catch(() => undefined);
 }
 

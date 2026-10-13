@@ -3,7 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { EmptyState, Page, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
-import { useFreshCatalog } from '@/shared/api';
+import { useFreshCatalog, useStoreLink } from '@/shared/api';
 import { useBackLink } from '@/shared/hooks';
 import { displayName } from '@/features/session';
 import { SellerProfile } from '@/features/catalog';
@@ -14,9 +14,10 @@ export const StorePage: React.FC = () => {
   useFreshCatalog(true, id);
   const seller = useDb((s) => s.users.find((u) => u.id === id && u.merchant), [id]);
   const back = useBackLink({ to: ROUTES.account.explorer, label: 'Explorer' });
+  const opening = useStoreLink(id, Boolean(seller));
 
   const booting = useBooting();
-  if (booting && !seller) {
+  if ((booting || opening) && !seller) {
     return (
       <Page title="Boutique" back={back}>
         <SkeletonStore className="p-4" />

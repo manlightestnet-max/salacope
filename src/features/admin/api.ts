@@ -1,6 +1,8 @@
 import { request } from '@/shared/api';
 import type { LaunchBannerSettings } from '@/shared/config/launchBanner';
 import type { SiteIdentity } from '@/shared/config/identity';
+import type { ExploreSettings } from '@/shared/config/explore';
+import type { MessageDef, MessageTemplate } from '@/shared/config/messages';
 import type { KycDocumentKind, KycIdType, KycStatus, RiskLevel } from '@/shared/domain';
 
 /** Salacope administration: raw rows from /api/admin/* (reserved to administrators). */
@@ -333,6 +335,14 @@ export const adminApi = {
   saveIdentity: (input: SiteIdentity) => request<{ identity: SiteIdentity }>('PUT', '/admin/identity', input).then((r) => r.identity),
   lockdown: () => request<AdminLockdown>('GET', '/admin/lockdown'),
   setLockdown: (level: string, reason: string, code: string) => request<AdminLockdown>('POST', '/admin/lockdown', { level, reason, code }),
+  messages: () => request<{ defs: MessageDef[]; overrides: Record<string, Partial<MessageTemplate>>; pushReady: boolean; sample: Record<string, string> }>('GET', '/admin/messages'),
+  saveMessage: (event: string, t: MessageTemplate) =>
+    request<{ overrides: Record<string, Partial<MessageTemplate>> }>('PUT', `/admin/messages/${encodeURIComponent(event)}`, t).then((r) => r.overrides),
+  resetMessage: (event: string) => request<{ overrides: Record<string, Partial<MessageTemplate>> }>('POST', `/admin/messages/${encodeURIComponent(event)}/reset`).then((r) => r.overrides),
+  testMessage: (event: string, t: Pick<MessageTemplate, 'title' | 'body'>) =>
+    request<{ sent: number; devices: number }>('POST', `/admin/messages/${encodeURIComponent(event)}/test`, t),
+  explore: () => request<{ explore: ExploreSettings }>('GET', '/admin/explore').then((r) => r.explore),
+  saveExplore: (explore: ExploreSettings) => request<{ explore: ExploreSettings }>('PUT', '/admin/explore', { explore }).then((r) => r.explore),
   settings: () => request<{ settings: AdminSettings }>('GET', '/admin/settings').then((r) => r.settings),
   saveSettings: (input: AdminSettings) => request<{ settings: AdminSettings }>('PUT', '/admin/settings', input).then((r) => r.settings),
   profit: (period: string) => request<AdminProfit>('GET', `/admin/profit?${qs({ period })}`),
@@ -373,6 +383,9 @@ export const AUDIT_LABEL: Record<string, string> = {
   'lockdown.set': 'Verrou d’urgence modifié',
   'lockdown.denied': 'Levée du verrou refusée (code incorrect)',
   'settings.save': 'Commission et délais modifiés',
+  'explore.save': 'Algorithme de l’Explorer modifié',
+  'messages.save': 'Message automatique modifié',
+  'messages.reset': 'Message automatique rétabli',
   'funds.ask': 'Précision demandée sur une commande',
   'funds.release': 'Fonds libérés au vendeur',
   'funds.refund': 'Fonds remboursés à l’acheteur',

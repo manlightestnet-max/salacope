@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { LucideIcon } from 'lucide-react';
+import { switcherItem, switcherTrack } from './Tabs';
 
 export interface SegmentedOption<V extends string> {
   value: V;
@@ -24,7 +25,7 @@ export function Segmented<V extends string>({
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={clsx('inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-surface p-0.5', className)}>
+    <div role="radiogroup" aria-label={label} className={clsx(switcherTrack, className)}>
       {options.map(({ value: v, label: text, icon: Icon, iconOnly }) => {
         const active = v === value;
         return (
@@ -36,11 +37,7 @@ export function Segmented<V extends string>({
             aria-label={iconOnly ? text : undefined}
             title={iconOnly ? text : undefined}
             onClick={() => onChange(v)}
-            className={clsx(
-              'h-7 inline-flex items-center gap-1.5 rounded-md text-[13px] font-medium whitespace-nowrap transition-colors',
-              iconOnly ? 'w-7 justify-center' : 'px-2.5',
-              active ? 'bg-gray-100 text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-            )}
+            className={clsx(switcherItem(active), iconOnly ? 'w-7 justify-center' : 'px-2.5')}
           >
             {Icon && <Icon className="w-3.5 h-3.5" />}
             {!iconOnly && text}

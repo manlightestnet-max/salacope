@@ -6,6 +6,8 @@ export interface StartCheckoutInput {
   /** Answers to the listing's brief questions, by question id. */
   brief?: Record<string, string>;
   invoice?: { companyName: string; taxId: string };
+  /** Without an account: where the download link and Salacope's messages are sent (never shown to the seller). */
+  email?: string;
 }
 
 /**

@@ -2,10 +2,10 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, EmptyState, Button, useBooting } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { useFreshCatalog } from '@/shared/api';
+import { useFreshCatalog, useStoreLink } from '@/shared/api';
 import { useScrollTop } from '@/shared/hooks';
 import { displayName } from '@/features/session';
-import { ListingDetail, ListingSections, useListingView, useSellerListings } from '@/features/catalog';
+import { ListingDetail, ListingSections, SimilarOffers, useListingView, useSellerListings, useShopFront } from '@/features/catalog';
 
 /** Shareable page of a listing (the catalogue uses the quick view instead). */
 export const ListingPage: React.FC = () => {
@@ -14,8 +14,10 @@ export const ListingPage: React.FC = () => {
   const view = useListingView(id);
   const sellerListings = useSellerListings(view?.listing.sellerId);
   const top = useScrollTop<HTMLDivElement>(id);
+  const opening = useStoreLink(id, Boolean(view));
+  useShopFront(view?.seller);
 
-  if (useBooting() && !view) {
+  if ((useBooting() || opening) && !view) {
     return (
       <Container className="py-8">
         <div className="max-w-6xl mx-auto">
@@ -49,6 +51,7 @@ export const ListingPage: React.FC = () => {
           <ListingSections views={more} mode="rails" />
         </section>
       )}
+      <SimilarOffers view={view} />
     </Container>
   );
 };

@@ -68,7 +68,7 @@ const stepError = (step: number, f: ListingInput): string | undefined => {
   }
   if (step === 2) {
     if (f.kind === 'service' && (!f.deliveryDays || f.deliveryDays < 1)) return 'Indiquez un délai de livraison.';
-    if (f.kind === 'digital' && !f.fileName?.trim()) return 'Indiquez le fichier livré au client.';
+    if (f.kind === 'digital' && !f.fileId) return 'Envoyez le fichier livré au client.';
   }
   if (step === 3 && (!f.priceXaf || f.priceXaf < PLATFORM.minPriceXaf)) return `Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`;
   if (step === 3 && !Number.isInteger(f.priceXaf)) return 'Prix en FCFA entiers, sans virgule ni point.';
@@ -388,7 +388,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
   const checklist = [
     { ok: form.title.trim().length >= 8 && Boolean(form.summary.trim()), label: 'Titre et résumé' },
     { ok: Boolean(form.description.trim()), label: 'Description' },
-    { ok: form.kind === 'service' ? Boolean(form.deliveryDays) : Boolean(form.fileName?.trim()), label: form.kind === 'service' ? 'Délai de livraison' : 'Fichier livré' },
+    { ok: form.kind === 'service' ? Boolean(form.deliveryDays) : Boolean(form.fileId), label: form.kind === 'service' ? 'Délai de livraison' : 'Fichier livré' },
     { ok: Boolean(form.coverImage.trim()), label: 'Couverture' },
     { ok: form.priceXaf >= PLATFORM.minPriceXaf, label: 'Prix' },
   ];

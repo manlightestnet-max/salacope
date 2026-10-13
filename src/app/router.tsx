@@ -60,6 +60,8 @@ import { AdminSecurityPage } from '@/pages/admin/AdminSecurityPage';
 import { AdminIdentityFieldPage } from '@/pages/admin/AdminIdentityFieldPage';
 import { AdminIdentityPage } from '@/pages/admin/AdminIdentityPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import { AdminExplorePage } from '@/pages/admin/AdminExplorePage';
+import { AdminMessagePage, AdminMessagesPage } from '@/pages/admin/AdminMessagesPage';
 import { AdminSettingsSectionPage } from '@/pages/admin/AdminSettingsSectionPage';
 import { AdminFundPage } from '@/pages/admin/AdminFundPage';
 import { AdminTicketPage } from '@/pages/admin/AdminTicketPage';
@@ -208,6 +210,9 @@ export const router = createBrowserRouter([
               { path: ROUTES.admin.security, element: <AdminSecurityPage /> },
               { path: ROUTES.admin.settings, element: <AdminSettingsPage /> },
               { path: '/admin/parametres/identite', element: <AdminIdentityPage /> },
+              { path: '/admin/parametres/explorer', element: <AdminExplorePage /> },
+              { path: '/admin/parametres/messages', element: <AdminMessagesPage /> },
+              { path: '/admin/parametres/messages/:event', element: <AdminMessagePage /> },
               { path: '/admin/parametres/identite/:champ', element: <AdminIdentityFieldPage /> },
               { path: '/admin/parametres/:section', element: <AdminSettingsSectionPage /> },
               { path: ROUTES.admin.disputes, element: <AdminDisputesPage /> },

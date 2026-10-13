@@ -2,10 +2,10 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { EmptyState, Page, useBooting } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { useFreshCatalog } from '@/shared/api';
+import { useFreshCatalog, useStoreLink } from '@/shared/api';
 import { useBackLink, useScrollTop } from '@/shared/hooks';
 import { displayName } from '@/features/session';
-import { ListingDetail, ListingSections, useListingView, useSellerListings } from '@/features/catalog';
+import { ListingDetail, ListingSections, SimilarOffers, useListingView, useSellerListings } from '@/features/catalog';
 
 /**
  * `/ac/explorer/offre/:id`: an offer opened from anywhere in the back-office except the
@@ -18,8 +18,9 @@ export const OfferPage: React.FC = () => {
   const sellerListings = useSellerListings(view?.listing.sellerId);
   const top = useScrollTop<HTMLDivElement>(id);
   const back = useBackLink({ to: ROUTES.account.explorer, label: 'Explorer' });
+  const opening = useStoreLink(id, Boolean(view));
 
-  if (useBooting() && !view) {
+  if ((useBooting() || opening) && !view) {
     return (
       <Page title="Offre" back={back}>
         <ListingDetail view={null} />
@@ -51,6 +52,7 @@ export const OfferPage: React.FC = () => {
             <ListingSections views={more} mode="rails" />
           </section>
         )}
+        <SimilarOffers view={view} titleClassName="text-lg font-semibold tracking-tight text-gray-900 mb-4" />
       </div>
     </Page>
   );

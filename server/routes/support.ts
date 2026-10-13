@@ -116,8 +116,8 @@ route('POST', '/orders/:id/review', async (ctx) => {
     await notify(q, [
       {
         userId: order.seller_id,
-        title: `Nouvel avis ${rating} étoile${rating > 1 ? 's' : ''}`,
-        body: comment || order.item.title,
+        event: 'sale.review',
+        vars: { etoiles: `${rating} étoile${rating > 1 ? 's' : ''}`, offre: order.item.title, extrait: comment || order.item.title },
         href: ROUTES.seller.sale(order.id),
       },
     ]);

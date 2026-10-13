@@ -13,8 +13,8 @@ const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 route('GET', '/sitemap.xml', async (ctx) => {
   const [offers, stores] = await Promise.all([
-    query(`SELECT id, updated_at FROM listings WHERE status = 'published' AND seller_id IN (${SELLABLE_SELLERS}) ORDER BY updated_at DESC LIMIT 5000`),
-    query(`SELECT m.user_id, m.handle FROM merchants m JOIN users u ON u.id = m.user_id WHERE m.kyc_status = 'approved' AND m.suspended_at IS NULL AND u.blocked_at IS NULL LIMIT 5000`),
+    query(`SELECT id, updated_at FROM listings WHERE status = 'published' AND seller_id IN (${SELLABLE_SELLERS}) AND seller_id NOT IN (SELECT user_id FROM merchants WHERE private_store) ORDER BY updated_at DESC LIMIT 5000`),
+    query(`SELECT m.user_id, m.handle FROM merchants m JOIN users u ON u.id = m.user_id WHERE m.kyc_status = 'approved' AND m.suspended_at IS NULL AND u.blocked_at IS NULL AND NOT m.private_store LIMIT 5000`),
   ]);
   const base = ctx.origin;
   const urls = [

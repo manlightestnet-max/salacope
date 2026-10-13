@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Badge, Button, Dialog, EmptyState, Field, Page, Panel, Select, SkeletonRows, Tabs, Textarea, useToast } from '@/shared/ui';
+import { Badge, Button, Dialog, EmptyState, Field, Page, Panel, Select, SkeletonRows, Tabs, Textarea, useToast, FactList, FactRow } from '@/shared/ui';
 import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
 import { useInfiniteList } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { EVENT_LABEL } from '@/features/orders';
 import { AdminFundDetail, AdminTrackRecord, ReasonDialog, adminApi, useAdminResource } from '@/features/admin';
 import { FUND_STATE } from './AdminFundsPage';
-
-const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex justify-between gap-4 py-2 text-sm">
-    <dt className="text-gray-500 shrink-0">{label}</dt>
-    <dd className="text-gray-900 text-right min-w-0 break-words">{children}</dd>
-  </div>
-);
 
 const TICKET_TONE = { open: 'warning', answered: 'brand', resolved: 'neutral' } as const;
 type View = 'resume' | 'preuves' | 'conversation' | 'historique';
@@ -24,42 +17,42 @@ const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 /** How a party behaved so far: orders, disputes opened, and how they ended. */
 const Record_: React.FC<{ r: AdminTrackRecord; side: 'seller' | 'buyer' }> = ({ r, side }) => (
   <>
-    <Row label={side === 'seller' ? 'Ventes' : 'Achats'}>{`${r.orders} (${r.completed} terminées)`}</Row>
-    <Row label="Litiges ouverts">{r.disputes}</Row>
-    <Row label="Décidés pour l’acheteur">{r.refunded}</Row>
-    <Row label="Décidés pour le vendeur">{r.paid_by_decision}</Row>
-    {side === 'seller' && <Row label="Avis">{r.reviews ? `${r.rating} / 5 (${r.reviews})` : 'Aucun'}</Row>}
+    <FactRow label={side === 'seller' ? 'Ventes' : 'Achats'}>{`${r.orders} (${r.completed} terminées)`}</FactRow>
+    <FactRow label="Litiges ouverts">{r.disputes}</FactRow>
+    <FactRow label="Décidés pour l’acheteur">{r.refunded}</FactRow>
+    <FactRow label="Décidés pour le vendeur">{r.paid_by_decision}</FactRow>
+    {side === 'seller' && <FactRow label="Avis">{r.reviews ? `${r.rating} / 5 (${r.reviews})` : 'Aucun'}</FactRow>}
   </>
 );
 
 const Summary: React.FC<{ d: AdminFundDetail }> = ({ d: { order, seller, buyer, tickets, delivery } }) => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
     <Panel title="Montants">
-      <dl className="divide-y divide-gray-100">
-        <Row label="Payé par l’acheteur">{formatXaf(order.amounts.total)}</Row>
-        <Row label="Commission Salacope">{formatXaf(order.amounts.fee)}</Row>
-        <Row label="Pour le vendeur">{formatXaf(order.amounts.net)}</Row>
-        {order.via && <Row label="Payé par">{order.via === 'wallet' ? 'Wallet LightPay' : 'Mobile Money'}</Row>}
-        {order.due_at && <Row label="Livraison attendue">{formatDateTime(order.due_at)}</Row>}
-        {delivery && <Row label="Livré le">{formatDateTime(delivery.at)}</Row>}
-        {order.release_at && order.status !== 'disputed' && <Row label="Libération auto">{formatDateTime(order.release_at)}</Row>}
-      </dl>
+      <FactList>
+        <FactRow label="Payé par l’acheteur">{formatXaf(order.amounts.total)}</FactRow>
+        <FactRow label="Commission Salacope">{formatXaf(order.amounts.fee)}</FactRow>
+        <FactRow label="Pour le vendeur">{formatXaf(order.amounts.net)}</FactRow>
+        {order.via && <FactRow label="Payé par">{order.via === 'wallet' ? 'Wallet LightPay' : 'Mobile Money'}</FactRow>}
+        {order.due_at && <FactRow label="Livraison attendue">{formatDateTime(order.due_at)}</FactRow>}
+        {delivery && <FactRow label="Livré le">{formatDateTime(delivery.at)}</FactRow>}
+        {order.release_at && order.status !== 'disputed' && <FactRow label="Libération auto">{formatDateTime(order.release_at)}</FactRow>}
+      </FactList>
     </Panel>
     <Panel title="Vendeur" description={order.store_name ?? order.seller_name}>
-      <dl className="divide-y divide-gray-100">
+      <FactList>
         <Record_ r={seller} side="seller" />
-        <Row label="Fiche">
+        <FactRow label="Fiche">
           <Link to={ROUTES.admin.seller(order.seller_id)} className="hover:underline">
             Ouvrir →
           </Link>
-        </Row>
-      </dl>
+        </FactRow>
+      </FactList>
     </Panel>
     <Panel title="Acheteur" description={order.buyer_name}>
-      <dl className="divide-y divide-gray-100">
-        <Row label="E-mail">{order.buyer_email}</Row>
+      <FactList>
+        <FactRow label="E-mail">{order.buyer_email}</FactRow>
         <Record_ r={buyer} side="buyer" />
-      </dl>
+      </FactList>
     </Panel>
     {tickets.length > 0 && (
       <Panel title="Tickets liés" flush>
@@ -94,11 +87,11 @@ const Evidence: React.FC<{ d: AdminFundDetail }> = ({ d: { order, offer, deliver
         </Panel>
       )}
       <Panel title="Ce qui était promis" description={order.item.title}>
-        <dl className="divide-y divide-gray-100">
-          {offer.deliveryDays !== null && <Row label="Délai annoncé">{plural(offer.deliveryDays, 'jour')}</Row>}
-          {offer.revisions !== null && <Row label="Retouches incluses">{offer.revisions}</Row>}
-          {digital && order.item.file?.name && <Row label="Fichier annoncé">{order.item.file.name}</Row>}
-        </dl>
+        <FactList>
+          {offer.deliveryDays !== null && <FactRow label="Délai annoncé">{plural(offer.deliveryDays, 'jour')}</FactRow>}
+          {offer.revisions !== null && <FactRow label="Retouches incluses">{offer.revisions}</FactRow>}
+          {digital && order.item.file?.name && <FactRow label="Fichier annoncé">{order.item.file.name}</FactRow>}
+        </FactList>
         {offer.description ? (
           <p className="mt-3 text-sm text-gray-700 whitespace-pre-line break-words">{offer.description}</p>
         ) : (
@@ -149,11 +142,11 @@ const Evidence: React.FC<{ d: AdminFundDetail }> = ({ d: { order, offer, deliver
       {digital && (
         <Panel title="Fichier ouvert par l’acheteur" description="Chaque ouverture du fichier est enregistrée.">
           {downloads && downloads.n > 0 ? (
-            <dl className="divide-y divide-gray-100">
-              <Row label="Ouvertures">{downloads.n}</Row>
-              <Row label="Première">{downloads.first ? formatDateTime(downloads.first) : '—'}</Row>
-              <Row label="Dernière">{downloads.last ? formatDateTime(downloads.last) : '—'}</Row>
-            </dl>
+            <FactList>
+              <FactRow label="Ouvertures">{downloads.n}</FactRow>
+              <FactRow label="Première">{downloads.first ? formatDateTime(downloads.first) : '—'}</FactRow>
+              <FactRow label="Dernière">{downloads.last ? formatDateTime(downloads.last) : '—'}</FactRow>
+            </FactList>
           ) : (
             <p className="text-sm text-gray-500">Aucune ouverture enregistrée. Les ouvertures d’avant la mise en service de ce suivi ne sont pas connues.</p>
           )}

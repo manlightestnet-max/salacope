@@ -93,11 +93,20 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
       }
       break;
     case 'delivered':
+      if (order.item.kind === 'digital') {
+        // A digital product is never confirmed by the buyer: the money is held for Salacope's delay, then paid out.
+        tone = 'waiting';
+        title = seller ? 'Fichier livré, paiement bloqué' : 'Votre fichier est disponible';
+        body = seller
+          ? `${money} vous seront versés le ${formatDate(order.releaseAt)} si aucun litige n’est ouvert d’ici là.`
+          : `Téléchargez-le quand vous voulez. Un problème ? Signalez-le avant le ${formatDate(order.releaseAt)}.`;
+        break;
+      }
       tone = seller ? 'waiting' : 'action';
       title = seller ? 'En attente de validation du client' : 'Votre commande est livrée';
       body = seller
         ? `${money} vous seront versés à la validation, au plus tard le ${formatDate(order.releaseAt)}.`
-        : `Vérifiez la livraison puis confirmez${order.item.kind === 'service' && left > 0 ? `, ou demandez une retouche (${left} restante${left > 1 ? 's' : ''})` : ''}. Sans réponse, le vendeur sera payé le ${formatDate(order.releaseAt)}.`;
+        : `Vérifiez la livraison puis confirmez${left > 0 ? `, ou demandez une retouche (${left} restante${left > 1 ? 's' : ''})` : ''}. Sans réponse, le vendeur sera payé le ${formatDate(order.releaseAt)}.`;
       break;
     case 'completed':
       tone = 'done';
@@ -116,7 +125,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
     case 'disputed':
       tone = 'alert';
       title = seller ? 'Le client a signalé un problème' : 'Litige en cours';
-      body = `« ${lastNote(order, 'disputed') ?? ''} » — Les fonds sont bloqués. L'équipe Salacope contacte les deux parties sous 48 h.`;
+      body = `« ${lastNote(order, 'disputed') ?? ''} » — Les fonds restent bloqués jusqu’à la décision de Salacope, qui contacte les deux parties sous 48 h.`;
       break;
     case 'cancelled':
       tone = 'done';

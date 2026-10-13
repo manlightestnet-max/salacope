@@ -9,7 +9,10 @@ import { newId } from '../ids.js';
 import { notify } from '../notify.js';
 import { OrderRow, captureFunds, formatXaf, refundFunds, toBuyer, toSeller, transition } from '../orders.js';
 import { secretsReady } from '../secrets.js';
-import { currentIdentity, currentLaunchBanner, currentPlatform, saveIdentity, saveLaunchBanner, savePlatform } from '../settings.js';
+import { currentExplore, currentIdentity, currentLaunchBanner, currentMessages, currentPlatform, saveExplore, saveIdentity, saveLaunchBanner, saveMessages, savePlatform } from '../settings.js';
+import { MESSAGE_DEFS, SAMPLE_VARS, fillTemplate, messageDef, unknownVars } from '../../src/shared/config/messages.js';
+import { pushReady, sendPush } from '../push.js';
+import { cleanExplore } from '../../src/shared/config/explore.js';
 import { SOCIALS } from '../../src/shared/config/identity.js';
 import { SESSIONS_KEY, refreshLockdown, setSignedOutAll, signedOutAllState } from '../lockdown.js';
 import { signAttachments } from '../storage/attachments.js';
@@ -179,8 +182,8 @@ route('POST', '/admin/sellers/:id/kyc', async (ctx) => {
     await audit(q, admin, approved ? 'kyc.approve' : 'kyc.reject', id, { submission: sub.id, note });
     await notify(q, [
       approved
-        ? { userId: id, title: 'Identité vérifiée', body: 'Vous pouvez maintenant publier vos offres.', href: ROUTES.seller.listings }
-        : { userId: id, title: 'Vérification d’identité refusée', body: note, href: ROUTES.seller.verification },
+        ? { userId: id, event: 'store.kyc_approved', href: ROUTES.seller.listings }
+        : { userId: id, event: 'store.kyc_rejected', vars: { raison: note }, href: ROUTES.seller.verification },
     ]);
   });
   return sellerDetail(id);
@@ -213,7 +216,7 @@ route('POST', '/admin/sellers/:id/suspend', async (ctx) => {
     ]);
     if (!rows.length) throw new DomainError('Cette boutique est déjà suspendue.', 409);
     await audit(q, admin, 'seller.suspend', ctx.params.id, { reason });
-    await notify(q, [{ userId: ctx.params.id, title: 'Boutique suspendue', body: reason, href: ROUTES.seller.root }]);
+    await notify(q, [{ userId: ctx.params.id, event: 'store.suspended', vars: { raison: reason }, href: ROUTES.seller.root }]);
   });
   return sellerDetail(ctx.params.id);
 });
@@ -226,7 +229,7 @@ route('POST', '/admin/sellers/:id/unsuspend', async (ctx) => {
     ]);
     if (!rows.length) throw new DomainError('Cette boutique n’est pas suspendue.', 409);
     await audit(q, admin, 'seller.unsuspend', ctx.params.id, { note: text(ctx.body.note, 300) });
-    await notify(q, [{ userId: ctx.params.id, title: 'Boutique réactivée', body: 'Vos offres sont de nouveau visibles.', href: ROUTES.seller.root }]);
+    await notify(q, [{ userId: ctx.params.id, event: 'store.restored', href: ROUTES.seller.root }]);
   });
   return sellerDetail(ctx.params.id);
 });
@@ -242,7 +245,7 @@ route('POST', '/admin/listings/:id/hide', async (ctx) => {
     ]);
     if (!l) throw new DomainError('Cette offre est déjà masquée.', 409);
     await audit(q, admin, 'listing.hide', l.seller_id, { listing: ctx.params.id, title: l.title, reason });
-    await notify(q, [{ userId: l.seller_id, title: `Offre masquée par Salacope : ${l.title}`, body: reason, href: ROUTES.seller.listing(ctx.params.id) }]);
+    await notify(q, [{ userId: l.seller_id, event: 'store.listing_hidden', vars: { offre: l.title, raison: reason }, href: ROUTES.seller.listing(ctx.params.id) }]);
     return l.seller_id as string;
   });
   return sellerDetail(sellerId);
@@ -255,7 +258,7 @@ route('POST', '/admin/listings/:id/restore', async (ctx) => {
     const [l] = await q('UPDATE listings SET hidden_at = NULL, hidden_reason = NULL, updated_at = NOW() WHERE id = $1 AND hidden_at IS NOT NULL RETURNING seller_id, title', [ctx.params.id]);
     if (!l) throw new DomainError('Cette offre n’est pas masquée.', 409);
     await audit(q, admin, 'listing.restore', l.seller_id, { listing: ctx.params.id, title: l.title, note: text(ctx.body.note, 300) });
-    await notify(q, [{ userId: l.seller_id, title: `Offre rétablie : ${l.title}`, body: 'Vous pouvez la publier de nouveau.', href: ROUTES.seller.listing(ctx.params.id) }]);
+    await notify(q, [{ userId: l.seller_id, event: 'store.listing_restored', vars: { offre: l.title }, href: ROUTES.seller.listing(ctx.params.id) }]);
     return l.seller_id as string;
   });
   return sellerDetail(sellerId);
@@ -532,7 +535,7 @@ route('POST', '/admin/tickets/:id/reply', async (ctx) => {
     if (!t) throw new DomainError('Ticket introuvable.', 404);
     await q('INSERT INTO ticket_messages (id, ticket_id, author_id, body) VALUES ($1, $2, NULL, $3)', [newId('tkm'), t.id, body]);
     await q('UPDATE tickets SET status = $2, updated_at = NOW() WHERE id = $1', [t.id, resolve ? 'resolved' : 'answered']);
-    await notify(q, [{ userId: t.user_id, title: `Le support a répondu · ${t.number}`, body, href: ROUTES.account.ticket(t.id) }]);
+    await notify(q, [{ userId: t.user_id, event: 'support.answered', vars: { ticket: t.number, message: body }, href: ROUTES.account.ticket(t.id) }]);
     await audit(q, admin, resolve ? 'ticket.resolve' : 'ticket.reply', t.user_id, { ticket: t.number });
   });
   return ticketDetail(ctx.params.id);
@@ -675,12 +678,12 @@ const settleFunds = (decision: 'release' | 'refund') =>
         notices:
           decision === 'release'
             ? [
-                toSeller(row, `Paiement libéré · ${row.number}`, `+${formatXaf(row.amounts.net)} sur votre wallet LightPay. ${reason}`),
-                toBuyer(row, `Décision sur ${row.number}`, `Les fonds sont versés au vendeur. ${reason}`),
+                toSeller(row, 'decision.paid_seller', { montant: formatXaf(row.amounts.net), raison: reason }),
+                toBuyer(row, 'decision.paid_buyer', { raison: reason }),
               ]
             : [
-                toBuyer(row, `Remboursement · ${row.number}`, `${refundSentence(refund!, formatXaf)} ${reason}`),
-                toSeller(row, `Commande ${row.number} remboursée au client`, reason),
+                toBuyer(row, 'decision.refunded_buyer', { remboursement: refundSentence(refund!, formatXaf), raison: reason }),
+                toSeller(row, 'decision.refunded_seller', { raison: reason }),
               ],
       });
       await closeDisputeRoom(q, row.id, decision === 'release' ? 'seller' : 'buyer', reason, row.amounts.total);
@@ -790,6 +793,79 @@ route('PUT', '/admin/settings', async (ctx) => {
   return { settings: currentPlatform() };
 });
 
+// ---------------------------------------------------------------- automatic messages (notifications and pushes)
+
+/** Every automatic message: its original and what the administration changed. */
+route('GET', '/admin/messages', async (ctx) => {
+  await requireAdmin(ctx);
+  return { defs: MESSAGE_DEFS, overrides: currentMessages(), pushReady: pushReady(), sample: SAMPLE_VARS };
+});
+
+route('PUT', '/admin/messages/:event', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const d = messageDef(ctx.params.event);
+  if (!d) throw new DomainError('Message inconnu.', 404);
+  const title = text(ctx.body.title, 120);
+  const body = String(ctx.body.body ?? '').trim().slice(0, 300);
+  if (!title) throw new DomainError('Le titre est obligatoire.');
+  const unknown = [...unknownVars(title, d.vars), ...unknownVars(body, d.vars)];
+  if (unknown.length) throw new DomainError(`Variable inconnue : {${unknown[0]}}. Celles de ce message : ${d.vars.map((v) => `{${v}}`).join(', ') || 'aucune'}.`);
+  const next = { ...currentMessages(), [d.event]: { title, body, push: ctx.body.push !== false, enabled: ctx.body.enabled !== false } };
+  const before = currentMessages()[d.event] ?? null;
+  await saveMessages(next);
+  await tx(async (q) => audit(q, admin, 'messages.save', null, { event: d.event, before, after: next[d.event] }));
+  return { overrides: currentMessages() };
+});
+
+/** "Rétablir le texte d'origine". */
+route('POST', '/admin/messages/:event/reset', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const d = messageDef(ctx.params.event);
+  if (!d) throw new DomainError('Message inconnu.', 404);
+  const next = { ...currentMessages() };
+  const before = next[d.event] ?? null;
+  delete next[d.event];
+  await saveMessages(next);
+  await tx(async (q) => audit(q, admin, 'messages.reset', null, { event: d.event, before }));
+  return { overrides: currentMessages() };
+});
+
+/** "Envoyer un test sur mon téléphone": the text being written, with example values, to the administrator's phones. */
+route('POST', '/admin/messages/:event/test', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const d = messageDef(ctx.params.event);
+  if (!d) throw new DomainError('Message inconnu.', 404);
+  if (!pushReady()) throw new DomainError('Les notifications push ne sont pas configurées (SALACOPE_FCM_SERVICE_ACCOUNT).', 503);
+  const [me] = await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [admin.uid]);
+  const devices = me ? await query<{ token: string }>('SELECT token FROM push_devices WHERE user_id = $1', [me.id]) : [];
+  if (!devices.length) throw new DomainError('Aucun téléphone : ouvrez l’app Salacope avec ce compte et autorisez les notifications.', 409);
+  const title = `[Test] ${fillTemplate(text(ctx.body.title, 120) || d.title, SAMPLE_VARS)}`;
+  const body = fillTemplate(String(ctx.body.body ?? d.body).slice(0, 300), SAMPLE_VARS);
+  const results = await Promise.all(devices.map((x) => sendPush(x.token, { title, body, route: '/ac/explorer', tag: `test-${d.event}` })));
+  return { sent: results.filter((r) => r === 'sent').length, devices: devices.length };
+});
+
+/** How the Explorer ranks offers: the weights of each signal, new offers, and the offers shown "À la une". */
+route('GET', '/admin/explore', async (ctx) => {
+  await requireAdmin(ctx);
+  return { explore: currentExplore() };
+});
+
+route('PUT', '/admin/explore', async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  const next = cleanExplore(ctx.body.explore);
+  // "À la une" only takes offers that are online: a draft or a hidden offer would show an empty place.
+  if (next.featured.length) {
+    const live = await query<{ id: string }>("SELECT id FROM listings WHERE id = ANY($1) AND status = 'published' AND hidden_at IS NULL", [next.featured]);
+    const ok = new Set(live.map((r) => r.id));
+    next.featured = next.featured.filter((id) => ok.has(id));
+  }
+  const before = currentExplore();
+  await saveExplore(next);
+  await tx(async (q) => audit(q, admin, 'explore.save', null, { before, after: next }));
+  return { explore: currentExplore() };
+});
+
 /** Asks one or both parties for something (a proof, an explanation) before deciding: they are notified, and answer in the order's conversation. */
 route('POST', '/admin/funds/:id/ask', async (ctx) => {
   const admin = await requireAdmin(ctx);
@@ -799,8 +875,7 @@ route('POST', '/admin/funds/:id/ask', async (ctx) => {
   await tx(async (q) => {
     const [row] = await q<OrderRow>(`SELECT o.* FROM orders o WHERE o.id = $1 AND ${HELD} FOR UPDATE`, [ctx.params.id]);
     if (!row) throw new DomainError('Cette commande n’est plus en cours.', 409);
-    const title = `Salacope vous demande une précision · ${row.number}`;
-    await notify(q, [...(to !== 'buyer' ? [toSeller(row, title, message)] : []), ...(to !== 'seller' ? [toBuyer(row, title, message)] : [])]);
+    await notify(q, [...(to !== 'buyer' ? [toSeller(row, 'decision.ask', { message })] : []), ...(to !== 'seller' ? [toBuyer(row, 'decision.ask', { message })] : [])]);
     await audit(q, admin, 'funds.ask', row.seller_id, { order: row.number, to, message });
   });
   return { ok: true };

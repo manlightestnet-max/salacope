@@ -36,7 +36,7 @@ const readView = (): View => {
 export const FavoritesPage: React.FC = () => {
   const user = useCurrentUser();
   const favorites = useDb((s) => s.favorites.filter((f) => f.userId === user.id), [user.id]);
-  const published = usePublishedListings();
+  const published = usePublishedListings(true);
   const [view, setView] = useState<View>(readView);
   const [kind, setKind] = useState<KindFilter>('all');
 

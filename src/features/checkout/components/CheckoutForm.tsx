@@ -15,6 +15,8 @@ import { loadLightPay, warmLightPay } from '../lightpay';
 import { LightPayLink, LightPayStatus } from './LightPayStatus';
 import { RefundPreview } from './RefundNotice';
 
+const GUEST_EMAIL = 'salacope.guestEmail';
+
 export interface CheckoutFormProps {
   listing: Listing;
 }
@@ -34,6 +36,14 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const [brief, setBrief] = useState<Record<string, string>>({});
   const [showInvoice, setShowInvoice] = useState(false);
   const [company, setCompany] = useState({ companyName: '', taxId: '' });
+  // Remembered on this device only, so a guest does not type it at every purchase.
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem(GUEST_EMAIL) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<LightPayLink>({ step: 'request', attempt: 1 });
@@ -50,10 +60,21 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
       setError(CONTACT_BLOCKED);
       return;
     }
+    if (!member && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email.trim())) {
+      setError('Indiquez votre adresse e-mail : vous y recevrez le lien de téléchargement et nos messages.');
+      return;
+    }
+    if (!member) {
+      try {
+        localStorage.setItem(GUEST_EMAIL, email.trim());
+      } catch {
+        // private window: asked again next time
+      }
+    }
     setBusy(true);
     setLink({ step: 'request', attempt: 1 });
     try {
-      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined }), 400);
+      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined, email: member ? undefined : email.trim() }), 400);
       // Connecting to LightPay: two tries, each one visible; then LightPay's own page takes over.
       let lightpay;
       for (let attempt = 1; attempt <= 2 && !lightpay; attempt++) {
@@ -114,9 +135,21 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
             ) : showSignIn ? (
               <SignInForm onSignedIn={() => setShowSignIn(false)} />
             ) : (
-              <button type="button" onClick={() => setShowSignIn(true)} className="text-sm text-gray-500 hover:text-gray-900">
-                Vous avez un compte ? <span className="font-medium text-gray-900">Se connecter</span>
-              </button>
+              <>
+                <Field
+                  label="Votre e-mail"
+                  hint={
+                    listing.kind === 'digital'
+                      ? 'Vous y recevez le lien de téléchargement, et nos messages en cas de litige. Jamais transmis au vendeur.'
+                      : 'Vous y recevez le suivi de la commande, et nos messages en cas de litige. Jamais transmis au vendeur.'
+                  }
+                >
+                  {(id) => <Input id={id} type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" />}
+                </Field>
+                <button type="button" onClick={() => setShowSignIn(true)} className="text-sm text-gray-500 hover:text-gray-900">
+                  Vous avez un compte ? <span className="font-medium text-gray-900">Se connecter</span>
+                </button>
+              </>
             )}
             {!showSignIn &&
               (showInvoice ? (
@@ -191,8 +224,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
           <div className="flex gap-2 text-xs text-gray-500">
             <ShieldCheck className="w-4 h-4 shrink-0 text-gray-400" />
             <p>
-              Paiement par MTN MoMo ou Airtel Money, sans compte LightPay (le wallet LightPay reste possible). Le vendeur n'est payé qu'après votre validation, ou{' '}
-              {releaseDays(listing.kind)} jours après la livraison. En payant, vous acceptez les{' '}
+              Paiement par MTN MoMo ou Airtel Money, sans compte LightPay (le wallet LightPay reste possible). {listing.kind === 'digital' ? `Le vendeur n'est payé que ${releaseDays(listing.kind)} jours après votre achat, si vous ne signalez aucun problème.` : `Le vendeur n'est payé qu'après votre validation, ou ${releaseDays(listing.kind)} jours après la livraison.`} En payant, vous acceptez les{' '}
               <Link to={ROUTES.legal.terms} className="underline">
                 conditions générales
               </Link>

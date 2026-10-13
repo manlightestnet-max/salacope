@@ -1,5 +1,5 @@
 import { levelNow } from '../lockdown.js';
-import { currentIdentity, currentLaunchBanner, currentPlatform } from '../settings.js';
+import { currentExplore, currentIdentity, currentLaunchBanner, currentPlatform } from '../settings.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { ListingInput, listingFields, validateListing } from '../../src/shared/domain/listings.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
@@ -31,19 +31,40 @@ async function viewerOf(ctx: { identity(): Promise<{ uid: string } | null>; view
   return { identity, userId: identity ? (me?.id ?? null) : await ctx.viewerId() };
 }
 
-/** What a viewer may see of the catalogue: the published offers of sellable stores, their own offers and what they bought. */
-const VISIBLE_LISTINGS = `(status = 'published' AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $1 OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)`;
+/**
+ * What a viewer may see of the catalogue: the published offers of sellable public stores (and of the private stores opened
+ * by their own link, `$2`), their own offers and what they bought.
+ */
+const VISIBLE_LISTINGS = `(status = 'published' AND seller_id IN (${SELLABLE_SELLERS}) AND (seller_id NOT IN (SELECT user_id FROM merchants WHERE private_store) OR seller_id = ANY($2)))
+  OR seller_id = $1 OR id IN (SELECT listing_id FROM orders WHERE buyer_id = $1)`;
 
-async function loadCatalog(userId: string | null) {
+/**
+ * Private stores the app asks for (`?with=`: a store id, `@handle` or one of its offers, as found in a shared link). A store
+ * that is not private needs no asking: it is in the catalogue already.
+ */
+async function requestedStores(ctx: { search: URLSearchParams }): Promise<string[]> {
+  const refs = (ctx.search.get('with') ?? '').split(',').map((r) => r.trim()).filter(Boolean).slice(0, 8);
+  if (!refs.length) return [];
+  const handles = refs.filter((r) => r.startsWith('@')).map((r) => r.slice(1).toLowerCase());
+  const ids = refs.filter((r) => !r.startsWith('@'));
+  const rows = await query<{ user_id: string }>(
+    `SELECT user_id FROM merchants WHERE private_store
+       AND (user_id = ANY($1) OR LOWER(handle) = ANY($2) OR user_id IN (SELECT seller_id FROM listings WHERE id = ANY($1)))`,
+    [ids, handles]
+  ).catch(() => []);
+  return rows.map((r) => r.user_id).sort();
+}
+
+async function loadCatalog(userId: string | null, stores: string[]) {
   const [users, listings, stats, reviews] = await Promise.all([
-    loadUsers(userId),
+    loadUsers(userId, stores),
     query(
       `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, cover_image, delivery_days,
          revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count,
          CASE WHEN seller_id = $1 THEN hidden_reason END AS hidden_reason, CASE WHEN seller_id = $1 THEN hidden_at END AS hidden_at
        FROM listings WHERE ${VISIBLE_LISTINGS}
        ORDER BY COALESCE(published_at, created_at) DESC`,
-      [userId]
+      [userId, stores]
     ),
     loadStats(),
     loadReviews(),
@@ -55,17 +76,18 @@ async function loadCatalog(userId: string | null) {
  * A cheap fingerprint of everything the catalogue shows (offers and their last change, stores, sales per offer, reviews,
  * followers): the app sends the one it knows, and only gets the data again when something really changed.
  */
-async function catalogVersion(userId: string | null) {
+async function catalogVersion(userId: string | null, stores: string[]) {
   const [row] = await query<{ v: string }>(
     `SELECT md5(
        COALESCE((SELECT string_agg(id || ':' || updated_at::text, ',' ORDER BY id) FROM listings WHERE ${VISIBLE_LISTINGS}), '') || '|' ||
        COALESCE((SELECT string_agg(user_id || ':' || store_name || ':' || COALESCE(headline, '') || ':' || COALESCE(city, '') || ':' || COALESCE(handle, '') || ':' ||
-                 kyc_status || ':' || COALESCE(suspended_at::text, '') || ':' || COALESCE(length(logo), 0), ',' ORDER BY user_id) FROM merchants), '') || '|' ||
+                 kyc_status || ':' || COALESCE(suspended_at::text, '') || ':' || COALESCE(length(logo), 0) || ':' || private_store::text, ',' ORDER BY user_id)
+                 FROM merchants WHERE NOT private_store OR user_id = ANY($2)), '') || '|' ||
        COALESCE((SELECT string_agg(listing_id || ':' || n, ',' ORDER BY listing_id) FROM (SELECT listing_id, COUNT(*) AS n FROM orders WHERE status <> 'cancelled' GROUP BY listing_id) s), '') || '|' ||
        COALESCE((SELECT COUNT(*)::text || COALESCE(MAX(created_at)::text, '') FROM reviews), '') || '|' ||
        COALESCE((SELECT COUNT(*)::text FROM follows), '')
      ) AS v`,
-    [userId]
+    [userId, stores]
   );
   return row.v;
 }
@@ -85,13 +107,17 @@ const publicJson = (body: unknown) =>
 /** The catalogue as it is now in the database: answers `{ unchanged }` when the app already has this version. */
 route('GET', '/catalog', async (ctx) => {
   const { userId } = await viewerOf(ctx);
-  const version = await catalogVersion(userId);
+  const stores = await requestedStores(ctx);
+  const version = await catalogVersion(userId, stores);
   const platform = currentPlatform();
   const lockdown = levelNow();
   const launchBanner = currentLaunchBanner();
   const identity = currentIdentity();
+  const explore = currentExplore();
   const answer =
-    ctx.search.get('v') === version ? { unchanged: true, version, platform, launchBanner, identity, lockdown } : { version, platform, launchBanner, identity, lockdown, data: await loadCatalog(userId) };
+    ctx.search.get('v') === version
+      ? { unchanged: true, version, platform, launchBanner, identity, explore, lockdown }
+      : { version, platform, launchBanner, identity, explore, lockdown, data: await loadCatalog(userId, stores) };
   // Cached only for a visitor who asked for the shared copy (`?anon=1`: its own address, never one a signed-in person uses).
   return !userId && ctx.search.get('anon') === '1' ? publicJson(answer) : answer;
 });
@@ -100,7 +126,8 @@ route('GET', '/catalog', async (ctx) => {
 route('GET', '/bootstrap', async (ctx) => {
   const { identity, userId } = await viewerOf(ctx);
   if (userId) void touchSeller(userId);
-  const [catalog, version] = await Promise.all([loadCatalog(userId), catalogVersion(userId)]);
+  const stores = await requestedStores(ctx);
+  const [catalog, version] = await Promise.all([loadCatalog(userId, stores), catalogVersion(userId, stores)]);
   const own = userId
     ? await Promise.all([
         query('SELECT user_id, listing_id, created_at FROM favorites WHERE user_id = $1', [userId]),
@@ -120,6 +147,7 @@ route('GET', '/bootstrap', async (ctx) => {
     platform: currentPlatform(),
     launchBanner: currentLaunchBanner(),
     identity: currentIdentity(),
+    explore: currentExplore(),
     lockdown: levelNow(),
     data: {
       ...catalog,
@@ -164,8 +192,8 @@ const tellFollowers = async (q: Query, listing: Listing) => {
     q,
     followers.map((f) => ({
       userId: f.user_id,
-      title: `Nouvelle offre de ${seller?.store_name ?? 'une boutique'}`,
-      body: listing.title,
+      event: 'follow.new_listing',
+      vars: { boutique: seller?.store_name ?? 'une boutique', offre: listing.title },
       href: `${ROUTES.account.following}?boutique=${listing.sellerId}`,
     }))
   );
@@ -294,6 +322,7 @@ route('POST', '/listings/:id/status', async (ctx) => {
       const [hidden] = await q('SELECT hidden_at, hidden_reason FROM listings WHERE id = $1', [ctx.params.id]);
       if (hidden?.hidden_at) throw new DomainError(`Cette offre a été masquée par Salacope : ${hidden.hidden_reason}. Écrivez au support pour la faire rétablir.`, 403);
       await requirePayouts(q, sellerId);
+      if (current.kind === 'digital' && !current.file?.fileId) throw new DomainError('Envoyez d’abord le fichier livré au client (modifiez l’offre).');
     }
     await q(
       `UPDATE listings SET status = $2, updated_at = NOW(), published_at = CASE WHEN $3 THEN NOW() ELSE published_at END WHERE id = $1`,

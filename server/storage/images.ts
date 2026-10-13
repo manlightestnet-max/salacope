@@ -1,3 +1,4 @@
+import { DomainError } from '../../src/shared/domain/errors.js';
 import { query } from '../db.js';
 import { deleteObject, storeBytes, target } from './index.js';
 
@@ -10,14 +11,15 @@ const MAGIC: Record<string, (b: Buffer) => boolean> = {
 };
 
 /**
- * A picture sent by the app (a data URL) becomes a file in the public image bucket and its short address; anything else (an
- * address already, or no bucket set yet) is returned as it is. The type is read from the bytes, never trusted.
+ * A picture sent by the app (a data URL) becomes a file in the public image bucket and its short address; an address already
+ * is returned as it is. Pictures never go into the database: with no bucket set up, a new picture is refused. The type is
+ * read from the bytes, never trusted.
  */
 export async function offloadImage(ownerId: string, value: string, ref: string): Promise<string> {
   const m = String(value ?? '').match(DATA_IMAGE);
   if (!m) return value;
   const t = await target('image');
-  if (!t) return value;
+  if (!t) throw new DomainError('L’envoi d’images n’est pas encore ouvert sur Salacope. Réessayez dans un moment.', 503);
   const bytes = Buffer.from(m[2], 'base64');
   if (!MAGIC[m[1]](bytes)) return value; // the existing checks refuse it
   const stored = await storeBytes('image', ownerId, bytes, { name: `image.${EXTENSION[m[1]]}`, mime: m[1], ref });

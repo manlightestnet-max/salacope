@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowDownLeft, ExternalLink, Wallet } from 'lucide-react';
-import { Badge, Button, EmptyState, List, ListRow, Page, Panel, Stat, StatGrid, Tabs } from '@/shared/ui';
+import { Badge, Button, EmptyState, FactList, FactRow, HelpTip, List, ListRow, Page, Panel, Tabs } from '@/shared/ui';
 import { useRememberedParam } from '@/shared/hooks';
 import { formatDate, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
@@ -55,6 +55,7 @@ export const PayoutsPage: React.FC = () => {
       ) : view === 'overview' ? (
         <Panel
           title="Aperçu des paiements"
+          className="max-w-2xl"
           actions={wallet?.environment === 'sandbox' ? <Badge tone="warning">Mode test</Badge> : undefined}
           footer={
             error ? (
@@ -66,31 +67,38 @@ export const PayoutsPage: React.FC = () => {
             )
           }
         >
-          <StatGrid>
-            <Stat
-              label="Bloqué"
-              value={formatXaf(balance.escrow + balance.frozen)}
-              help="Payé par vos clients, gardé par LightPay jusqu’à leur validation. Les litiges restent gelés jusqu’à la décision."
+          <div className="pb-5 border-b border-gray-100">
+            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+              Versé sur LightPay
+              <HelpTip text="Ventes validées moins la commission : ce que Salacope a versé sur votre wallet LightPay. Ce total ne baisse pas quand vous retirez." />
+            </div>
+            <div className="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-primary-700">{formatXaf(balance.released)}</div>
+            <p className="mt-1 text-sm text-gray-500">{plural(ledger.length, 'vente versée', 'ventes versées')}</p>
+          </div>
+          <FactList roomy>
+            <FactRow label="Ventes validées" hint={plural(ledger.length, 'vente', 'ventes')} help="Montant des ventes validées, avant commission.">
+              {formatXaf(balance.sold)}
+            </FactRow>
+            <FactRow label="Commission Salacope" help="Retenue automatiquement sur chaque vente validée. Elle apparaît aussi, ligne par ligne, dans votre activité LightPay.">
+              {balance.commission ? `−${formatXaf(balance.commission)}` : formatXaf(0)}
+            </FactRow>
+            <FactRow label="Versé sur votre wallet" strong>
+              {formatXaf(balance.released)}
+            </FactRow>
+            <FactRow
+              label="Encore bloqué"
               hint={balance.frozen ? `dont ${formatXaf(balance.frozen)} en litige` : plural(releases.length, 'vente en cours', 'ventes en cours')}
-            />
-            <Stat
-              label="Ventes validées"
-              value={formatXaf(balance.sold)}
-              help="Montant des ventes validées par vos clients, avant commission."
-              hint={plural(ledger.length, 'vente', 'ventes')}
-            />
-            <Stat
-              label="Commission Salacope"
-              value={balance.commission ? `−${formatXaf(balance.commission)}` : formatXaf(0)}
-              help="Retenue automatiquement sur chaque vente validée. Elle apparaît aussi, ligne par ligne, dans votre activité LightPay."
-            />
-            <Stat
-              label="Versé sur LightPay"
-              value={formatXaf(balance.released)}
-              emphasis
-              help="Ventes validées moins la commission : ce que Salacope a versé sur votre wallet LightPay. Ce total ne baisse pas quand vous retirez."
-            />
-          </StatGrid>
+              help="Payé par vos clients et gardé par LightPay jusqu’au déblocage. Un litige gèle la vente jusqu’à la décision de Salacope."
+            >
+              {releases.length ? (
+                <button type="button" onClick={() => setView('releases')} className="hover:underline underline-offset-2">
+                  {formatXaf(balance.escrow + balance.frozen)}
+                </button>
+              ) : (
+                formatXaf(balance.escrow + balance.frozen)
+              )}
+            </FactRow>
+          </FactList>
         </Panel>
       ) : view === 'releases' ? (
         <Panel

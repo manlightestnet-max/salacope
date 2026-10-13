@@ -1,4 +1,5 @@
 import type { Attachment } from '../../src/shared/db/schema.js';
+import { DomainError } from '../../src/shared/domain/errors.js';
 import { query } from '../db.js';
 import { signedUrl, storeBytes, target } from './index.js';
 
@@ -9,10 +10,14 @@ const TWELVE_HOURS = 12 * 3600;
 
 /**
  * Files attached to a message or a delivery (sent by the app as data URLs) go to the private chat bucket and are kept as
- * `{ id, name, size, type, fileId }`. With no chat bucket yet they stay as they came.
+ * `{ id, name, size, type, fileId }`. Files never go into the database: with no chat bucket yet they are refused.
  */
 export async function storeAttachments(ownerId: string, files: Attachment[], ref: string): Promise<Attachment[]> {
-  if (!files.length || !(await target('chat'))) return files;
+  if (!files.length) return files;
+  if (!(await target('chat'))) {
+    if (files.some((f) => f.dataUrl?.startsWith('data:'))) throw new DomainError('L’envoi de fichiers n’est pas encore ouvert sur Salacope : écrivez votre message sans pièce jointe.', 503);
+    return files;
+  }
   return Promise.all(
     files.map(async (f) => {
       const m = f.dataUrl?.match(DATA);

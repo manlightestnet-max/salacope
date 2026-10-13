@@ -26,6 +26,15 @@ Marketplace de produits numériques et de services pour la République du Congo 
 - La barre de catégories (`CategoryTabs`, pastilles avec compteur) reste **collée sous le header pendant le défilement** : toolbar sticky de `CatalogBrowser` sur la vitrine et la recherche, barre d'outils de `Page` dans le back-office.
 - Catégorie autre que « Tout », « Voir tout » ou recherche → **grille seule** avec défilement infini. On retire tout ce qui distrait (hero, créateurs, encarts) et le footer reste caché tant que tout n'est pas chargé.
 
+## Explorer, boutiques privées, argent
+
+- **Explorer** : « Tout » = « À la une » (choisi par l'admin) puis **un seul flux** classé, services jamais mis à part (le visiteur filtre). Le classement (`features/catalog/ranking.ts`) ne prend que des signaux réels : ventes, visites 30 j, favoris, note, nouveauté, goûts du visiteur (`shared/lib/taste.ts`, sur son appareil uniquement), rotation quotidienne, limite par boutique. Les poids se règlent dans Admin → Paramètres → Explorer (`shared/config/explore.ts`).
+- **Boutique privée** (`merchants.private_store`) : absente du catalogue, de l'Explorer, de la recherche et du sitemap ; son lien l'ouvre comme une boutique à part (`useStoreLink`, `useShopFront`). Jamais d'offres d'autres vendeurs sous une offre privée.
+- **Fichiers** : tout va sur R2, jamais en base (produit, images, pièces jointes). Sans bucket, l'envoi est refusé.
+- **Notifications** : chaque `notify()` du serveur passe un `event` du catalogue `src/shared/config/messages.ts` et ses `vars`, jamais un texte en dur ; les textes se modifient dans Admin → Paramètres → Messages. Le push FCM (`server/push.ts`, `server/outbox.ts`) part après la réponse.
+- **App Android** (`mobile/`) : jamais d'interface admin, ni écran, ni lien, ni appel `/admin`.
+- **Argent** : un produit numérique n'est jamais confirmé par l'acheteur ; il est versé à la fin du délai fixé par l'admin. Un litige gèle tout jusqu'à la décision admin (rembourser ou verser au vendeur). Les invités laissent un e-mail : notifications envoyées par `server/mail.ts` (Resend).
+
 ## Persistance et fraîcheur
 
 - **Revenir sur un onglet, un écran ou une liste ne montre jamais de shimmer ni de rechargement visible** : on réaffiche tout de suite le dernier état connu (stale-while-revalidate, comme l'Explorer), puis on vérifie auprès du serveur en arrière-plan. Le shimmer n'existe que pour la **toute première** charge d'une donnée jamais vue.

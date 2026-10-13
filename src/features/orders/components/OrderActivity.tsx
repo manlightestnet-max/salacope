@@ -137,7 +137,12 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   // On screen = read: the other party's ticks turn coloured (once per new message).
   const unread = unreadCount(order, userId);
   useEffect(() => {
-    if (unread > 0 && document.visibilityState === 'visible') void markRead(order.id).catch(() => undefined);
+    if (unread === 0) return;
+    const read = () => document.visibilityState === 'visible' && void markRead(order.id).catch(() => undefined);
+    read();
+    // Arrived while the tab was in the background: read when the person comes back to it.
+    document.addEventListener('visibilitychange', read);
+    return () => document.removeEventListener('visibilitychange', read);
   }, [order.id, unread]);
   const counterpart = users.get(perspective === 'buyer' ? order.sellerId : order.buyerId);
 

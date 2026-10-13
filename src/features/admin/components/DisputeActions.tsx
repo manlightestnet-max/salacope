@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Ban, CheckCircle2, EyeOff, Landmark, LogOut, MoreVertical, Store, TriangleAlert, User } from 'lucide-react';
-import { Menu, MenuItem, useToast } from '@/shared/ui';
+import { Ban, CheckCircle2, EyeOff, Landmark, LogOut, MoreVertical, Store, TriangleAlert, Undo2, User, Wallet } from 'lucide-react';
+import { formatXaf } from '@/shared/lib';
+import { Button, Menu, MenuItem, useToast } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { DisputeDetail, disputesApi } from '@/features/disputes';
 import { adminApi } from '../api';
@@ -9,11 +10,12 @@ import { ReasonDialog } from './ReasonDialog';
 type Action =
   | null
   | { kind: 'signout' | 'block'; who: 'seller' | 'buyer' | 'subject' }
-  | { kind: 'hide' | 'suspend' | 'warn' | 'close' };
+  | { kind: 'hide' | 'suspend' | 'warn' | 'close' | 'release' | 'refund' };
 
 /**
  * The shortcuts of the administration in a dispute room, without leaving the conversation.
- * Order dispute: the money, the two accounts, sign out, block, hide the offer.
+ * Order dispute: the decision on the money (pay the seller or refund the buyer: until then it stays frozen), the two
+ * accounts, sign out, block, hide the offer.
  * Conduct dispute (about one account): a warning, closing it, the account, sign out, block, suspend the store, hide the offer.
  */
 export const DisputeActions: React.FC<{ detail: DisputeDetail; onChange: (detail: DisputeDetail) => void }> = ({ detail, onChange }) => {
@@ -21,6 +23,13 @@ export const DisputeActions: React.FC<{ detail: DisputeDetail; onChange: (detail
   const { order, subject, dispute } = detail;
   const [action, setAction] = useState<Action>(null);
   const open = dispute.status === 'open';
+  // The money of the order is still frozen: only the administration can end it, one way or the other.
+  const decide = Boolean(order?.held && open);
+  const settle = async (decision: 'release' | 'refund', reason: string) => {
+    await (decision === 'release' ? adminApi.releaseFunds(order!.id, reason) : adminApi.refundFunds(order!.id, reason));
+    onChange(await disputesApi.adminDetail(dispute.id));
+    toast.success(decision === 'release' ? 'Fonds versés au vendeur.' : 'Acheteur remboursé.');
+  };
 
   const person = (who: 'seller' | 'buyer' | 'subject') =>
     who === 'seller' ? { id: order!.sellerId, name: order!.sellerName } : who === 'buyer' ? { id: order!.buyerId, name: order!.buyerName } : { id: subject!.id, name: subject!.name };
@@ -28,7 +37,13 @@ export const DisputeActions: React.FC<{ detail: DisputeDetail; onChange: (detail
 
   const items: (MenuItem | 'divider')[] = order
     ? [
-        { label: 'Fonds : payer ou rembourser', icon: <Landmark className="w-4 h-4" />, to: ROUTES.admin.fund(order.id) },
+        ...(decide
+          ? [
+              { label: 'Verser au vendeur', icon: <Wallet className="w-4 h-4" />, onSelect: () => setAction({ kind: 'release' }) } as MenuItem,
+              { label: 'Rembourser l’acheteur', icon: <Undo2 className="w-4 h-4" />, onSelect: () => setAction({ kind: 'refund' }) } as MenuItem,
+            ]
+          : []),
+        { label: 'Dossier des fonds', icon: <Landmark className="w-4 h-4" />, to: ROUTES.admin.fund(order.id) },
         { label: 'Compte du vendeur', icon: <Store className="w-4 h-4" />, to: ROUTES.admin.seller(order.sellerId) },
         { label: 'Compte de l’acheteur', icon: <User className="w-4 h-4" />, to: ROUTES.admin.user(order.buyerId) },
         'divider',
@@ -58,6 +73,16 @@ export const DisputeActions: React.FC<{ detail: DisputeDetail; onChange: (detail
 
   return (
     <>
+      {decide && (
+        <span className="hidden sm:flex items-center gap-1.5">
+          <Button size="sm" variant="secondary" onClick={() => setAction({ kind: 'refund' })}>
+            Rembourser
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => setAction({ kind: 'release' })}>
+            Verser au vendeur
+          </Button>
+        </span>
+      )}
       <Menu
         items={items}
         trigger={({ toggle }) => (
@@ -65,6 +90,25 @@ export const DisputeActions: React.FC<{ detail: DisputeDetail; onChange: (detail
             <MoreVertical className="w-4 h-4" />
           </button>
         )}
+      />
+      <ReasonDialog
+        open={action?.kind === 'release'}
+        onClose={() => setAction(null)}
+        title="Verser au vendeur"
+        description={order ? `${formatXaf(order.total)} payés par ${order.buyerName} : le vendeur reçoit sa part sur LightPay, le litige est clos et les deux parties sont prévenues.` : undefined}
+        label="Motif de la décision (visible par les deux parties)"
+        confirmLabel="Verser au vendeur"
+        onConfirm={(reason) => settle('release', reason)}
+      />
+      <ReasonDialog
+        open={action?.kind === 'refund'}
+        onClose={() => setAction(null)}
+        title="Rembourser l’acheteur"
+        description={order ? `${formatXaf(order.total)} rendus à ${order.buyerName} par LightPay, la commande est annulée et le litige clos.` : undefined}
+        label="Motif de la décision (visible par les deux parties)"
+        danger
+        confirmLabel="Rembourser"
+        onConfirm={(reason) => settle('refund', reason)}
       />
       <ReasonDialog
         open={action?.kind === 'warn'}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowUpRight, CheckCircle2, Download, FileText, Flag, History, LucideIcon, MessageCircle, Receipt } from 'lucide-react';
-import { Button, ConfirmDialog, DescriptionList, Page } from '@/shared/ui';
+import { Button, DescriptionList, Page } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { downloadOrderFile } from '@/features/listings';
 import { formatDate, formatXaf } from '@/shared/lib';
@@ -12,7 +12,7 @@ import { CompactReview } from '@/features/reviews';
 import { displayName } from '@/features/session';
 import { OrderView } from '../hooks';
 import { EVENT_LABEL, paymentMethodLabel, permissionsFor } from '../model';
-import { ReportResult, confirmOrder, reportProblem } from '../api';
+import { ReportResult, reportProblem } from '../api';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { unreadCount } from '../chat';
 import { OrderReceipt } from './OrderReceipt';
@@ -54,7 +54,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
   const run = useServiceAction();
   const [panel, setPanel] = useState<Panel>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
-  const [dialog, setDialog] = useState<'report' | 'confirm' | null>(null);
+  const [dialog, setDialog] = useState<'report' | null>(null);
   const can = permissionsFor(order, 'buyer');
   const available = ['delivered', 'completed', 'disputed'].includes(order.status);
   const narrowCover = ['portrait', 'square'].includes(COVER_FORMAT[order.item.category]);
@@ -125,13 +125,13 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
           </div>
         </div>
 
-        {can.confirm && (
+        {order.status === 'delivered' && can.dispute && (
           <p className="mt-3 text-xs text-gray-500">
-            Tout est bon ?{' '}
-            <button type="button" onClick={() => setDialog('confirm')} className="font-medium text-primary-700 hover:underline underline-offset-2">
-              Confirmer la réception
+            Un problème avec le fichier ?{' '}
+            <button type="button" onClick={report} className="font-medium text-primary-700 hover:underline underline-offset-2">
+              Signalez-le
             </button>{' '}
-            — sinon le vendeur est payé le {formatDate(order.releaseAt)}.
+            avant le {formatDate(order.releaseAt)} : l’argent reste bloqué jusqu’à la décision de Salacope.
           </p>
         )}
       </section>
@@ -174,14 +174,6 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
           });
           return result;
         }}
-      />
-      <ConfirmDialog
-        open={dialog === 'confirm'}
-        onClose={() => setDialog(null)}
-        title="Confirmer la réception ?"
-        description={`Le vendeur recevra ${formatXaf(order.amounts.total)}. Vous ne pourrez plus ouvrir de litige sur cette commande.`}
-        confirmLabel="Confirmer"
-        onConfirm={() => run(() => confirmOrder(order.id), 'Réception confirmée')}
       />
     </Page>
   );

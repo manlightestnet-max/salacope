@@ -7,3 +7,4 @@ export * from './components/StoreLogoField';
 export * from './components/StoreHandleField';
 export * from './components/LightPayConnect';
 export * from './components/GuestPrompt';
+export * from './components/StoreVisibilityField';

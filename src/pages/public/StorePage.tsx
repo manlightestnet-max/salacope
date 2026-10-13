@@ -3,8 +3,8 @@ import { Navigate, useParams } from 'react-router-dom';
 import { Button, Container, EmptyState, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
-import { useFreshCatalog } from '@/shared/api';
-import { SellerProfile } from '@/features/catalog';
+import { useFreshCatalog, useStoreLink } from '@/shared/api';
+import { SellerProfile, useShopFront } from '@/features/catalog';
 
 /**
  * `/boutique/:id` and `/@handle` (verified stores): shareable store page (quick view comes
@@ -19,8 +19,10 @@ export const PublicStorePage: React.FC = () => {
     [id, at]
   );
 
+  useShopFront(seller);
+  const opening = useStoreLink(at ? `@${at}` : id, Boolean(seller));
   const booting = useBooting();
-  if (booting && !seller) return <Container size="lg" className="py-8"><SkeletonStore /></Container>;
+  if ((booting || opening) && !seller) return <Container size="lg" className="py-8"><SkeletonStore /></Container>;
 
   if (handle && !at) {
     return <EmptyState className="py-24" title="Page introuvable" action={<Button to={ROUTES.home}>Retour à l'accueil</Button>} />;

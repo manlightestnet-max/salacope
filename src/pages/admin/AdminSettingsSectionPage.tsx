@@ -126,7 +126,7 @@ const DelaysForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
     >
       <Panel title="Délais de paiement" description="Combien de temps l’argent reste bloqué avant d’être versé au vendeur si l’acheteur ne signale rien. C’est aussi le temps dont l’acheteur dispose pour ouvrir un litige.">
         <div className="space-y-4">
-          <Field label="Produit numérique (jours)" hint="Compté depuis l’achat.">
+          <Field label="Produit numérique (jours)" hint="Compté depuis l’achat. L’acheteur ne confirme jamais : l’argent est versé à la fin de ce délai, sauf litige (il reste alors bloqué jusqu’à votre décision).">
             {(id) => <Input id={id} inputMode="numeric" value={digital} onChange={(e) => setDigital(e.target.value)} />}
           </Field>
           <Field label="Service (jours)" hint="Compté depuis la livraison.">

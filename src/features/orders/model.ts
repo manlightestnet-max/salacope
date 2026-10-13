@@ -69,7 +69,7 @@ export const EVENT_LABEL: Record<OrderEventType, string> = {
 export const needsAction = (order: Order, perspective: Perspective) =>
   perspective === 'seller'
     ? order.status === 'paid' || order.status === 'in_progress' || order.status === 'disputed'
-    : order.status === 'delivered' || (order.status === 'in_progress' && hasPendingExtension(order));
+    : (order.status === 'delivered' && order.item.kind === 'service') || (order.status === 'in_progress' && hasPendingExtension(order));
 
 /** What the buyer should expect next, in a few words (purchases table). */
 export const buyerFollowUp = (order: Order): { text: string; urgent: boolean } => {
@@ -83,7 +83,7 @@ export const buyerFollowUp = (order: Order): { text: string; urgent: boolean } =
       return { text: `${isRevising(order) ? 'Retouche' : 'Livraison'} prévue le ${formatDate(order.dueAt)}`, urgent: false };
     case 'delivered':
       return digital
-        ? { text: `Fichier disponible · à valider avant le ${formatDate(order.releaseAt)}`, urgent: false }
+        ? { text: 'Fichier disponible', urgent: false }
         : { text: `À valider avant le ${formatDate(order.releaseAt)}`, urgent: true };
     case 'completed':
       return { text: digital ? 'Fichier disponible' : 'Terminée', urgent: false };

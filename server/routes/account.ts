@@ -8,7 +8,6 @@ import { route } from '../http.js';
 import { claimGuest, guestIdFromKey } from '../guests.js';
 import { newId } from '../ids.js';
 import { loadSelf } from '../load.js';
-import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
 
 const cleanName = (name: unknown) => String(name ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
@@ -134,6 +133,42 @@ route('PUT', '/merchant/handle', async (ctx) => {
     await q('UPDATE merchants SET handle = $2 WHERE user_id = $1', [userId, handle]);
   });
   return { patch: { users: [await loadSelf(userId)] } };
+});
+
+/**
+ * A private store is never shown in the catalogue, the Explorer or the search: the seller shares its link and buyers see it
+ * as a shop of its own (for sellers who do not want to sit next to competitors).
+ */
+route('PUT', '/merchant/visibility', async (ctx) => {
+  const userId = await ctx.accountId();
+  const rows = await query('UPDATE merchants SET private_store = $2 WHERE user_id = $1 RETURNING user_id', [userId, ctx.body.private === true]);
+  if (!rows.length) throw new DomainError('Boutique introuvable.', 404);
+  return { patch: { users: [await loadSelf(userId)] } };
+});
+
+/**
+ * The phone of the person (an account, or a guest buying without one) asks for push notifications: its Firebase token is
+ * kept until it signs out, turns them off, or uninstalls the app (FCM then says the token is gone).
+ */
+route('POST', '/me/devices', async (ctx) => {
+  const userId = await ctx.userId();
+  const token = String(ctx.body.token ?? '').trim();
+  if (!/^[\w:.-]{20,4096}$/.test(token)) throw new DomainError('Jeton de notification invalide.');
+  const platform = ctx.body.platform === 'ios' ? 'ios' : 'android';
+  const label = String(ctx.body.label ?? '').slice(0, 60) || null;
+  await query(
+    `INSERT INTO push_devices (token, user_id, platform, label) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (token) DO UPDATE SET user_id = $2, platform = $3, label = $4, last_seen_at = NOW()`,
+    [token, userId, platform, label]
+  );
+  return { ok: true };
+});
+
+route('DELETE', '/me/devices', async (ctx) => {
+  const token = String(ctx.body.token ?? '').trim();
+  // No identity needed: signing out sends it after the account has gone (only this exact token is forgotten).
+  if (token) await query('DELETE FROM push_devices WHERE token = $1', [token]);
+  return { ok: true };
 });
 
 /** Store photo, square and already reduced by the browser; the type is read from the bytes, never trusted. */

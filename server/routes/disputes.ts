@@ -168,7 +168,7 @@ route('POST', '/disputes/:id/messages', async (ctx) => {
     // Between a buyer and a seller the other one is told; in a conduct dispute Salacope sees it in its list.
     if (party.kind === 'order') {
       const other = party.side === 'seller' ? party.buyer_id : party.seller_id;
-      await notify(q, [{ userId: other, title: `${disputeLabel(party.number)} · nouveau message`, body: body || 'Pièce jointe', href: hrefFor(party.side !== 'seller', party.id) }]);
+      await notify(q, [{ userId: other, event: 'dispute.message', vars: { litige: disputeLabel(party.number), extrait: body || 'Pièce jointe' }, href: hrefFor(party.side !== 'seller', party.id) }]);
     }
   });
   return { ...(await detailOf(party.id)), me: party.side };
@@ -222,17 +222,21 @@ route('POST', '/admin/disputes', async (ctx) => {
     const [{ n }] = await q<{ n: number }>("SELECT nextval('dispute_number_seq') AS n");
     await q("INSERT INTO disputes (id, number, kind, subject_id, listing_id, title) VALUES ($1, $2, 'conduct', $3, $4, $5)", [id, n, subjectId, listingId, title]);
     await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body) VALUES ($1, $2, NULL, $3)', [newId('dmg'), id, message]);
-    await notify(q, [{ userId: subjectId, title: `${disputeLabel(n)} · ${title}`, body: message, href: hrefFor(Boolean(subject.seller), id) }]);
+    await notify(q, [{ userId: subjectId, event: 'dispute.conduct', vars: { litige: disputeLabel(n), sujet: title, message }, href: hrefFor(Boolean(subject.seller), id) }]);
     await audit(q, admin, 'dispute.open', subjectId, { dispute: id, number: n, title });
   });
   return { ...(await detailOf(id)), me: 'admin' as const };
 });
 
 route('POST', '/admin/disputes/:id/messages', async (ctx) => {
-  await requireAdmin(ctx);
+  const admin = await requireAdmin(ctx);
   const body = cleanMultiline(ctx.body.body, 4000);
   const files = cleanAttachments(ctx.body.attachments);
   if (!body && files.length === 0) throw new DomainError('Message vide.');
+  // Salacope's attachments go to storage like everyone's (never into the database), counted in the administrator's account.
+  const [me] = files.length ? await query<{ id: string }>('SELECT id FROM users WHERE firebase_uid = $1', [admin.uid]) : [];
+  if (files.length && !me) throw new DomainError('Ouvrez Salacope une fois avec ce compte avant d’envoyer un fichier.', 409);
+  const attachments = files.length ? await storeAttachments(me.id, files, ctx.params.id) : files;
   await tx(async (q) => {
     const [d] = await q(
       `SELECT d.id, d.number, d.kind, d.status, d.subject_id, o.seller_id, o.buyer_id, (SELECT EXISTS (SELECT 1 FROM merchants mm WHERE mm.user_id = d.subject_id)) AS subject_is_seller
@@ -241,17 +245,16 @@ route('POST', '/admin/disputes/:id/messages', async (ctx) => {
     );
     if (!d) throw new DomainError('Litige introuvable.', 404);
     if (d.status !== 'open') throw new DomainError('Ce litige est clos.', 409);
-    await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body, attachments) VALUES ($1, $2, NULL, $3, $4::jsonb)', [newId('dmg'), d.id, body, JSON.stringify(files)]);
+    await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body, attachments) VALUES ($1, $2, NULL, $3, $4::jsonb)', [newId('dmg'), d.id, body, JSON.stringify(attachments)]);
     await q('UPDATE disputes SET updated_at = NOW() WHERE id = $1', [d.id]);
-    const title = `${disputeLabel(d.number)} · message de Salacope`;
-    const text = body || 'Pièce jointe';
+    const vars = { litige: disputeLabel(d.number), extrait: body || 'Pièce jointe' };
     await notify(
       q,
       d.kind === 'conduct'
-        ? [{ userId: d.subject_id, title, body: text, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]
+        ? [{ userId: d.subject_id, event: 'dispute.salacope', vars, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]
         : [
-            { userId: d.seller_id, title, body: text, href: ROUTES.seller.dispute(d.id) },
-            { userId: d.buyer_id, title, body: text, href: ROUTES.account.dispute(d.id) },
+            { userId: d.seller_id, event: 'dispute.salacope', vars, href: ROUTES.seller.dispute(d.id) },
+            { userId: d.buyer_id, event: 'dispute.salacope', vars, href: ROUTES.account.dispute(d.id) },
           ]
     );
   });
@@ -274,7 +277,7 @@ route('POST', '/admin/disputes/:id/warn', async (ctx) => {
     await q('INSERT INTO account_warnings (id, user_id, dispute_id, reason, given_by) VALUES ($1, $2, $3, $4, $5)', [newId('wrn'), d.subject_id, d.id, reason, admin.email]);
     await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body) VALUES ($1, $2, NULL, $3)', [newId('dmg'), d.id, `Avertissement : ${reason}`]);
     await q('UPDATE disputes SET updated_at = NOW() WHERE id = $1', [d.id]);
-    await notify(q, [{ userId: d.subject_id, title: `Avertissement · ${disputeLabel(d.number)}`, body: reason, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]);
+    await notify(q, [{ userId: d.subject_id, event: 'dispute.warning', vars: { litige: disputeLabel(d.number), raison: reason }, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]);
     await audit(q, admin, 'user.warn', d.subject_id, { dispute: d.id, reason });
   });
   return { ...(await detailOf(ctx.params.id)), me: 'admin' as const };
@@ -297,7 +300,7 @@ route('POST', '/admin/disputes/:id/close', async (ctx) => {
     await q("UPDATE disputes SET status = 'resolved', outcome = $2, closed_at = NOW(), updated_at = NOW() WHERE id = $1", [d.id, outcome]);
     const text = outcome === 'warning' ? 'Litige clos : un avertissement a été donné.' : 'Litige clos sans suite.';
     await q('INSERT INTO dispute_messages (id, dispute_id, author_id, body) VALUES ($1, $2, NULL, $3)', [newId('dmg'), d.id, note ? `${text} ${note}` : text]);
-    await notify(q, [{ userId: d.subject_id, title: `${disputeLabel(d.number)} clos`, body: text, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]);
+    await notify(q, [{ userId: d.subject_id, event: 'dispute.closed', vars: { litige: disputeLabel(d.number), texte: text }, href: hrefFor(Boolean(d.subject_is_seller), d.id) }]);
     await audit(q, admin, 'dispute.close', d.subject_id, { dispute: d.id, outcome, note });
   });
   return { ...(await detailOf(ctx.params.id)), me: 'admin' as const };

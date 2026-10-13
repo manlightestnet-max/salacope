@@ -77,7 +77,8 @@ export function validateListing(input: ListingInput): void {
   if (input.kind === 'service' && (!input.deliveryDays || input.deliveryDays < 1 || input.deliveryDays > 90)) {
     throw new DomainError('Indiquez un délai de livraison en jours (1 à 90).');
   }
-  if (input.kind === 'digital' && !input.fileName?.trim()) throw new DomainError('Indiquez le fichier livré au client.');
+  // The file a buyer receives is always stored (Cloudflare R2): naming a file is not enough.
+  if (input.kind === 'digital' && (!input.fileId || !input.fileName?.trim())) throw new DomainError('Envoyez le fichier livré au client.');
   if (input.kind === 'service') {
     const revisions = input.revisions ?? 0;
     if (!Number.isInteger(revisions) || revisions < 0 || revisions > PLATFORM.maxRevisions) {

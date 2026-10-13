@@ -3,6 +3,7 @@ import { Database, db, emptyDatabase } from '@/shared/db';
 import { PlatformSettings, applyPlatform } from '@/shared/config/platform';
 import { LaunchBannerSettings, applyLaunchBanner } from '@/shared/config/launchBanner';
 import { SiteIdentity, applyIdentity } from '@/shared/config/identity';
+import { applyExplore } from '@/shared/config/explore';
 import { auth } from './auth';
 import { reportLockdown } from './lockdown';
 import { guest } from './guest';
@@ -22,6 +23,22 @@ let catalogAt = 0;
 let catalogRequest: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
+
+/**
+ * Private stores opened by their own link in this tab (a store id, `@handle` or one of its offers): the catalogue asks for
+ * them by name (`?with=`), since they are nowhere else. Kept for the tab, so a reload or the checkout still finds them.
+ */
+const OPENED = 'salacope.openedStores';
+let openedStores: string[] = (() => {
+  try {
+    return JSON.parse(sessionStorage.getItem(OPENED) ?? '[]').filter((r: unknown) => typeof r === 'string').slice(-8);
+  } catch {
+    return [];
+  }
+})();
+const withStores = () => (openedStores.length ? `with=${encodeURIComponent(openedStores.join(','))}` : '');
+let bootStores = '';
+const asking = new Set<string>();
 const setStatus = (s: BootStatus) => {
   status = s;
   notify();
@@ -33,6 +50,7 @@ interface BootstrapResponse {
   platform?: PlatformSettings;
   launchBanner?: LaunchBannerSettings;
   identity?: SiteIdentity;
+  explore?: unknown;
   lockdown?: string;
   needsAccount: boolean;
   serverTime: string;
@@ -69,18 +87,21 @@ export async function boot(): Promise<void> {
   try {
     // A visitor (no account, no guest profile) asks for the copy every visitor shares, which the CDN may keep a few seconds.
     const visitor = !auth.signedIn() && !guest.key();
-    let res = await request<BootstrapResponse>('GET', visitor ? '/bootstrap?anon=1' : '/bootstrap');
+    const bootstrapUrl = () => `/bootstrap?${[visitor ? 'anon=1' : '', withStores()].filter(Boolean).join('&')}`;
+    bootStores = withStores();
+    let res = await request<BootstrapResponse>('GET', bootstrapUrl());
     if (res.needsAccount) {
       // Signed in to LightPay/Firebase but never used Salacope: the account is created now.
       await request('POST', '/session', {});
       guest.clear();
-      res = await request<BootstrapResponse>('GET', '/bootstrap');
+      res = await request<BootstrapResponse>('GET', `/bootstrap?${withStores()}`);
     }
     // A guest key nobody holds any more (taken over by an account): forget it.
     if (!res.userId && !auth.signedIn() && guest.key()) guest.clear();
     applyPlatform(res.platform);
     applyLaunchBanner(res.launchBanner);
     applyIdentity(res.identity);
+    applyExplore(res.explore);
     reportLockdown(res.lockdown);
     db.load({ ...emptyDatabase(), ...res.data, sessionUserId: res.userId });
     lastSync = res.serverTime;
@@ -88,6 +109,8 @@ export async function boot(): Promise<void> {
     catalogAt = Date.now();
     writeSnapshot(res.userId, res.data);
     setStatus('ready');
+    // A private store's link was opened while this was loading: ask again with it.
+    if (bootStores !== withStores()) void refreshCatalog(true);
   } catch (err) {
     if ((err as { status?: number }).status === 401) {
       auth.signOut();
@@ -107,15 +130,16 @@ export function refreshCatalog(force = false): Promise<void> {
   if (status !== 'ready') return Promise.resolve();
   if (!force && Date.now() - catalogAt < 12_000) return Promise.resolve();
   if (catalogRequest) return catalogRequest;
-  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; launchBanner?: LaunchBannerSettings; identity?: SiteIdentity; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
+  catalogRequest = request<{ unchanged?: boolean; version: string; platform?: PlatformSettings; launchBanner?: LaunchBannerSettings; identity?: SiteIdentity; explore?: unknown; lockdown?: string; data?: Pick<Database, 'users' | 'listings' | 'stats' | 'reviews'> }>(
     'GET',
-    `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : ''].filter(Boolean).join('&')}`
+    `/catalog?${[catalogVersion ? `v=${encodeURIComponent(catalogVersion)}` : '', !auth.signedIn() && !guest.key() ? 'anon=1' : '', withStores()].filter(Boolean).join('&')}`
   )
     .then((res) => {
       catalogAt = Date.now();
       applyPlatform(res.platform);
       applyLaunchBanner(res.launchBanner);
       applyIdentity(res.identity);
+      applyExplore(res.explore);
       reportLockdown(res.lockdown);
       if (res.unchanged || !res.data) return;
       catalogVersion = res.version;
@@ -176,6 +200,35 @@ export function useFreshCatalog(force = false, key?: string) {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [force, key]);
+}
+
+/**
+ * A page opened from a shared link (store, offer, checkout) whose store is not in the catalogue: it may be a private store,
+ * so the catalogue is asked again with it. `found`: the page already has what it needs.
+ */
+export function useStoreLink(ref: string | undefined, found: boolean): boolean {
+  const boot = useBootStatus();
+  useEffect(() => {
+    if (!ref || found || boot !== 'ready' || openedStores.includes(ref)) return;
+    openedStores = [...openedStores, ref].slice(-8);
+    try {
+      sessionStorage.setItem(OPENED, JSON.stringify(openedStores));
+    } catch {
+      // private window: kept for this page only
+    }
+    asking.add(ref);
+    notify();
+    // A request already on its way does not carry the new store: this one goes after it.
+    void (catalogRequest ?? Promise.resolve())
+      .then(() => refreshCatalog(true))
+      .finally(() => {
+        asking.delete(ref);
+        notify();
+      });
+  }, [ref, found, boot]);
+  const waiting = useSyncExternalStore(subscribe, () => Boolean(ref && asking.has(ref)));
+  // Until the catalogue has answered with the store, the page waits (it never says "not found" too early).
+  return Boolean(ref && !found && (waiting || (boot === 'ready' && !openedStores.includes(ref))));
 }
 
 /** Keeps data fresh while mounted; `fast` for live screens (order chat). */

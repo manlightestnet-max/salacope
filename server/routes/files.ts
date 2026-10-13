@@ -2,6 +2,7 @@ import { DomainError } from '../../src/shared/domain/errors.js';
 import { STORAGE } from '../../src/shared/config/platform.js';
 import { query } from '../db.js';
 import { route } from '../http.js';
+import { checkDownloadLink } from '../mail.js';
 import { confirmUpload, downloadUrl, reserveUpload, target, usedBytes } from '../storage/index.js';
 
 /**
@@ -64,4 +65,19 @@ route('GET', '/orders/:id/file', async (ctx) => {
   // Kept as evidence for disputes (the table may not be migrated yet: a download is never refused for that).
   await query('INSERT INTO order_downloads (order_id, user_id) VALUES ($1, $2)', [ctx.params.id, userId]).catch(() => undefined);
   return link;
+});
+
+/**
+ * The download link sent to a guest's e-mail: it works without signing in for 30 days (signed by the server), and hands
+ * out a two-minute address each time, like the button in the app.
+ */
+route('GET', '/orders/:id/download', async (ctx) => {
+  if (!checkDownloadLink(ctx.params.id, ctx.search.get('e'), ctx.search.get('t'))) throw new DomainError('Ce lien de téléchargement n’est plus valable. Ouvrez votre achat sur Salacope.', 403);
+  const [order] = await query<{ buyer_id: string; status: string; item: { file?: { fileId?: string } } }>('SELECT buyer_id, status, item FROM orders WHERE id = $1', [ctx.params.id]);
+  if (!order || !['delivered', 'completed', 'disputed'].includes(order.status)) throw new DomainError('Ce fichier n’est pas disponible.', 404);
+  const fileId = order.item?.file?.fileId;
+  const link = fileId ? await downloadUrl(fileId, 120) : null;
+  if (!link) throw new DomainError('Fichier introuvable. Écrivez au vendeur depuis votre achat sur Salacope.', 404);
+  await query('INSERT INTO order_downloads (order_id, user_id) VALUES ($1, $2)', [ctx.params.id, order.buyer_id]).catch(() => undefined);
+  return new Response(null, { status: 302, headers: { Location: link.url, 'Cache-Control': 'no-store' } });
 });

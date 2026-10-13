@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Download } from 'lucide-react';
-import { Button } from '@/shared/ui';
+import { Button, useToast } from '@/shared/ui';
+import { clearTaste } from '@/shared/lib';
 import { COMPANY, companyField } from '@/shared/config/company';
 import { PLATFORM, releaseRule } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
@@ -121,8 +122,10 @@ export const Terms: React.FC = () => (
       <h2>4. Paiement, commission et versement</h2>
       <p>
         L’acheteur paie par MTN MoMo ou Airtel Money. Le montant est bloqué par LightPay et n’est versé au vendeur qu’une fois
-        la commande terminée : quand l’acheteur confirme la réception, ou automatiquement après la livraison sans litige
-        ({releaseRule()}).
+        la commande terminée : pour un service, quand l’acheteur valide la livraison ; pour un produit numérique, que
+        l’acheteur n’a jamais à confirmer, à la fin du délai fixé par Salacope ; dans les deux cas, automatiquement sans
+        litige ({releaseRule()}). Un litige gèle le paiement jusqu’à la décision de Salacope : remboursement de l’acheteur
+        ou versement au vendeur.
         {' '}Une commission est alors retenue automatiquement sur chaque vente validée, au taux affiché au vendeur au moment de
         la vente. Ce taux peut être modifié selon les conditions de nos prestataires tiers ou notre politique interne ; le
         vendeur en est informé, et en acceptant les présentes conditions puis en continuant à vendre, il accepte le taux en
@@ -254,12 +257,32 @@ export const PrivacyPolicy: React.FC = () => (
   </Doc>
 );
 
+const ClearTasteButton: React.FC = () => {
+  const toast = useToast();
+  return (
+    <Button
+      onClick={() => {
+        clearTaste();
+        toast.success('Goûts effacés sur cet appareil');
+      }}
+    >
+      Effacer mes goûts sur cet appareil
+    </Button>
+  );
+};
+
 export const CookiePolicy: React.FC = () => (
   <Doc title="Cookies">
     <p>
       Salacope utilise uniquement le stockage nécessaire au fonctionnement du site (session, préférences). Aucun cookie
       publicitaire ni traceur tiers n’est utilisé ; aucun consentement n’est donc demandé.
     </p>
+    <p>
+      Pour vous proposer d’abord ce qui vous intéresse, l’Explorer retient sur votre appareil les catégories, boutiques et mots
+      des offres que vous ouvrez, enregistrez ou cherchez. Ces goûts ne quittent jamais votre appareil et s’effacent d’eux-mêmes
+      avec le temps.
+    </p>
+    <ClearTasteButton />
   </Doc>
 );
 
@@ -286,7 +309,7 @@ export const AmlPolicy: React.FC = () => (
       <h2>Paiements encadrés</h2>
       <ul>
         <li>Paiement uniquement par MTN Mobile Money et Airtel Money, via un partenaire agréé : ni espèces, ni carte, ni cryptoactifs.</li>
-        <li>Chaque paiement est bloqué jusqu’à la validation de la commande par l’acheteur.</li>
+        <li>Chaque paiement reste bloqué jusqu’à la validation du service par l’acheteur, ou jusqu’à la fin du délai de garantie d’un produit numérique ; en cas de litige, jusqu’à la décision de Salacope.</li>
         <li>Les remboursements repartent toujours vers le numéro qui a payé.</li>
         <li>Les ventes ne sont versées qu’au vendeur vérifié.</li>
         <li>Acheteur et vendeur échangent uniquement par la messagerie Salacope, qui bloque les coordonnées.</li>

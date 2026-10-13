@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, Search, SlidersHorizontal, Store } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, Input, SearchField, Select } from '@/shared/ui';
+import { Button, Input, SearchField, Segmented, Select } from '@/shared/ui';
 import { useFreshCatalog } from '@/shared/api';
 import { useBodyScrollLock, useKeyPress } from '@/shared/hooks';
+import { noteSearch } from '@/shared/lib';
 import { CATEGORIES, SORT_OPTIONS, queryListings } from '../model';
+import { SearchSuggestion, searchSuggestions } from '../ranking';
 import { useCatalogQuery, usePublishedListings } from '../hooks';
 import { CatalogBrowser } from './CatalogBrowser';
 
@@ -23,7 +25,7 @@ const Filters: React.FC = () => {
 
   // Counts follow the search and the price, whatever type is chosen, so each type tells what it would show.
   const counts = useMemo(() => {
-    const matching = queryListings(views, { ...query, category: undefined });
+    const matching = queryListings(views, { ...query, category: undefined, sort: 'popular' });
     return { all: matching.length, byCategory: (id: string) => matching.filter((v) => v.listing.category === id).length };
   }, [views, query]);
 
@@ -37,13 +39,32 @@ const Filters: React.FC = () => {
   return (
     <div className="divide-y divide-gray-100">
       <div className="p-4">
-        <p className={label}>Type</p>
+        <p className={label}>Offre</p>
+        <Segmented
+          label="Produits ou services"
+          className="w-full [&>button]:flex-1 [&>button]:justify-center"
+          value={query.kind ?? 'all'}
+          onChange={(v) => {
+            const kind = v === 'all' ? undefined : v;
+            // A category of the other kind would show nothing: it is let go.
+            const keep = query.category && (!kind || CATEGORIES.find((c) => c.id === query.category)?.kind === kind);
+            setQuery({ type: kind, cat: keep ? query.category : undefined });
+          }}
+          options={[
+            { value: 'all', label: 'Tout' },
+            { value: 'digital', label: 'Produits' },
+            { value: 'service', label: 'Services' },
+          ]}
+        />
+      </div>
+      <div className="p-4">
+        <p className={label}>Catégorie</p>
         <div className="space-y-0.5">
           <button type="button" className={row(!query.category)} onClick={() => setQuery({ cat: undefined })} aria-pressed={!query.category}>
             Tout
             <span className="text-xs tabular-nums text-gray-500">{counts.all}</span>
           </button>
-          {CATEGORIES.map((c) => (
+          {CATEGORIES.filter((c) => !query.kind || c.kind === query.kind).map((c) => (
             <button key={c.id} type="button" className={row(query.category === c.id)} onClick={() => setQuery({ cat: c.id })} aria-pressed={query.category === c.id}>
               {c.label}
               <span className="text-xs tabular-nums text-gray-500">{counts.byCategory(c.id)}</span>
@@ -57,7 +78,7 @@ const Filters: React.FC = () => {
         <Select
           className="w-full"
           aria-label="Trier par"
-          value={query.sort ?? 'popular'}
+          value={query.sort ?? 'for_you'}
           options={SORT_OPTIONS}
           onChange={(sort) => setQuery({ sort })}
         />
@@ -81,7 +102,7 @@ const Filters: React.FC = () => {
         {hasFilters && (
           <button
             type="button"
-            onClick={() => setQuery({ cat: undefined, min: undefined, max: undefined })}
+            onClick={() => setQuery({ cat: undefined, type: undefined, min: undefined, max: undefined })}
             className="mt-3 w-full text-center text-xs text-gray-500 hover:text-gray-900 underline-offset-2 hover:underline"
           >
             Effacer les filtres
@@ -109,7 +130,30 @@ export const SearchView: React.FC = () => {
   useBodyScrollLock(sheet);
   useKeyPress('Escape', () => setSheet(false), sheet);
 
-  const active = [query.category, query.minPrice, query.maxPrice].filter(Boolean).length;
+  const active = [query.category, query.kind, query.minPrice, query.maxPrice].filter(Boolean).length;
+  const all = usePublishedListings();
+  const [focused, setFocused] = useState(false);
+  const [cursor, setCursor] = useState(-1);
+  // While typing: real titles, stores and categories that answer the words (nothing invented, nothing sponsored).
+  const suggestions = useMemo(
+    () => (focused && text.trim() && text.trim() !== query.text ? searchSuggestions(all, text, CATEGORIES) : []),
+    [focused, text, query.text, all]
+  );
+  useEffect(() => setCursor(-1), [suggestions]);
+  const choose = (s: SearchSuggestion) => {
+    setFocused(false);
+    const next = new URLSearchParams(params);
+    if (s.kind === 'category') {
+      next.delete('q');
+      next.set('cat', s.value);
+      setText('');
+    } else {
+      noteSearch(s.value);
+      next.set('q', s.value);
+      setText(s.value);
+    }
+    navigate({ pathname, search: next.toString() });
+  };
 
   // On a phone the search words are required: the screen opens with the field ready to type in, and no results are listed
   // until there is something to look for (computers can still browse everything with the filters).
@@ -121,11 +165,14 @@ export const SearchView: React.FC = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (cursor >= 0 && suggestions[cursor]) return choose(suggestions[cursor]);
+    setFocused(false);
     if (!text.trim() && window.matchMedia('(max-width: 1023px)').matches) {
       field.current?.focus();
       return;
     }
     const next = new URLSearchParams(params);
+    if (text.trim()) noteSearch(text.trim());
     if (text.trim()) next.set('q', text.trim());
     else next.delete('q');
     // A new search is a new entry of the history: back returns to the previous results.
@@ -138,7 +185,41 @@ export const SearchView: React.FC = () => {
       <p className="mt-1 text-sm text-gray-500">Trouvez des formations, des e-books, des services et plus encore.</p>
 
       <form onSubmit={submit} className="mt-4 flex gap-2">
-        <SearchField ref={field} value={text} onChange={setText} placeholder="Rechercher" className="flex-1 min-w-0" />
+        <div
+          className="relative flex-1 min-w-0"
+          onFocus={() => setFocused(true)}
+          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setFocused(false)}
+          onKeyDown={(e) => {
+            if (!suggestions.length) return;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              setCursor((c) => (e.key === 'ArrowDown' ? (c + 1) % suggestions.length : (c - 1 + suggestions.length) % suggestions.length));
+            } else if (e.key === 'Escape') setFocused(false);
+          }}
+        >
+          <SearchField ref={field} value={text} onChange={setText} placeholder="Rechercher" className="w-full" />
+          {suggestions.length > 0 && (
+            <ul role="listbox" aria-label="Suggestions" className="absolute z-30 left-0 right-0 top-full mt-1.5 rounded-xl border border-gray-200 bg-surface shadow-md py-1.5 overflow-hidden">
+              {suggestions.map((s, i) => {
+                const Icon = s.kind === 'store' ? Store : s.kind === 'category' ? LayoutGrid : Search;
+                return (
+                  <li key={`${s.kind}:${s.value}`} role="option" aria-selected={i === cursor}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => choose(s)}
+                      className={clsx('w-full flex items-center gap-2.5 px-3.5 h-10 text-left text-sm', i === cursor ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50')}
+                    >
+                      <Icon className="w-4 h-4 shrink-0 text-gray-400" />
+                      <span className="truncate">{s.label}</span>
+                      {s.kind !== 'offer' && <span className="ml-auto shrink-0 text-xs text-gray-400">{s.kind === 'store' ? 'Boutique' : 'Catégorie'}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
         <Button type="submit" variant="primary" className="shrink-0">
           Rechercher
         </Button>

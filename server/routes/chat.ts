@@ -83,7 +83,7 @@ route('POST', '/orders/:id/payment-requests', async (ctx) => {
     ]);
     await q('UPDATE orders SET updated_at = $2 WHERE id = $1', [row.id, at]);
     await notify(q, [
-      toBuyer(row, `Demande de paiement · ${row.number}`, `${l.title} · ${formatXaf(l.price_xaf)} (valable ${PAYMENT_REQUEST_MINUTES} min après ouverture)`),
+      toBuyer(row, 'purchase.payment_request', { offre: l.title, montant: formatXaf(l.price_xaf), minutes: PAYMENT_REQUEST_MINUTES }),
     ]);
   });
   return orderPatch(userId, ctx.params.id);

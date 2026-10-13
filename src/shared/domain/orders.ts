@@ -37,7 +37,8 @@ export const permissionsFor = (order: OrderShape, perspective: Perspective | nul
     accept: seller && isService && status === 'paid',
     deliver: seller && isService && (status === 'paid' || status === 'in_progress'),
     cancel: (seller && (status === 'paid' || status === 'in_progress')) || (buyer && isService && status === 'paid'),
-    confirm: buyer && status === 'delivered',
+    // A digital product is never confirmed by the buyer: the money stays held for the administration's delay, then is paid out.
+    confirm: buyer && isService && status === 'delivered',
     dispute: buyer && status === 'delivered',
     revise: buyer && isService && status === 'delivered' && revisionsLeft(order) > 0,
     extend: seller && isService && status === 'in_progress' && !hasPendingExtension(order),

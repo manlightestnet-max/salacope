@@ -2,6 +2,7 @@ import { DomainError } from '../src/shared/domain/errors.js';
 import { Identity, verifyIdToken } from './auth.js';
 import { query } from './db.js';
 import { guestIdFromKey } from './guests.js';
+import { flushOutbox } from './outbox.js';
 import { addressOf, bucketOf, secondsToWait } from './ratelimit.js';
 import { LockedError, levelNow, lockedMessage, refreshLockdown, signInVoid, withBypass } from './lockdown.js';
 import { currentIdentity, ensurePlatform } from './settings.js';
@@ -167,6 +168,12 @@ export async function handle(request: Request): Promise<Response> {
       });
     };
     const result = await (bypassGuard ? withBypass(run) : run());
+    // A change may have told someone something (file ready, new sale, dispute message, decision): it goes to their phones
+    // as a push, and to a guest's e-mail.
+    if (method !== 'GET' || path === '/sync' || path === '/cron/settle') {
+      const origin = (process.env.SALACOPE_PUBLIC_URL || url.origin).replace(/\/$/, '');
+      await Promise.race([flushOutbox(origin), new Promise((r) => setTimeout(r, 4000))]).catch(() => undefined);
+    }
     if (result instanceof Response) return result;
     return reply(200, result ?? { ok: true });
   } catch (err) {

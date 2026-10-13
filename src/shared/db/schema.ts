@@ -18,6 +18,8 @@ export interface Merchant {
   handle?: string;
   verified: boolean;
   activatedAt: string;
+  /** Never in the catalogue, the Explorer or the search: only its own link opens it, as a shop of its own. */
+  private?: boolean;
   /** Own store only: the LightPay wallet that receives the sales is connected. */
   lightpayConnected?: boolean;
   /** Own store only: identity check (AML/CFT). Offers go online once it is approved. */
@@ -343,6 +345,8 @@ export interface Stats {
   /** Sales per listing (cancelled orders excluded). */
   listings: Record<string, number>;
   sellers: Record<string, { completedSales: number; followers: number; reviews: number; rating: number }>;
+  /** What the Explorer ranks with: visits over 30 days and favourites, per listing. */
+  signals?: Record<string, { views: number; favorites: number }>;
 }
 
 export interface Database {

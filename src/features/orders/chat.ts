@@ -76,10 +76,15 @@ export const conversations = (orders: Order[], userId: string, kind: ListingKind
   return [...byPerson.entries()]
     .map(([id, list]) => {
       const sorted = [...list].sort((a, b) => lastActivityAt(b).localeCompare(lastActivityAt(a)));
+      // The preview is the latest message between the two, whichever order it was written in.
+      const last = list
+        .map(lastMessage)
+        .filter((m): m is OrderMessage => Boolean(m))
+        .sort((a, b) => b.at.localeCompare(a.at))[0];
       return {
         counterpartId: id,
         orders: sorted,
-        last: lastMessage(sorted[0]),
+        last,
         lastAt: lastActivityAt(sorted[0]),
         unread: list.reduce((n, o) => n + unreadCount(o, userId), 0),
       };

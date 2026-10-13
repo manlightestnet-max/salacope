@@ -95,6 +95,11 @@ export async function setStoreHandle(handle: string | null): Promise<void> {
   await mutate('PUT', '/merchant/handle', { handle });
 }
 
+/** Private store: out of the catalogue, opened only by its own link. */
+export async function setStorePrivate(isPrivate: boolean): Promise<void> {
+  await mutate('PUT', '/merchant/visibility', { private: isPrivate });
+}
+
 /** Store photo: `null` removes it. The image is cropped square and reduced in the browser. */
 export async function setStoreLogo(logo: string | null): Promise<void> {
   await mutate('PUT', '/merchant/logo', { logo });

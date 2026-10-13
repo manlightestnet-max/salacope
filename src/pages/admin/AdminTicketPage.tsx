@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Send } from 'lucide-react';
-import { Avatar, Badge, Button, Card, CardBody, EmptyState, Page, Panel, SkeletonRows, Tabs, Textarea, useToast } from '@/shared/ui';
+import { Avatar, Badge, Button, Card, CardBody, EmptyState, Page, Panel, SkeletonRows, Tabs, Textarea, useToast, FactList, FactRow } from '@/shared/ui';
 import { formatDateTime, formatRelative, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { topicLabel } from '@/features/support';
@@ -9,45 +9,38 @@ import { AdminTicketDetail, adminApi, useAdminResource } from '@/features/admin'
 import { ADMIN_TICKET_STATUS } from './AdminSupportPage';
 import salacopeMark from '@/shared/assets/salacope-mark.png';
 
-const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex justify-between gap-4 py-2 text-sm">
-    <dt className="text-gray-500 shrink-0">{label}</dt>
-    <dd className="text-gray-900 text-right min-w-0 break-words">{children}</dd>
-  </div>
-);
-
 /** The person, and what Salacope already knows about the payment or the order the ticket quotes. */
 const Facts: React.FC<{ detail: AdminTicketDetail }> = ({ detail: { ticket, context } }) => (
   <div className="space-y-4 min-w-0">
     <Panel title="Demandeur">
-      <dl className="divide-y divide-gray-100">
-        <Row label="Nom">
+      <FactList>
+        <FactRow label="Nom">
           <Link to={ticket.store_name ? ROUTES.admin.seller(ticket.user_id) : ROUTES.admin.users} className="hover:underline">
             {ticket.name}
           </Link>
-        </Row>
-        <Row label="E-mail">{ticket.email}</Row>
-        {ticket.phone && <Row label="Téléphone">{ticket.phone}</Row>}
-        {ticket.store_name && <Row label="Boutique">{ticket.store_name}</Row>}
+        </FactRow>
+        <FactRow label="E-mail">{ticket.email}</FactRow>
+        {ticket.phone && <FactRow label="Téléphone">{ticket.phone}</FactRow>}
+        {ticket.store_name && <FactRow label="Boutique">{ticket.store_name}</FactRow>}
         {ticket.blocked_at && (
-          <Row label="Compte">
+          <FactRow label="Compte">
             <Badge tone="danger">Bloqué</Badge>
-          </Row>
+          </FactRow>
         )}
-      </dl>
+      </FactList>
     </Panel>
     {ticket.reference && (
       <Panel title="Référence" description={ticket.reference}>
         {context?.attempt || context?.order ? (
-          <dl className="divide-y divide-gray-100">
+          <FactList>
             {context.attempt && (
               <>
-                <Row label="Paiement">
+                <FactRow label="Paiement">
                   <span className="font-mono">{context.attempt.code}</span>
-                </Row>
-                <Row label="Résultat">{{ succeeded: 'Abouti', pending: 'En attente', failed: 'Refusé', expired: 'Délai dépassé', cancelled: 'Annulé' }[context.attempt.status] ?? context.attempt.status}</Row>
-                <Row label="Montant">{formatXaf(context.attempt.amount)}</Row>
-                <Row label="Opérateur">{context.attempt.channel}</Row>
+                </FactRow>
+                <FactRow label="Résultat">{{ succeeded: 'Abouti', pending: 'En attente', failed: 'Refusé', expired: 'Délai dépassé', cancelled: 'Annulé' }[context.attempt.status] ?? context.attempt.status}</FactRow>
+                <FactRow label="Montant">{formatXaf(context.attempt.amount)}</FactRow>
+                <FactRow label="Opérateur">{context.attempt.channel}</FactRow>
               </>
             )}
             {context.order && (
@@ -60,13 +53,13 @@ const Facts: React.FC<{ detail: AdminTicketDetail }> = ({ detail: { ticket, cont
                     </Button>
                   </div>
                 )}
-                <Row label="Commande">{context.order.number}</Row>
-                <Row label="Offre">{context.order.title}</Row>
-                <Row label="Total">{formatXaf(Number(context.order.total))}</Row>
-                <Row label="État">{context.order.status}</Row>
+                <FactRow label="Commande">{context.order.number}</FactRow>
+                <FactRow label="Offre">{context.order.title}</FactRow>
+                <FactRow label="Total">{formatXaf(Number(context.order.total))}</FactRow>
+                <FactRow label="État">{context.order.status}</FactRow>
               </>
             )}
-          </dl>
+          </FactList>
         ) : (
           <p className="text-sm text-gray-500">Aucun paiement ni commande ne correspond à cette référence.</p>
         )}

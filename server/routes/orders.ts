@@ -37,6 +37,8 @@ import { SELLABLE_SELLERS } from '../compliance.js';
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 
 /** Where LightPay sends the buyer back (must be this site). */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+
 const returnUrl = (ctx: Context, attemptId: string, cancelled = false) =>
   `${ctx.origin}/paiement/retour?tentative=${encodeURIComponent(attemptId)}${cancelled ? '&annule=1' : ''}`;
 
@@ -48,11 +50,18 @@ route('POST', '/checkout', async (ctx) => {
   // No account needed: a visitor buys as a guest (the key goes back to their browser only).
   let buyerId = await ctx.viewerId();
   let guest: { id: string; key: string } | null = null;
+  // A guest leaves an e-mail: the download link and what happens in a dispute reach them there (never shown to the seller).
+  const email = text(ctx.body.email, 160).toLowerCase();
+  const isGuest = !buyerId || !(await ctx.identity());
+  if (isGuest) {
+    if (!EMAIL.test(email)) throw new DomainError('Indiquez votre adresse e-mail : vous y recevrez le lien de téléchargement et nos messages.');
+  }
   if (!buyerId) {
     if (await ctx.identity()) throw new DomainError('Compte introuvable : reconnectez-vous.', 401);
     guest = await createGuest();
     buyerId = guest.id;
   }
+  if (isGuest) await query('UPDATE users SET contact_email = $2 WHERE id = $1 AND firebase_uid IS NULL', [buyerId, email]);
   const [listing] = await query(
     `SELECT l.*, m.lightpay_connection_id, l.seller_id IN (${SELLABLE_SELLERS}) AS sellable
      FROM listings l JOIN merchants m ON m.user_id = l.seller_id WHERE l.id = $1`,
@@ -185,7 +194,7 @@ act('accept', 'accept', async (row, userId, _ctx, q) => {
     actorId: userId,
     at,
     set: { due_at: dueAt },
-    notices: [toBuyer(row, 'Commande acceptée', `Livraison prévue le ${formatDay(dueAt)}`)],
+    notices: [toBuyer(row, 'purchase.accepted', { date: formatDay(dueAt) })],
   });
 });
 
@@ -219,7 +228,7 @@ act('deliver', 'deliver', async (row, userId, ctx, q) => {
       // A pending request for more time is moot once delivered.
       extension: row.extension?.status === 'pending' ? null : row.extension,
     },
-    notices: [toBuyer(row, `Commande ${row.number} livrée`, 'Vérifiez la livraison puis validez-la.')],
+    notices: [toBuyer(row, 'purchase.delivered')],
   });
 });
 
@@ -230,7 +239,7 @@ act('confirm', 'confirm', async (row, userId, _ctx, q) => {
     event: 'completed',
     actorId: userId,
     set: { release_at: null },
-    notices: [toSeller(row, `Paiement libéré · ${row.number}`, `+${formatXaf(row.amounts.net)} sur votre wallet LightPay`)],
+    notices: [toSeller(row, 'sale.released', { montant: formatXaf(row.amounts.net) })],
   });
 });
 
@@ -247,8 +256,8 @@ act('cancel', 'cancel', async (row, userId, ctx, q) => {
     set: { release_at: null, refund },
     notices: [
       bySeller
-        ? toBuyer(row, `Commande ${row.number} annulée`, refundSentence(refund, formatXaf))
-        : toSeller(row, `Commande ${row.number} annulée par le client`),
+        ? toBuyer(row, 'purchase.cancelled', { remboursement: refundSentence(refund, formatXaf) })
+        : toSeller(row, 'sale.cancelled'),
     ],
   });
 });
@@ -285,7 +294,7 @@ act('revise', 'revise', async (row, userId, ctx, q) => {
     note,
     at,
     set: { due_at: addDays(at, PLATFORM.revisionDays), release_at: null, revisions_used: row.revisions_used + 1 },
-    notices: [toSeller(row, `Retouche demandée · ${row.number}`, note)],
+    notices: [toSeller(row, 'sale.revision', { note })],
   });
 });
 
@@ -305,7 +314,7 @@ act('extend', 'extend', async (row, userId, ctx, q) => {
     note: `+${days} j · ${reason}`,
     at,
     set: { extension: { days, reason, status: 'pending', requestedAt: at } },
-    notices: [toBuyer(row, `Le vendeur demande ${days} jour${days > 1 ? 's' : ''} de plus`, reason)],
+    notices: [toBuyer(row, 'purchase.extension', { jours: `${days} jour${days > 1 ? 's' : ''}`, raison: reason })],
   });
 });
 
@@ -321,11 +330,7 @@ act('extension', 'answerExtension', async (row, userId, ctx, q) => {
     at,
     set: { due_at: dueAt, extension: { ...extension, status: accept ? 'accepted' : 'declined', answeredAt: at } },
     notices: [
-      toSeller(
-        row,
-        accept ? `Délai accepté · ${row.number}` : `Délai refusé · ${row.number}`,
-        accept ? `Nouvelle date de livraison : ${formatDay(dueAt)}` : `Livraison attendue le ${formatDay(row.due_at)}`
-      ),
+      toSeller(row, accept ? 'sale.extension_accepted' : 'sale.extension_declined', { date: formatDay(accept ? dueAt : row.due_at) }),
     ],
   });
 });
@@ -357,8 +362,8 @@ route('POST', '/orders/:id/messages', async (ctx) => {
     const excerpt = body.slice(0, 90) || `${attachments.length} fichier${attachments.length > 1 ? 's' : ''}`;
     await notify(q, [
       perspective === 'buyer'
-        ? toSeller(row, `Message de ${row.buyer.name} · ${row.number}`, excerpt)
-        : toBuyer(row, `Message du vendeur · ${row.number}`, excerpt),
+        ? toSeller(row, 'sale.message', { client: row.buyer.name, extrait: excerpt })
+        : toBuyer(row, 'purchase.message', { extrait: excerpt }),
     ]);
   });
   return { patch: { orders: [await loadOrder(userId, ctx.params.id)] } };
@@ -400,7 +405,7 @@ route('POST', '/orders/:id/report', async (ctx) => {
       `Signalement reçu pour la commande ${row.number}. Notre équipe l’examine et vous répond sous 24 h.`,
       at,
     ]);
-    await notify(q, [{ userId, title: `Demande SUP-${n} enregistrée`, body: reason, href: ROUTES.account.ticket(ticketId) }]);
+    await notify(q, [{ userId, event: 'support.created', vars: { ticket: `SUP-${n}`, motif: reason }, href: ROUTES.account.ticket(ticketId) }]);
     return { kind: 'ticket' as const, reference: `SUP-${n}`, ticketId };
   });
   return {

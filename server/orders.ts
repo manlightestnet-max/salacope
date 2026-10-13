@@ -47,8 +47,19 @@ export const shapeOf = (r: OrderRow) => ({
   extension: r.extension ?? undefined,
 });
 
-export const toBuyer = (o: OrderRow, title: string, body = o.item.title): NotifyInput => ({ userId: o.buyer_id, title, body, href: orderHref(o.id, 'buyer') });
-export const toSeller = (o: OrderRow, title: string, body = o.item.title): NotifyInput => ({ userId: o.seller_id, title, body, href: orderHref(o.id, 'seller') });
+/** A message about an order, to its buyer or its seller (the order's number and title are always among its values). */
+export const toBuyer = (o: OrderRow, event: string, vars: NotifyInput['vars'] = {}): NotifyInput => ({
+  userId: o.buyer_id,
+  event,
+  vars: { commande: o.number, offre: o.item.title, ...vars },
+  href: orderHref(o.id, 'buyer'),
+});
+export const toSeller = (o: OrderRow, event: string, vars: NotifyInput['vars'] = {}): NotifyInput => ({
+  userId: o.seller_id,
+  event,
+  vars: { commande: o.number, offre: o.item.title, ...vars },
+  href: orderHref(o.id, 'seller'),
+});
 
 /** Locks the order and checks that `userId` may do `action` now. */
 export async function authorize(q: Query, orderId: string, userId: string, action: keyof OrderPermissions) {
@@ -203,9 +214,16 @@ export async function settleAttempt(attemptId: string, known?: LightPaySession):
       await notify(q, [
         {
           userId: a.seller_id,
-          title: `Nouvelle commande SC-${n}`,
-          body: `${d.item.title} · ${formatXaf(d.amounts.net)} (bloqués jusqu’à validation)`,
+          event: 'sale.new',
+          vars: { commande: `SC-${n}`, offre: d.item.title, montant: formatXaf(d.amounts.net) },
           href: orderHref(orderId, 'seller'),
+        },
+        // The buyer's receipt: a guest also gets it by e-mail, with the download link of a digital product.
+        {
+          userId: a.buyer_id,
+          event: digital ? 'purchase.ready' : 'purchase.paid',
+          vars: { commande: `SC-${n}`, offre: d.item.title },
+          href: orderHref(orderId, 'buyer'),
         },
       ]);
       return;
@@ -215,7 +233,7 @@ export async function settleAttempt(attemptId: string, known?: LightPaySession):
       const status = session.status === 'EXPIRED' ? 'expired' : 'cancelled';
       await q('UPDATE payment_attempts SET status = $2, updated_at = NOW(), checked_at = NOW() WHERE id = $1', [a.id, status]);
       if (status === 'expired') {
-        await notify(q, [{ userId: a.buyer_id, title: 'Paiement non abouti', body: `${a.code} · délai dépassé, aucun débit`, href: ROUTES.account.support }]);
+        await notify(q, [{ userId: a.buyer_id, event: 'purchase.payment_expired', vars: { code: a.code }, href: ROUTES.account.support }]);
       }
       return;
     }
@@ -254,7 +272,7 @@ export async function settleDueOrders(limit = 5): Promise<number> {
           event: 'auto_completed',
           actorId: null,
           set: { release_at: null },
-          notices: [toSeller(row, `Paiement libéré · ${row.number}`, `+${formatXaf(row.amounts.net)} sur votre wallet LightPay (validation automatique)`)],
+          notices: [toSeller(row, 'sale.released_auto', { montant: formatXaf(row.amounts.net) })],
         });
       });
       settled += 1;

@@ -1,5 +1,6 @@
 import { mutate } from '@/shared/api';
 import { DomainError, db } from '@/shared/db';
+import { noteListing } from '@/shared/lib';
 
 const path = (p: string, id: string) => `/${p}/${encodeURIComponent(id)}`;
 
@@ -7,6 +8,8 @@ const path = (p: string, id: string) => `/${p}/${encodeURIComponent(id)}`;
 export async function toggleFavorite(listingId: string): Promise<boolean> {
   const exists = db.get().favorites.some((f) => f.listingId === listingId);
   await mutate(exists ? 'DELETE' : 'POST', path('favorites', listingId));
+  const listing = db.get().listings.find((l) => l.id === listingId);
+  if (!exists && listing) noteListing(listing, 'like');
   return !exists;
 }
 

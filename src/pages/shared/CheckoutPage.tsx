@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button, Container, EmptyState, Page } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
 import { useBackLink } from '@/shared/hooks';
-import { useFreshCatalog } from '@/shared/api';
+import { useFreshCatalog, useStoreLink } from '@/shared/api';
 import { useDb } from '@/shared/db';
 import { useListingView } from '@/features/catalog';
 import { CheckoutForm } from '@/features/checkout';
@@ -27,8 +27,12 @@ export const CheckoutPage: React.FC<{ inApp?: boolean }> = ({ inApp = false }) =
   const backTo = inApp ? ROUTES.account.offer(id) : ROUTES.listing(id);
   const back = useBackLink({ to: backTo, label: 'Offre' });
 
+  const opening = useStoreLink(id, Boolean(view));
+
   let content: React.ReactNode;
-  if (!view || view.listing.status !== 'published') {
+  if (!view && opening) {
+    content = null; // a private store's offer: the catalogue is asked for it
+  } else if (!view || view.listing.status !== 'published') {
     content = <EmptyState title="Cette offre n'est plus disponible" action={<Button to={inApp ? ROUTES.account.explorer : ROUTES.search}>Retour au catalogue</Button>} />;
   } else if (user?.id === view.listing.sellerId) {
     content = (

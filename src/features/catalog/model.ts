@@ -1,5 +1,7 @@
 import { ROUTES } from '@/shared/config/routes';
 import { Category, Listing, ListingKind, User } from '@/shared/db';
+import type { RankContext } from './ranking';
+import { rankListings, textScore } from './ranking';
 
 export interface CategoryConfig {
   id: Category;
@@ -96,9 +98,11 @@ export interface ListingView {
   salesCount: number;
 }
 
-export type CatalogSort = 'popular' | 'newest' | 'price_asc' | 'price_desc';
+/** `for_you`: the Explorer's ranking (and, with words, the best answers first). */
+export type CatalogSort = 'for_you' | 'popular' | 'newest' | 'price_asc' | 'price_desc';
 
 export const SORT_OPTIONS: { value: CatalogSort; label: string }[] = [
+  { value: 'for_you', label: 'Recommandé' },
   { value: 'popular', label: 'Les plus vendus' },
   { value: 'newest', label: 'Les plus récents' },
   { value: 'price_asc', label: 'Prix croissant' },
@@ -107,29 +111,35 @@ export const SORT_OPTIONS: { value: CatalogSort; label: string }[] = [
 
 export interface CatalogQuery {
   category?: Category;
+  /** Products or services only (the search filter). */
+  kind?: ListingKind;
   text?: string;
   minPrice?: number;
   maxPrice?: number;
   sort?: CatalogSort;
 }
 
-const matchesText = ({ listing, seller }: ListingView, text: string) => {
-  const q = text.toLowerCase().trim();
-  if (!q) return true;
-  // The offer's identifier matches too (not advertised anywhere): someone sent here by a search engine can paste it.
-  return [listing.id, listing.title, listing.summary, listing.description, seller?.merchant?.storeName ?? '', ...listing.features].some((v) => v.toLowerCase().includes(q));
-};
-
-export const queryListings = (views: ListingView[], query: CatalogQuery): ListingView[] => {
-  const filtered = views.filter(
-    (v) =>
-      (!query.category || v.listing.category === query.category) &&
-      matchesText(v, query.text ?? '') &&
-      v.listing.priceXaf >= (query.minPrice ?? 0) &&
-      v.listing.priceXaf <= (query.maxPrice ?? Infinity)
-  );
-  const sort = query.sort ?? 'popular';
+/**
+ * The offers that answer the query, in its order. Words are matched by `textScore` (accents, plurals and one typo forgiven;
+ * the offer's identifier matches too, for someone sent here by a search engine). "Recommandé" uses the Explorer's ranking
+ * when `rank` is given; without it, the most sold first.
+ */
+export const queryListings = (views: ListingView[], query: CatalogQuery, rank?: RankContext): ListingView[] => {
+  const text = (query.text ?? '').trim();
+  const relevance = new Map<string, number>();
+  const filtered = views.filter((v) => {
+    if (query.category && v.listing.category !== query.category) return false;
+    if (query.kind && v.listing.kind !== query.kind) return false;
+    if (v.listing.priceXaf < (query.minPrice ?? 0) || v.listing.priceXaf > (query.maxPrice ?? Infinity)) return false;
+    if (!text) return true;
+    const score = textScore(v, text);
+    relevance.set(v.listing.id, score);
+    return score > 0;
+  });
+  const sort = query.sort ?? 'for_you';
+  if (sort === 'for_you' && rank) return rankListings(filtered, rank, text ? relevance : undefined);
   return filtered.sort((a, b) => {
+    if (sort === 'for_you' && text) return relevance.get(b.listing.id)! - relevance.get(a.listing.id)! || b.salesCount - a.salesCount;
     if (sort === 'price_asc') return a.listing.priceXaf - b.listing.priceXaf;
     if (sort === 'price_desc') return b.listing.priceXaf - a.listing.priceXaf;
     if (sort === 'newest') return b.listing.createdAt.localeCompare(a.listing.createdAt);

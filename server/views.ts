@@ -15,7 +15,7 @@ import { isAdminUid } from './compliance.js';
 
 export const USER_COLUMNS = `u.id, u.name, u.email, u.phone, u.created_at, u.firebase_uid IS NULL AS guest, u.firebase_uid,
   u.blocked_at, u.blocked_reason, m.store_name, m.headline, m.city, m.verified, m.activated_at, m.lightpay_connection_id,
-  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason, m.logo, m.handle,
+  m.kyc_status, m.kyc_note, m.suspended_at, m.suspended_reason, m.logo, m.handle, m.private_store,
   (SELECT COALESCE(array_agg(b.blocked_id), '{}') FROM user_blocks b WHERE b.blocker_id = u.id) AS blocks`;
 export const USER_FROM = 'users u LEFT JOIN merchants m ON m.user_id = u.id';
 
@@ -50,6 +50,8 @@ export const userView = (r: any, self: boolean): User => ({
         handle: opt(r.handle),
         verified: r.verified,
         activatedAt: r.activated_at,
+        // Seen only by whoever has the store's own link: the store then shows as a shop of its own.
+        private: r.private_store ? true : undefined,
         lightpayConnected: self ? Boolean(r.lightpay_connection_id) : undefined,
         kycStatus: self ? r.kyc_status : undefined,
         kycNote: self ? (r.kyc_note ?? undefined) : undefined,

@@ -153,7 +153,8 @@ export const ChatComposer: React.FC<{
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) void submit(e);
+              // Not while a word is being composed (accents, phone keyboards' suggestions).
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) void submit(e);
             }}
             rows={1}
             placeholder={placeholder}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { request } from '@/shared/api';
 import { Listing, db } from '@/shared/db';
 import { noteListing } from '@/shared/lib';
+import type { DateRange, DayStat } from '@/shared/domain';
 
 /** Extra images of each offer, fetched once per version of the offer. */
 const galleries = new Map<string, Promise<string[]>>();
@@ -72,6 +73,10 @@ export interface ListingInsight {
   clicks30: number;
   revenue: number;
 }
+
+/** Views and clicks of the seller's offers, day by day, over the dashboard's period. */
+export const fetchAnalytics = (range: DateRange) =>
+  request<{ stats: DayStat[] }>('GET', `/seller/analytics?from=${range.from}&to=${range.to}`).then((r) => r.stats);
 
 export const fetchInsights = () => request<{ insights: ListingInsight[] }>('GET', '/seller/insights').then((r) => r.insights);
 

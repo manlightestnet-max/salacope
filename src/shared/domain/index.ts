@@ -7,3 +7,4 @@ export * from './listings.js';
 export * from './reviews.js';
 export * from './kyc.js';
 export * from './refund.js';
+export * from './analytics.js';

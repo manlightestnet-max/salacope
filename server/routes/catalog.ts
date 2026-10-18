@@ -389,6 +389,23 @@ route('GET', '/listings/:id/stats', async (ctx) => {
   return { views: row.views, purchases: row.purchases, sellerOnline: Boolean(seen?.online) };
 });
 
+/** Views and clicks of the seller's offers, day by day, between two dates (the dashboard's period). Counts only, never who. */
+route('GET', '/seller/analytics', async (ctx) => {
+  const sellerId = await ctx.userId();
+  const day = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null);
+  const from = day(ctx.search.get('from'));
+  const to = day(ctx.search.get('to'));
+  if (!from || !to || from > to) throw new DomainError('Période invalide.');
+  if (Date.parse(to) - Date.parse(from) > 800 * 86_400_000) throw new DomainError('Période trop longue : 800 jours au plus.');
+  const rows = await query(
+    `SELECT s.listing_id AS "listingId", s.day::text AS day, s.views, s.clicks
+     FROM listing_daily_stats s JOIN listings l ON l.id = s.listing_id
+     WHERE l.seller_id = $1 AND s.day BETWEEN $2::date AND $3::date ORDER BY s.day LIMIT 50000`,
+    [sellerId, from, to]
+  );
+  return { stats: rows };
+});
+
 /** The seller's figures per offer: views, clicks (30 days and all time) and revenue of completed sales. */
 route('GET', '/seller/insights', async (ctx) => {
   const sellerId = await ctx.userId();

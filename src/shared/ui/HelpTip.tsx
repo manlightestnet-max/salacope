@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Info } from 'lucide-react';
 
 /** ⓘ next to a label: a short explanation on hover or keyboard focus. */
-export const HelpTip: React.FC<{ text: string; className?: string }> = ({ text, className }) => {
+export const HelpTip: React.FC<{ text: string; className?: string; align?: 'center' | 'right' }> = ({ text, className, align = 'center' }) => {
   const id = useId();
   return (
     <span className={clsx('relative inline-flex group/tip align-middle', className)}>
@@ -18,7 +18,10 @@ export const HelpTip: React.FC<{ text: string; className?: string }> = ({ text, 
       <span
         id={id}
         role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-full z-40 mt-2 w-60 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-left text-xs font-normal leading-relaxed text-canvas opacity-0 shadow-lg transition-opacity duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
+        className={clsx(
+          'pointer-events-none absolute top-full z-40 mt-2 w-60 rounded-lg bg-gray-900 px-3 py-2 text-left text-xs font-normal leading-relaxed text-canvas opacity-0 shadow-lg transition-opacity duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100',
+          align === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2'
+        )}
       >
         {text}
       </span>

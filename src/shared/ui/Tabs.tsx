@@ -1,9 +1,14 @@
+import React from 'react';
 import clsx from 'clsx';
+import { TONES, Tone } from './Badge';
 
 export interface TabItem<V extends string> {
   value: V;
   label: string;
   count?: number;
+  /** Pills only: an icon and a tint (a dashboard's views, each in its own colour). */
+  icon?: React.ElementType;
+  tone?: Tone;
 }
 
 export interface TabsProps<V extends string> {
@@ -63,11 +68,14 @@ export function Tabs<V extends string>({ value, items, onChange, bare, pills, cl
             onClick={() => onChange(item.value)}
             className={clsx(
               'h-8 shrink-0 flex items-center gap-1.5 rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors',
-              active
-                ? 'bg-accent border-accent text-on-accent font-semibold'
-                : 'bg-surface border-gray-200 font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              item.tone
+                ? clsx(TONES[item.tone].badge, active ? 'border-current font-semibold' : 'border-transparent font-medium hover:brightness-95')
+                : active
+                  ? 'bg-accent border-accent text-on-accent font-semibold'
+                  : 'bg-surface border-gray-200 font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300'
             )}
           >
+            {item.icon && <item.icon className="w-3.5 h-3.5" />}
             {item.label}
             {item.count !== undefined && <span className={switcherCount(active)}>{item.count}</span>}
           </button>

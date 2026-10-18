@@ -11,6 +11,8 @@ export * from './Select';
 export * from './Dialog';
 export * from './Toast';
 export * from './Menu';
+export * from './Popover';
+export * from './DateRangeBar';
 export * from './misc';
 export * from './BarChart';
 export * from './ThemeToggle';

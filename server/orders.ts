@@ -16,7 +16,9 @@ export const formatXaf = (n: number) => `${Math.round(n).toLocaleString('fr-FR')
 export const formatDay = (iso?: string | null) =>
   iso ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Brazzaville' }).format(new Date(iso)) : '';
 
-export const orderHref = (orderId: string, p: Perspective) => (p === 'buyer' ? ROUTES.account.order(orderId) : ROUTES.seller.sale(orderId));
+/** Where a notification about an order leads: a service opens its discussion (everything is done there), a product its page. */
+export const orderHref = (orderId: string, p: Perspective, kind?: 'digital' | 'service') =>
+  kind === 'service' ? ROUTES.account.chat(orderId) : p === 'buyer' ? ROUTES.account.order(orderId) : ROUTES.seller.sale(orderId);
 
 export interface OrderRow {
   id: string;
@@ -52,13 +54,13 @@ export const toBuyer = (o: OrderRow, event: string, vars: NotifyInput['vars'] = 
   userId: o.buyer_id,
   event,
   vars: { commande: o.number, offre: o.item.title, ...vars },
-  href: orderHref(o.id, 'buyer'),
+  href: orderHref(o.id, 'buyer', o.item.kind),
 });
 export const toSeller = (o: OrderRow, event: string, vars: NotifyInput['vars'] = {}): NotifyInput => ({
   userId: o.seller_id,
   event,
   vars: { commande: o.number, offre: o.item.title, ...vars },
-  href: orderHref(o.id, 'seller'),
+  href: orderHref(o.id, 'seller', o.item.kind),
 });
 
 /** Locks the order and checks that `userId` may do `action` now. */
@@ -229,14 +231,14 @@ export async function insertOrder(q: Query, o: NewOrder): Promise<{ id: string; 
       userId: o.sellerId,
       event: free ? 'sale.free' : 'sale.new',
       vars: { commande: number, offre: d.item.title, ...(free ? {} : { montant: formatXaf(d.amounts.net) }) },
-      href: orderHref(id, 'seller'),
+      href: orderHref(id, 'seller', d.item.kind),
     },
     // The buyer's receipt: a guest also gets it by e-mail, with the download link of a digital product.
     {
       userId: o.buyerId,
       event: free ? (digital ? 'purchase.free_ready' : 'purchase.free') : digital ? 'purchase.ready' : 'purchase.paid',
       vars: { commande: number, offre: d.item.title },
-      href: orderHref(id, 'buyer'),
+      href: orderHref(id, 'buyer', d.item.kind),
     },
   ]);
   return { id, number };

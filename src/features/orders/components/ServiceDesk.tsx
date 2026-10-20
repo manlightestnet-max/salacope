@@ -14,7 +14,6 @@ import { Perspective } from '../model';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderProgress } from './OrderProgress';
 import { PaymentLine } from './PaymentLine';
-import { NextStepCard } from './NextStepCard';
 import { DeadlineCard } from './DeadlineCard';
 import { BriefCard } from './BriefCard';
 import { DeliveryCard } from './DeliveryCard';
@@ -23,9 +22,8 @@ import { OrderTimeline } from './OrderTimeline';
 import { OrderReceipt } from './OrderReceipt';
 
 /**
- * Desk of a service order: what it is, what it cost, the action of the moment, the clock,
- * brief and delivery. The conversation is apart (preview here, the room in Messages);
- * the order's own steps are listed under it.
+ * Details of a service order: what it is, what it cost, the clock, brief and delivery, and its steps. It only shows: every action
+ * (accept, refuse, deliver, ask for time, validate, revise, report) is taken in the order's discussion, which opens from here.
  */
 export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; userId: string }> = ({ view, perspective, userId }) => {
   const { order, seller, users } = view;
@@ -69,6 +67,8 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
     >
       {tab === 'suivi' && (
         <div className="space-y-4">
+          {/* Everything that is done on an order (accept, deliver, validate, revise…) is done in its discussion. */}
+          <ChatPreviewCard order={order} perspective={perspective} userId={userId} users={users} />
           <section className="rounded-3xl border border-gray-200/70 bg-surface p-5">
             <div className="flex items-start gap-4">
               <ListingThumb src={order.item.coverImage} category={order.item.category} size="md" />
@@ -82,7 +82,6 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
             <PaymentLine order={order} perspective={perspective} className="mt-4 pt-4 border-t border-gray-100" />
             <OrderProgress order={order} className="md:hidden mt-4 flex-wrap" />
           </section>
-          <NextStepCard order={order} perspective={perspective} userId={userId} stacked />
           <DeadlineCard order={order} perspective={perspective} />
           <OrderReviewCard order={order} isBuyer={!isSeller} userId={userId} />
         </div>
@@ -95,8 +94,6 @@ export const ServiceDesk: React.FC<{ view: OrderView; perspective: Perspective; 
       )}
       {tab === 'historique' && (
         <div className="space-y-4">
-          {/* The order and its conversation are kept apart: the chat opens in Messages. */}
-          <ChatPreviewCard order={order} perspective={perspective} userId={userId} users={users} />
           <OrderTimeline order={order} users={users} />
           <div className="px-1 space-y-1.5 text-sm">
             {!isSeller && (

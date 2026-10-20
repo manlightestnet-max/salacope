@@ -27,7 +27,9 @@ import { messageStatus, unreadCount } from '../chat';
 import { MessageTicks } from './chat/MessageTicks';
 import { PaymentRequestCard } from './chat/PaymentRequestCard';
 import { PaymentRequestDialog } from './chat/PaymentRequestDialog';
-import { ValidationCard } from './chat/ValidationCard';
+import { BriefCard } from './BriefCard';
+import { DeliveryCard } from './DeliveryCard';
+import { NextStepCard } from './NextStepCard';
 import { ChatComposer, ChatFeed, ChatMessage } from './chat/ChatParts';
 
 type Entry = { kind: 'event'; at: string; event: OrderEvent } | { kind: 'message'; at: string; message: OrderMessage };
@@ -49,11 +51,16 @@ const EVENT_STYLE: Record<OrderEventType, { icon: LucideIcon; tone: Tone }> = {
   extension_declined: { icon: CalendarClock, tone: 'danger' },
 };
 
+/** The steps that carry a few words from the person who took them. */
+const SAID = new Set<OrderEventType>(['cancelled', 'disputed', 'revision_requested', 'extension_requested', 'extension_declined']);
+
 /** A lifecycle step as an indicator between the messages: icon, name and how long ago; a tap opens the exact time and details. */
 const EventRow: React.FC<{ order: Order; event: OrderEvent; actor?: User }> = ({ order, event, actor }) => {
   const [open, setOpen] = useState(false);
   const { icon: Icon, tone } = EVENT_STYLE[event.type];
   const note = event.type !== 'delivered' ? event.note : undefined;
+  // What was said with the step (a refusal, a revision asked, a delay) is read in the conversation, not hidden behind a tap.
+  const said = note && SAID.has(event.type) ? note : undefined;
   return (
     <li className="flex flex-col items-center px-3">
       <button
@@ -72,6 +79,7 @@ const EventRow: React.FC<{ order: Order; event: OrderEvent; actor?: User }> = ({
         </time>
         <ChevronDown className={clsx('w-3 h-3 shrink-0 text-gray-400 transition-transform duration-200', open && 'rotate-180')} />
       </button>
+      {said && <p className="mt-1.5 max-w-sm text-center text-xs text-gray-600 whitespace-pre-line break-words">« {said} »</p>}
       {open && (
         <dl className="mt-2 w-full max-w-xs rounded-xl border border-gray-200/70 bg-gray-50 px-3.5 py-2.5 text-xs space-y-1.5 animate-fade-up motion-reduce:animate-none">
           <div className="flex justify-between gap-4">
@@ -158,7 +166,7 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
   const content = (
     <>
       {!bare && <h2 className="px-5 pt-4 pb-2 text-sm font-semibold text-gray-900">Activité</h2>}
-      <ChatFeed fill={fill} watch={order.messages.length}>
+      <ChatFeed fill={fill} watch={order.messages.length + order.events.length}>
         {order.chat?.ephemeral && (
           <li className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <Timer className="w-3.5 h-3.5" /> Messages éphémères : effacés à la clôture de la commande.
@@ -180,11 +188,20 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
           entry.kind === 'event' ? (
             <React.Fragment key={entry.event.id}>
               <EventRow order={order} event={entry.event} actor={entry.event.actorId ? users.get(entry.event.actorId) : undefined} />
-              {entry.event.type === 'delivered' && order.item.kind === 'service' && perspective && (
+              {entry.event.type === 'paid' && perspective && order.brief?.length ? (
                 <li className="flex justify-center">
-                  <ValidationCard order={order} perspective={perspective} current={entry.event.id === lastDelivery} />
+                  <div className="w-full max-w-lg">
+                    <BriefCard order={order} perspective={perspective} />
+                  </div>
                 </li>
-              )}
+              ) : null}
+              {entry.event.type === 'delivered' && order.item.kind === 'service' && perspective && entry.event.id === lastDelivery && order.delivery ? (
+                <li className="flex justify-center">
+                  <div className="w-full max-w-lg">
+                    <DeliveryCard order={order} perspective={perspective} />
+                  </div>
+                </li>
+              ) : null}
             </React.Fragment>
           ) : (
             <MessageRow
@@ -196,6 +213,14 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
               mine={entry.message.authorId === userId}
             />
           )
+        )}
+        {/* In the discussion (the full-height room) the action of the moment closes the feed. */}
+        {fill && perspective && (
+          <li className="flex justify-center">
+            <div className="w-full max-w-lg">
+              <NextStepCard order={order} perspective={perspective} userId={userId} stacked />
+            </div>
+          </li>
         )}
       </ChatFeed>
 

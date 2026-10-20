@@ -7,6 +7,7 @@ import { Button, Card, ConfirmDialog } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
 import { formatDate, formatRelative, formatXaf } from '@/shared/lib';
 import { PLATFORM } from '@/shared/config/platform';
+import { refundSentence } from '@/shared/domain';
 import { ROUTES } from '@/shared/config/routes';
 import { Perspective, hasPendingExtension, isLate, isRevising, permissionsFor, revisionsLeft } from '../model';
 import {
@@ -88,7 +89,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
             : `Livraison attendue ${formatRelative(order.dueAt)}`
           : 'Le vendeur travaille sur votre commande';
         body = seller
-          ? `Livrez depuis cette page. Le client aura ensuite ${PLATFORM.serviceValidationDays} jours pour valider.`
+          ? `Livrez ici quand c’est prêt. Le client aura ensuite ${PLATFORM.serviceValidationDays} jours pour valider.`
           : `Livraison prévue le ${formatDate(order.dueAt)}.`;
       }
       break;
@@ -130,7 +131,15 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
     case 'cancelled':
       tone = 'done';
       title = 'Commande annulée';
-      body = `${lastNote(order, 'cancelled') ? `« ${lastNote(order, 'cancelled')} » — ` : ''}${formatXaf(order.amounts.total)} remboursés au client par LightPay.`;
+      body = `${lastNote(order, 'cancelled') ? `« ${lastNote(order, 'cancelled')} » — ` : ''}${
+        order.refund
+          ? seller
+            ? order.refund.paid === 0
+              ? 'Commande gratuite : rien à rembourser.'
+              : `Le client est remboursé de ${formatXaf(order.refund.sent)}${order.refund.paid > order.refund.sent ? ` (${formatXaf(order.refund.paid - order.refund.sent)} de frais de retrait déduits)` : ''}.`
+            : refundSentence(order.refund, formatXaf)
+          : `${formatXaf(order.amounts.total)} remboursés au client par LightPay.`
+      }`;
       break;
   }
 
@@ -214,7 +223,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
         open={dialog === 'cancel'}
         onClose={() => setDialog(null)}
         title={seller && order.status === 'paid' ? 'Refuser la commande' : 'Annuler la commande'}
-        description={`Le client sera remboursé de ${formatXaf(order.amounts.total)}. Cette action est définitive.`}
+        description={order.amounts.total === 0 ? 'Cette commande est gratuite. Cette action est définitive.' : `Le client sera remboursé de ${formatXaf(order.amounts.total)}, moins les frais de retrait s’il a payé par mobile money. Cette action est définitive.`}
         label="Raison (visible par l'autre partie)"
         confirmLabel="Annuler et rembourser"
         onSubmit={(reason) => run(() => cancelOrder(order.id, reason), 'Commande annulée')}

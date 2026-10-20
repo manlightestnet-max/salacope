@@ -90,19 +90,42 @@ export function signedUrl(t: Target, key: string, method: 'GET' | 'PUT' | 'HEAD'
   });
 }
 
-const unavailable = () => new DomainError('Le stockage des fichiers est momentanément indisponible. Réessayez dans un instant.', 503);
+/** What a seller sees is generic; `detail` is what Cloudflare really answered, shown to the administration only (Stockage > Tester). */
+export class StorageError extends DomainError {
+  constructor(readonly detail: string) {
+    super('Le stockage des fichiers est momentanément indisponible. Réessayez dans un instant.', 503);
+  }
+}
+
+/** Cloudflare's own words for what went wrong, in French and with what to do. */
+const explain = (status: number | undefined, code: string): string => {
+  const known: Record<string, string> = {
+    SignatureDoesNotMatch: 'la clé secrète ou l’identifiant de compte ne correspond pas : recollez-les',
+    InvalidAccessKeyId: 'la clé d’accès est inconnue de ce compte Cloudflare',
+    NoSuchBucket: 'ce bucket n’existe pas dans ce compte : vérifiez son nom exact',
+    AccessDenied: 'la clé n’a pas le droit d’écrire dans ce bucket : créez-la avec « Object Read & Write » sur ce bucket',
+    InvalidBucketName: 'nom de bucket invalide',
+    EntityTooLarge: 'fichier trop gros',
+  };
+  if (status === undefined) return 'Cloudflare est injoignable : vérifiez l’identifiant de compte (32 caractères)';
+  return `${known[code] ?? 'réponse inattendue de Cloudflare'} (HTTP ${status}${code ? ` · ${code}` : ''})`;
+};
+
+const failure = async (res: Response | null): Promise<StorageError> => {
+  const body = res ? await res.text().catch(() => '') : '';
+  const code = body.match(/<Code>([^<]+)<\/Code>/)?.[1] ?? '';
+  console.error('[storage]', res?.status, code, body.slice(0, 300));
+  return new StorageError(explain(res?.status, code));
+};
 
 export async function putObject(t: Target, key: string, body: Buffer, mime: string) {
   const res = await fetch(signedUrl(t, key, 'PUT', 300), { method: 'PUT', headers: { 'Content-Type': mime }, body: new Uint8Array(body) }).catch(() => null);
-  if (!res?.ok) {
-    console.error('[storage] put', res?.status, await res?.text().catch(() => ''));
-    throw unavailable();
-  }
+  if (!res?.ok) throw await failure(res);
 }
 
 export async function getObject(t: Target, key: string): Promise<Buffer> {
   const res = await fetch(signedUrl(t, key, 'GET', 120)).catch(() => null);
-  if (!res?.ok) throw unavailable();
+  if (!res?.ok) throw await failure(res);
   return Buffer.from(await res.arrayBuffer());
 }
 

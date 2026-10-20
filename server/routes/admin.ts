@@ -20,7 +20,7 @@ import { signAttachments } from '../storage/attachments.js';
 import { closeDisputeRoom } from '../disputes.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
-import { PURPOSES, Purpose, StorageConfig, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
+import { PURPOSES, Purpose, StorageConfig, StorageError, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
 
 /**
  * Salacope administration (AML/CFT policy §4 and §6): sellers and their identity checks,
@@ -456,7 +456,7 @@ route('POST', '/admin/storage/test', async (ctx) => {
       await deleteObject(t, key);
       results.push({ purpose, ok: back === 'salacope', message: back === 'salacope' ? 'Connexion réussie' : 'Lecture différente de l’écriture' });
     } catch (err) {
-      results.push({ purpose, ok: false, message: err instanceof DomainError ? err.message : 'Échec de la connexion' });
+      results.push({ purpose, ok: false, message: err instanceof StorageError ? `Cloudflare : ${err.detail}` : err instanceof DomainError ? err.message : 'Échec de la connexion' });
     }
   }
   return { results };

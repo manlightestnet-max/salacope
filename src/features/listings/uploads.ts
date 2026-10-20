@@ -51,15 +51,22 @@ export interface UploadedFile {
 export async function uploadProductFile(file: File, onProgress: (fraction: number) => void, ref?: string): Promise<UploadedFile> {
   const type = file.type || 'application/octet-stream';
   const { id, uploadUrl } = await request<{ id: string; uploadUrl: string }>('POST', '/files/sign', { purpose: 'product', name: file.name, type, size: file.size, ref });
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', type);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('L’envoi a été refusé par le stockage. Réessayez.')));
-    xhr.onerror = () => reject(new Error('Envoi interrompu : vérifiez votre connexion et réessayez.'));
-    xhr.send(file);
-  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', type);
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('L’envoi a été refusé par le stockage. Réessayez.')));
+      // The browser gives no detail when storage turns the request down (a site it does not allow yet looks like a lost connection).
+      xhr.onerror = () => reject(new Error('L’envoi a échoué : connexion coupée, ou stockage pas encore prêt à recevoir les fichiers. Réessayez ; si cela continue, écrivez au support.'));
+      xhr.send(file);
+    });
+  } catch (e) {
+    // Nothing arrived: the reservation made for it is given back at once.
+    void discardUpload(id);
+    throw e;
+  }
   await request('POST', `/files/${encodeURIComponent(id)}/complete`);
   usageCache = null;
   return { id, name: file.name, size: file.size };

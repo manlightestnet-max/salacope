@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { route } from '../http.js';
 import { connectionGone, lightpay, lightpayEnv, pkce, verifyWebhook } from '../lightpay.js';
 import { settleAttempt, settleDueOrders } from '../orders.js';
+import { sweepOrphanProductFiles } from '../storage/products.js';
 import { USER_COLUMNS, USER_FROM, userView } from '../views.js';
 
 /** Sales land in the seller's own LightPay wallet: the store connects it once (LightPay Connect). */
@@ -106,7 +107,9 @@ route('GET', '/cron/settle', async (ctx) => {
     "SELECT id FROM payment_attempts WHERE status = 'pending' AND created_at < NOW() - INTERVAL '40 minutes' LIMIT 50"
   );
   for (const s of stale) await settleAttempt(s.id).catch(() => undefined);
-  return { settled: total, checked: stale.length };
+  // Files sent and never attached to an offer stop eating the sellers' space.
+  const swept = await sweepOrphanProductFiles().catch(() => 0);
+  return { settled: total, checked: stale.length, swept };
 });
 
 

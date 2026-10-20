@@ -61,3 +61,30 @@ export const formatFileSize = (bytes: number): string => {
 
 export const plural = (count: number, singular: string, pluralForm = `${singular}s`) =>
   `${formatNumber(count)} ${count > 1 ? pluralForm : singular}`;
+
+const FILE_FORMATS: Record<string, string> = {
+  pdf: 'PDF',
+  epub: 'EPUB',
+  zip: 'ZIP',
+  rar: 'RAR',
+  docx: 'DOCX',
+  doc: 'DOC',
+  xlsx: 'XLSX',
+  csv: 'CSV',
+  pptx: 'PPTX',
+  mp4: 'Vidéo',
+  mov: 'Vidéo',
+  mkv: 'Vidéo',
+  mp3: 'Audio',
+  wav: 'Audio',
+  png: 'Image',
+  jpg: 'Image',
+  jpeg: 'Image',
+  webp: 'Image',
+};
+
+/** The kind of a file from its name: "guide.pdf" -> "PDF", "cours.mp4" -> "Vidéo", an unknown ending -> the ending, none -> "Fichier". */
+export const fileFormat = (name: string): string => {
+  const ext = name.includes('.') ? (name.split('.').pop() ?? '').toLowerCase() : '';
+  return FILE_FORMATS[ext] ?? (ext && ext.length <= 5 ? ext.toUpperCase() : 'Fichier');
+};

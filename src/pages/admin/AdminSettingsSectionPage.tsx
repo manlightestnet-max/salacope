@@ -3,10 +3,10 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AdminSettings, adminApi, useAdminResource } from '@/features/admin';
 import { Button, EmptyState, Field, Input, Page, Panel, SkeletonRows, useToast } from '@/shared/ui';
 import { formatXaf } from '@/shared/lib';
-import { percent } from '@/shared/config/platform';
+import { PRODUCT_FILES_RANGE, percent } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 
-const TITLES: Record<string, string> = { commission: 'Commission', delais: 'Délais de paiement du vendeur', prix: 'Prix minimum et promotions' };
+const TITLES: Record<string, string> = { commission: 'Commission', delais: 'Délais de paiement du vendeur', prix: 'Prix minimum et promotions', fichiers: 'Fichiers d’un produit' };
 
 /** Percentages are typed as such (10 for 10 %) and stored as fractions. */
 const toPercent = (r: number | null) => (r === null ? '' : String(Math.round(r * 1000) / 10));
@@ -190,6 +190,29 @@ const PricesForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
   );
 };
 
+const FilesForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
+  const { busy, error, save } = useSaveSettings();
+  const [max, setMax] = useState(String(s.maxProductFiles));
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save({ ...s, maxProductFiles: Number(max) });
+      }}
+    >
+      <Panel
+        title="Fichiers d’un produit numérique"
+        description="Un vendeur peut livrer plusieurs fichiers avec un même produit (le guide, des modèles, des bonus…). L’acheteur les reçoit tous après paiement ; le vendeur choisit lesquels servent d’aperçu gratuit sur la page de l’offre."
+      >
+        <Field label="Nombre maximum de fichiers par produit" hint={`Entre ${PRODUCT_FILES_RANGE.min} et ${PRODUCT_FILES_RANGE.max}. Un produit qui dépasse la nouvelle limite garde ses fichiers jusqu’à sa prochaine modification. La taille d’un fichier et l’espace du vendeur se règlent dans Stockage.`}>
+          {(id) => <Input id={id} inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value)} />}
+        </Field>
+        <SaveBar error={error} busy={busy} />
+      </Panel>
+    </form>
+  );
+};
+
 /** `/admin/parametres/:section` */
 export const AdminSettingsSectionPage: React.FC = () => {
   const { section = '' } = useParams<{ section: string }>();
@@ -197,7 +220,7 @@ export const AdminSettingsSectionPage: React.FC = () => {
   if (!(section in TITLES)) return <Navigate to={ROUTES.admin.settings} replace />;
   return (
     <Page title={TITLES[section]} width="narrow" back={{ to: ROUTES.admin.settings, label: 'Paramètres' }}>
-      {error ? <EmptyState title="Paramètres indisponibles" description={error} /> : !data ? <SkeletonRows rows={3} /> : section === 'commission' ? <CommissionForm s={data} /> : section === 'prix' ? <PricesForm s={data} /> : <DelaysForm s={data} />}
+      {error ? <EmptyState title="Paramètres indisponibles" description={error} /> : !data ? <SkeletonRows rows={3} /> : section === 'commission' ? <CommissionForm s={data} /> : section === 'prix' ? <PricesForm s={data} /> : section === 'fichiers' ? <FilesForm s={data} /> : <DelaysForm s={data} />}
     </Page>
   );
 };

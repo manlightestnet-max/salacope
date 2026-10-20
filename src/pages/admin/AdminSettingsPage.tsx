@@ -1,5 +1,5 @@
 import React from 'react';
-import { BellRing, CalendarClock, Compass, Globe, Percent, Tag } from 'lucide-react';
+import { BellRing, CalendarClock, Compass, Files, Globe, Percent, Tag } from 'lucide-react';
 import { adminApi, useAdminResource } from '@/features/admin';
 import { EmptyState, List, ListRow, Page, Panel, SkeletonRows } from '@/shared/ui';
 import { percent } from '@/shared/config/platform';
@@ -51,6 +51,12 @@ export const AdminSettingsPage: React.FC = () => {
               leading={icon(Tag)}
               title="Prix minimum et promotions"
               subtitle={`${priceText(s)} · promotions de ${s.promoMaxDays} jours au plus${s.freeOffers ? ' · offres gratuites autorisées' : ''}`}
+            />
+            <ListRow
+              to={ROUTES.admin.settingsSection('fichiers')}
+              leading={icon(Files)}
+              title="Fichiers d’un produit"
+              subtitle={`${s.maxProductFiles} fichier${s.maxProductFiles > 1 ? 's' : ''} au plus par produit numérique`}
             />
             <ListRow
               to={ROUTES.admin.settingsSection('explorer')}

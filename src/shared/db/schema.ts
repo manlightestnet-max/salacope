@@ -47,12 +47,23 @@ export interface User {
   merchant?: Merchant;
 }
 
-export interface ListingFile {
+/** One file of a digital product. */
+export interface ListingFileItem {
   name: string;
   format: string;
   /** The stored file a buyer downloads (absent while the seller has only named it). */
   fileId?: string;
   size?: number;
+  /** A free sample: anyone can download it from the offer page, without buying. */
+  preview?: boolean;
+}
+
+/**
+ * What a digital product delivers. `name`, `format`, `fileId` and `size` are those of the first file (what the first versions of
+ * the app read); `files` lists them all, in the order the seller chose. Use `filesOf` to read either shape.
+ */
+export interface ListingFile extends ListingFileItem {
+  files?: ListingFileItem[];
 }
 
 /** A question the seller needs answered before starting a service. */

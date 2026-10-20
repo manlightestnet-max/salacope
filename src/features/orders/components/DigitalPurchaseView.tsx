@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { ArrowUpRight, CheckCircle2, Download, FileText, Flag, History, LucideIcon, MessageCircle, Receipt } from 'lucide-react';
-import { Button, DescriptionList, Page } from '@/shared/ui';
+import { ArrowUpRight, CheckCircle2, Flag, History, LucideIcon, MessageCircle, Receipt } from 'lucide-react';
+import { DescriptionList, Page } from '@/shared/ui';
 import { useServiceAction } from '@/shared/hooks';
-import { downloadOrderFile } from '@/features/listings';
 import { formatDate, formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { COVER_FORMAT, KindBadge, ListingCover } from '@/features/catalog';
@@ -15,6 +14,7 @@ import { EVENT_LABEL, paymentMethodLabel, permissionsFor } from '../model';
 import { ReportResult, reportProblem } from '../api';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { unreadCount } from '../chat';
+import { OrderFiles } from './OrderFiles';
 import { OrderReceipt } from './OrderReceipt';
 import { ReportDialog } from './OrderDialogs';
 
@@ -94,35 +94,8 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-          <div className="flex-1 min-w-0 flex items-center gap-2.5 rounded-full bg-gray-50 border border-gray-200/70 h-10 px-3.5">
-            <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-            <span className="text-sm text-gray-900 truncate">{order.item.file?.name ?? order.item.title}</span>
-            <span className="ml-auto shrink-0 text-xs text-gray-500">{order.item.file?.format ?? 'Fichier'}</span>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="primary"
-              size="lg"
-              pill
-              className="flex-1 sm:flex-none"
-              disabled={!available}
-              icon={<Download className="w-4 h-4" />}
-              onClick={() => run(() => downloadOrderFile(order.id))}
-            >
-              Télécharger
-            </Button>
-            <Button
-              size="lg"
-              pill
-              variant="ghost"
-              to={ROUTES.account.offer(order.listingId)}
-              aria-label="Voir l’offre"
-              icon={<ArrowUpRight className="w-4 h-4" />}
-            >
-              <span className="hidden sm:inline">Voir l’offre</span>
-            </Button>
-          </div>
+        <div className="mt-4">
+          <OrderFiles order={order} available={available} />
         </div>
 
         {order.status === 'delivered' && can.dispute && (
@@ -137,6 +110,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
       </section>
 
       <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        <OptionChip icon={ArrowUpRight} label="Voir l’offre" onClick={() => navigate(ROUTES.account.offer(order.listingId))} />
         <OptionChip icon={Receipt} label="Reçu" onClick={() => setReceiptOpen(true)} />
         <OptionChip icon={History} label="Paiement et activité" active={panel === 'details'} onClick={() => toggle('details')} controls="purchase-panel" />
         <OptionChip icon={MessageCircle} label={unread ? `Messages du vendeur · ${unread}` : 'Écrire au vendeur'} onClick={() => navigate(ROUTES.account.chat(order.id))} />

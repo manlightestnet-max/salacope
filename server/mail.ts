@@ -1,4 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { ListingFile } from '../src/shared/db/schema.js';
+import { filesOf } from '../src/shared/domain/listings.js';
 import { currentIdentity } from './settings.js';
 import { query } from './db.js';
 
@@ -41,10 +43,11 @@ const DAY = 86_400_000;
 const sign = (orderId: string, expires: number) => createHmac('sha256', linkSecret()).update(`download:${orderId}:${expires}`).digest('base64url');
 
 /** A link that downloads the file of a paid order without signing in (sent to the guest's e-mail), valid 30 days. */
-export function downloadLink(origin: string, orderId: string): string | null {
+export function downloadLink(origin: string, orderId: string, fileId?: string): string | null {
   if (!linkSecret()) return null;
   const expires = Date.now() + 30 * DAY;
-  return `${origin}/api/orders/${encodeURIComponent(orderId)}/download?e=${expires}&t=${sign(orderId, expires)}`;
+  // `f` only picks a file of the order (a product may have several): the server checks it belongs to the order.
+  return `${origin}/api/orders/${encodeURIComponent(orderId)}/download?e=${expires}&t=${sign(orderId, expires)}${fileId ? `&f=${encodeURIComponent(fileId)}` : ''}`;
 }
 
 export function checkDownloadLink(orderId: string, expires: string | null, token: string | null): boolean {
@@ -84,9 +87,20 @@ export function flushGuestMail(origin: string): Promise<void> {
         const orderId = n.href.match(/\/ac\/achats\/([^/?#]+)/)?.[1];
         const links: { label: string; url: string }[] = [];
         if (orderId) {
-          const [o] = await query<{ kind: string; status: string }>("SELECT item->>'kind' AS kind, status FROM orders WHERE id = $1", [orderId]);
-          const link = o?.kind === 'digital' && ['delivered', 'completed', 'disputed'].includes(o.status) ? downloadLink(origin, orderId) : null;
-          if (link) links.push({ label: 'Télécharger le fichier', url: link });
+          const [o] = await query<{ kind: string; status: string; file: ListingFile | null }>("SELECT item->>'kind' AS kind, status, item->'file' AS file FROM orders WHERE id = $1", [orderId]);
+          if (o?.kind === 'digital' && ['delivered', 'completed', 'disputed'].includes(o.status)) {
+            // One link per file when the product has several (the first few; the rest is one tap away in the app).
+            const files = filesOf(o.file).filter((f) => f.fileId);
+            if (files.length > 1) {
+              for (const f of files.slice(0, 5)) {
+                const url = downloadLink(origin, orderId, f.fileId);
+                if (url) links.push({ label: `Télécharger ${f.name}`, url });
+              }
+            } else {
+              const url = downloadLink(origin, orderId);
+              if (url) links.push({ label: 'Télécharger le fichier', url });
+            }
+          }
         }
         links.push({ label: 'Ouvrir sur Salacope', url: `${origin}${n.href}` });
         const lines = [n.body ?? '', 'Pour répondre, ouvrez Salacope sur l’appareil de votre achat, ou créez un compte avec cette adresse e-mail : vos achats vous suivent.'].filter(Boolean);

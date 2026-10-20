@@ -1,9 +1,9 @@
 import { levelNow } from '../lockdown.js';
 import { currentExplore, currentIdentity, currentLaunchBanner, currentPlatform } from '../settings.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
-import { ListingInput, listingFields, validateListing } from '../../src/shared/domain/listings.js';
+import { ListingInput, filesOf, listingFields, validateListing } from '../../src/shared/domain/listings.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
-import type { Listing } from '../../src/shared/db/schema.js';
+import type { Listing, ListingFile } from '../../src/shared/db/schema.js';
 import { Query, json, query, tx } from '../db.js';
 import { route } from '../http.js';
 import { firstSight } from '../visits.js';
@@ -21,7 +21,7 @@ import {
 } from '../load.js';
 import { notify } from '../notify.js';
 import { offloadImage, offloadImages, pruneImages } from '../storage/images.js';
-import { checkProductFile, pruneProductFiles } from '../storage/products.js';
+import { checkProductFiles, pruneProductFiles } from '../storage/products.js';
 import { IMG_PREFIX, listingView } from '../views.js';
 import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
 
@@ -70,7 +70,7 @@ async function loadCatalog(userId: string | null, stores: string[]) {
     loadStats(),
     loadReviews(),
   ]);
-  return { users, listings: listings.map(listingView), stats, reviews };
+  return { users, listings: listings.map((r) => listingView(r, userId)), stats, reviews };
 }
 
 /**
@@ -223,21 +223,24 @@ const withStoredImages = async <T extends { coverImage: string; gallery?: string
   gallery: fields.gallery === undefined ? undefined : await offloadImages(sellerId, fields.gallery, listingId),
 });
 
-/** An attached product file must be the seller's own, fully uploaded; its real size replaces whatever was announced. */
-const withProductFile = async <T extends { file?: { fileId?: string; size?: number } }>(sellerId: string, fields: T, listingId: string): Promise<T> => {
-  const fileId = fields.file?.fileId;
-  if (!fileId) return fields;
-  const size = await checkProductFile(sellerId, fileId);
-  await query('UPDATE stored_files SET ref = $2 WHERE id = $1 AND ref IS DISTINCT FROM $2', [fileId, listingId]);
-  return { ...fields, file: { ...fields.file, size } };
+/** The attached product files must be the seller's own, fully uploaded; their real sizes replace whatever was announced. */
+const withProductFiles = async <T extends { file?: ListingFile }>(sellerId: string, fields: T, listingId: string): Promise<T> => {
+  const files = filesOf(fields.file);
+  if (!fields.file || !files.length) return fields;
+  const checked = await checkProductFiles(sellerId, listingId, files);
+  const main = checked.find((f) => !f.preview) ?? checked[0];
+  return { ...fields, file: { ...fields.file, size: main.size, files: checked } };
 };
+
+/** The ids of the files an offer lists. */
+const fileIdsOf = (file?: ListingFile) => filesOf(file).flatMap((f) => (f.fileId ? [f.fileId] : []));
 
 route('POST', '/listings', async (ctx) => {
   const sellerId = await ctx.userId();
   await requireMerchant(sellerId);
   const publish = ctx.body.publish === true;
   const id = newId('lst');
-  const fields = await withProductFile(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), id), id);
+  const fields = await withProductFiles(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), id), id);
   const listing = await tx(async (q) => {
     if (publish) await requirePayouts(q, sellerId);
     await q(
@@ -276,7 +279,7 @@ route('POST', '/listings', async (ctx) => {
 
 route('PATCH', '/listings/:id', async (ctx) => {
   const sellerId = await ctx.userId();
-  const fields = await withProductFile(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), ctx.params.id), ctx.params.id);
+  const fields = await withProductFiles(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), ctx.params.id), ctx.params.id);
   const listing = await tx(async (q) => {
     await ownedListing(q, ctx.params.id, sellerId);
     await q(
@@ -316,7 +319,7 @@ route('PATCH', '/listings/:id', async (ctx) => {
     keep.push(...(row?.gallery ?? []));
   }
   await pruneImages(ctx.params.id, keep).catch(() => undefined);
-  await pruneProductFiles(ctx.params.id, fields.file?.fileId).catch(() => undefined);
+  await pruneProductFiles(ctx.params.id, fileIdsOf(fields.file)).catch(() => undefined);
   return { patch: { listings: [listing] } };
 });
 
@@ -330,7 +333,7 @@ route('POST', '/listings/:id/status', async (ctx) => {
       const [hidden] = await q('SELECT hidden_at, hidden_reason FROM listings WHERE id = $1', [ctx.params.id]);
       if (hidden?.hidden_at) throw new DomainError(`Cette offre a été masquée par Salacope : ${hidden.hidden_reason}. Écrivez au support pour la faire rétablir.`, 403);
       await requirePayouts(q, sellerId);
-      if (current.kind === 'digital' && !current.file?.fileId) throw new DomainError('Envoyez d’abord le fichier livré au client (modifiez l’offre).');
+      if (current.kind === 'digital' && !fileIdsOf(current.file).length) throw new DomainError('Envoyez d’abord le fichier livré au client (modifiez l’offre).');
     }
     await q(
       `UPDATE listings SET status = $2, updated_at = NOW(), published_at = CASE WHEN $3 THEN NOW() ELSE published_at END WHERE id = $1`,
@@ -354,6 +357,9 @@ route('DELETE', '/listings/:id', async (ctx) => {
     if (sold) throw new DomainError('Cette offre a déjà été vendue : dépubliez-la plutôt que de la supprimer.', 409);
     await q('DELETE FROM listings WHERE id = $1', [ctx.params.id]);
   });
+  // Nothing was ever sold: its files and pictures stop counting in the seller's space.
+  await pruneProductFiles(ctx.params.id, []).catch(() => undefined);
+  await pruneImages(ctx.params.id, []).catch(() => undefined);
   return { removed: { listings: [ctx.params.id], favorites: [ctx.params.id] } };
 });
 

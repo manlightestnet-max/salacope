@@ -41,6 +41,7 @@ export const currentPlatform = (): PlatformSettings => ({
   minPriceServiceXaf: PLATFORM.minPriceServiceXaf,
   promoMaxDays: PLATFORM.promoMaxDays,
   freeOffers: PLATFORM.freeOffers,
+  maxProductFiles: PLATFORM.maxProductFiles,
 });
 
 export async function ensurePlatform(): Promise<void> {

@@ -10,6 +10,7 @@ import { PLATFORM } from '@/shared/config/platform';
 import { FavoriteButton } from '@/features/library';
 import { useSession } from '@/features/session';
 import { COVER_ASPECT, COVER_FORMAT, ListingView, categoryLabel, deliveryLabel } from '../model';
+import { ListingFilesSection } from './ListingFilesSection';
 import { ListingGallery } from './ListingGallery';
 import { ShareButton } from './ShareButton';
 import { trackListing, useListingStats } from '../api';
@@ -201,6 +202,8 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
               </ul>
             </section>
           )}
+
+          <ListingFilesSection listing={listing} />
 
           <section className="border-t border-gray-200 pt-6">
             <SellerCard seller={seller} salesCount={sellerSales} pending={pending} online={stats?.sellerOnline} />

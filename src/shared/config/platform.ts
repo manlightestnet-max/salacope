@@ -27,6 +27,8 @@ export const PLATFORM = {
   promoMaxDays: 30,
   /** Sellers may set a price of 0 (a free offer, or free during a promotion). Set by the administration. */
   freeOffers: true,
+  /** Most files one digital product can deliver. Set by the administration. */
+  maxProductFiles: 5,
   country: 'République du Congo',
   /** Where the team is based (footer). */
   headquarters: 'Luanda, Angola',
@@ -55,7 +57,11 @@ export interface PlatformSettings {
   minPriceServiceXaf: number | null;
   promoMaxDays: number;
   freeOffers: boolean;
+  maxProductFiles: number;
 }
+
+/** Fewest and most files per product the administration may allow. */
+export const PRODUCT_FILES_RANGE = { min: 1, max: 20 } as const;
 
 /** Lowest minimum price the administration may set (whole FCFA), and the highest. */
 export const MIN_PRICE_RANGE = { min: 100, max: 1_000_000 } as const;
@@ -63,6 +69,7 @@ export const MIN_PRICE_RANGE = { min: 100, max: 1_000_000 } as const;
 const rate = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : undefined);
 const days = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 60 ? v : undefined);
 const minPrice = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= MIN_PRICE_RANGE.min && v <= MIN_PRICE_RANGE.max ? v : undefined);
+const productFiles = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= PRODUCT_FILES_RANGE.min && v <= PRODUCT_FILES_RANGE.max ? v : undefined);
 const promoDays = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 365 ? v : undefined);
 
 /** Replaces the defaults with the saved settings (values that make no sense are ignored). */
@@ -78,6 +85,7 @@ export function applyPlatform(s?: Partial<PlatformSettings> | null) {
   PLATFORM.minPriceServiceXaf = s.minPriceServiceXaf === null ? null : (minPrice(s.minPriceServiceXaf) ?? PLATFORM.minPriceServiceXaf);
   PLATFORM.promoMaxDays = promoDays(s.promoMaxDays) ?? PLATFORM.promoMaxDays;
   if (typeof s.freeOffers === 'boolean') PLATFORM.freeOffers = s.freeOffers;
+  PLATFORM.maxProductFiles = productFiles(s.maxProductFiles) ?? PLATFORM.maxProductFiles;
 }
 
 export const percent = (r: number) => `${Math.round(r * 1000) / 10} %`;

@@ -31,3 +31,5 @@ export * from './Skeleton';
 export * from './RouteTransition';
 export * from './MoreRows';
 export * from './Facts';
+export * from './FileRow';
+export * from './Switch';

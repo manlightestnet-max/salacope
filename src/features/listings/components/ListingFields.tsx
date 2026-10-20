@@ -8,7 +8,7 @@ import { PLATFORM, minPriceFor } from '@/shared/config/platform';
 import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE } from '@/features/catalog';
 import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
-import { ProductFileField } from './ProductFileField';
+import { ProductFilesField } from './ProductFilesField';
 import { PromotionFields } from './PromotionFields';
 
 const REVISION_OPTIONS = Array.from({ length: PLATFORM.maxRevisions + 1 }, (_, n) => ({
@@ -332,5 +332,5 @@ export const DeliveryFields: React.FC<FieldsProps & { setForm: React.Dispatch<Re
       </Field>
     </>
   ) : (
-    <ProductFileField form={form} setForm={setForm} listingId={listingId} />
+    <ProductFilesField form={form} setForm={setForm} listingId={listingId} />
   );

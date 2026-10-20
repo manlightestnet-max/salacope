@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Listing } from '@/shared/db';
 import { PLATFORM, minPriceFor } from '@/shared/config/platform';
-import { featuresError, promoError } from '@/shared/domain';
+import { featuresError, filesError, filesOf, inputFiles, promoError } from '@/shared/domain';
 import { ListingInput } from './api';
 
 /** The form of an offer, as the editor (new offer) and each section screen (existing offer) start from it. */
@@ -21,10 +21,8 @@ export const fromListing = (l?: Listing): ListingInput => ({
   deliveryDays: l?.deliveryDays ?? 3,
   revisions: l?.revisions ?? 1,
   briefQuestions: l?.briefQuestions ?? [],
-  fileName: l?.file?.name ?? '',
-  fileFormat: l?.file?.format ?? 'PDF',
-  fileId: l?.file?.fileId,
-  fileSize: l?.file?.size,
+  // Digital: every file delivered, with the free samples marked (the single-file fields are for older apps only).
+  files: l?.kind === 'service' ? [] : filesOf(l?.file).filter((f) => f.fileId),
 });
 
 /** What is still missing on a step (checked before moving on, and before saving a section). */
@@ -37,7 +35,7 @@ export const stepError = (step: number, f: ListingInput, free = false): string |
   }
   if (step === 2) {
     if (f.kind === 'service' && (!f.deliveryDays || f.deliveryDays < 1)) return 'Indiquez un délai de livraison.';
-    if (f.kind === 'digital' && !f.fileId) return 'Envoyez le fichier livré au client.';
+    if (f.kind === 'digital') return filesError(inputFiles(f));
   }
   if (step === 3 && free && f.priceXaf !== 0) return 'Une offre gratuite a un prix de 0.';
   if (step === 3 && free && !PLATFORM.freeOffers) return 'Les offres gratuites ne sont pas autorisées pour le moment.';

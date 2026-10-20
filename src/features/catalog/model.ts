@@ -1,5 +1,6 @@
 import { ROUTES } from '@/shared/config/routes';
 import { Category, Listing, ListingKind, User } from '@/shared/db';
+import { filesOf } from '@/shared/domain';
 import type { RankContext } from './ranking';
 import { rankListings, textScore } from './ranking';
 
@@ -86,6 +87,8 @@ export const deliveryLabel = (listing: Pick<Listing, 'kind' | 'deliveryDays' | '
     const days = listing.deliveryDays ?? 3;
     return `Livré en ${days} jour${days > 1 ? 's' : ''}`;
   }
+  const count = filesOf(listing.file).length;
+  if (count > 1) return `${count} fichiers · accès immédiat`;
   const format = listing.file?.format;
   if (!format) return 'Accès immédiat';
   return format.toLowerCase().startsWith('accès') ? 'Accès en ligne immédiat' : `${format} · accès immédiat`;

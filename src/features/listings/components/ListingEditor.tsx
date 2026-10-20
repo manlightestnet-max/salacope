@@ -4,6 +4,7 @@ import { Check, Download, Wrench } from 'lucide-react';
 import { ListingKind } from '@/shared/db';
 import { Button, Panel } from '@/shared/ui';
 import { minPriceFor } from '@/shared/config/platform';
+import { inputFiles } from '@/shared/domain';
 import { CATEGORIES, COVER_FORMAT, ListingCover, ListingPrice, cardBreadcrumb } from '@/features/catalog';
 import { ListingInput } from '../api';
 import { stepError, useListingForm } from '../listingForm';
@@ -63,11 +64,12 @@ const Stepper: React.FC<{ current: number; reachable: (i: number) => boolean; on
 
 /** How the offer will look in the catalogue, updated as the seller types. */
 const Preview: React.FC<{ form: ListingInput; sellerName: string; size?: 'md' | 'lg' }> = ({ form, sellerName, size = 'md' }) => {
+  const main = inputFiles(form).find((f) => !f.preview) ?? inputFiles(form)[0];
   const [type, detail] = cardBreadcrumb({
     category: form.category,
     kind: form.kind,
     deliveryDays: form.deliveryDays,
-    file: form.kind === 'digital' ? { name: form.fileName ?? '', format: form.fileFormat ?? 'PDF' } : undefined,
+    file: form.kind === 'digital' ? { name: main?.name ?? '', format: main?.format ?? 'PDF' } : undefined,
   });
   const format = COVER_FORMAT[form.category];
   const narrow = format === 'portrait' || format === 'square';
@@ -136,7 +138,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubm
   const checklist = [
     { ok: form.title.trim().length >= 8 && Boolean(form.summary.trim()), label: 'Titre et résumé' },
     { ok: Boolean(form.description.trim()), label: 'Description' },
-    { ok: form.kind === 'service' ? Boolean(form.deliveryDays) : Boolean(form.fileId), label: form.kind === 'service' ? 'Délai de livraison' : 'Fichier livré' },
+    { ok: form.kind === 'service' ? Boolean(form.deliveryDays) : inputFiles(form).length > 0, label: form.kind === 'service' ? 'Délai de livraison' : 'Fichiers livrés' },
     { ok: Boolean(form.coverImage.trim()), label: 'Couverture' },
     { ok: free ? form.priceXaf === 0 : form.priceXaf >= minPriceFor(form.kind), label: 'Prix' },
   ];

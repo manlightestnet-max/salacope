@@ -90,7 +90,11 @@ const Evidence: React.FC<{ d: AdminFundDetail }> = ({ d: { order, offer, deliver
         <FactList>
           {offer.deliveryDays !== null && <FactRow label="Délai annoncé">{plural(offer.deliveryDays, 'jour')}</FactRow>}
           {offer.revisions !== null && <FactRow label="Retouches incluses">{offer.revisions}</FactRow>}
-          {digital && order.item.file?.name && <FactRow label="Fichier annoncé">{order.item.file.name}</FactRow>}
+          {digital && order.item.file?.name && (
+            <FactRow label={(order.item.file.files?.length ?? 0) > 1 ? 'Fichiers annoncés' : 'Fichier annoncé'}>
+              {order.item.file.files?.length ? order.item.file.files.map((f) => f.name).join(', ') : order.item.file.name}
+            </FactRow>
+          )}
         </FactList>
         {offer.description ? (
           <p className="mt-3 text-sm text-gray-700 whitespace-pre-line break-words">{offer.description}</p>

@@ -1,5 +1,5 @@
 import { PLATFORM, minPriceFor } from '../config/platform.js';
-import type { BriefQuestion, Category, Listing, ListingKind } from '../db/schema.js';
+import type { BriefQuestion, Category, Listing, ListingFile, ListingFileItem, ListingKind } from '../db/schema.js';
 import { DomainError } from './errors.js';
 
 export interface ListingInput {
@@ -25,11 +25,32 @@ export interface ListingInput {
   revisions?: number;
   /** Services: questions answered by the buyer at checkout. */
   briefQuestions?: BriefQuestion[];
+  /** The single file of the first versions of the app (a digital product): used when `files` is absent. */
   fileName?: string;
   fileFormat?: string;
   /** The uploaded file (stored), and its size. */
   fileId?: string;
   fileSize?: number;
+  /** Digital: every file delivered to the buyer, in order; the seller marks the free samples with `preview`. */
+  files?: ListingFileItem[];
+}
+
+/** Every file a digital product delivers, whichever shape was stored (the first versions kept a single one). */
+export const filesOf = (file?: ListingFile | null): ListingFileItem[] =>
+  file?.files?.length ? file.files : file?.name ? [{ name: file.name, format: file.format, fileId: file.fileId, size: file.size }] : [];
+
+/** The files of an offer being saved: those listed, else the single file of the first versions. */
+export const inputFiles = (input: Pick<ListingInput, 'files' | 'fileId' | 'fileName' | 'fileFormat' | 'fileSize'>): ListingFileItem[] =>
+  input.files ?? (input.fileId ? [{ name: input.fileName ?? '', format: input.fileFormat || 'PDF', fileId: input.fileId, size: input.fileSize }] : []);
+
+/** First problem with the files of a digital product, in words the seller can act on. */
+export function filesError(files: ListingFileItem[]): string | undefined {
+  if (!files.length) return 'Envoyez le fichier livré au client.';
+  if (files.length > PLATFORM.maxProductFiles) return `${PLATFORM.maxProductFiles} fichiers au maximum par produit (vous en avez ${files.length}).`;
+  if (files.some((f) => !f.fileId || !f.name?.trim())) return 'Un des fichiers n’est pas encore envoyé : attendez la fin de l’envoi.';
+  if (new Set(files.map((f) => f.fileId)).size !== files.length) return 'Le même fichier est ajouté deux fois.';
+  if (files.every((f) => f.preview)) return 'Gardez au moins un fichier réservé aux acheteurs : tout ne peut pas être en aperçu gratuit.';
+  return undefined;
 }
 
 export const MAX_BRIEF_QUESTIONS = 6;
@@ -103,8 +124,11 @@ export function validateListing(input: ListingInput): void {
   if (input.kind === 'service' && (!input.deliveryDays || input.deliveryDays < 1 || input.deliveryDays > 90)) {
     throw new DomainError('Indiquez un délai de livraison en jours (1 à 90).');
   }
-  // The file a buyer receives is always stored (Cloudflare R2): naming a file is not enough.
-  if (input.kind === 'digital' && (!input.fileId || !input.fileName?.trim())) throw new DomainError('Envoyez le fichier livré au client.');
+  // The files a buyer receives are always stored (Cloudflare R2): naming a file is not enough.
+  if (input.kind === 'digital') {
+    const problem = filesError(inputFiles(input));
+    if (problem) throw new DomainError(problem);
+  }
   if (input.kind === 'service') {
     const revisions = input.revisions ?? 0;
     if (!Number.isInteger(revisions) || revisions < 0 || revisions > PLATFORM.maxRevisions) {
@@ -142,11 +166,23 @@ export const listingFields = (input: ListingInput): ListingFields => ({
           .filter((q) => q.label?.trim())
           .map((q) => ({ id: String(q.id), label: q.label.trim(), required: Boolean(q.required) }))
       : undefined,
-  file:
-    input.kind === 'digital'
-      ? { name: input.fileName!.trim(), format: input.fileFormat?.trim() || 'PDF', ...(input.fileId ? { fileId: String(input.fileId), size: Number(input.fileSize) || undefined } : {}) }
-      : undefined,
+  file: input.kind === 'digital' ? storedFile(inputFiles(input)) : undefined,
 });
+
+/**
+ * The stored shape of a product's files: the whole list, and, for the first versions of the app, the main file (the first one
+ * that is not a free sample) in the fields they read.
+ */
+function storedFile(files: ListingFileItem[]): ListingFile {
+  const items = files.map((f): ListingFileItem => ({
+    name: String(f.name ?? '').trim(),
+    format: f.format?.trim() || 'PDF',
+    ...(f.fileId ? { fileId: String(f.fileId), size: Number(f.size) || undefined } : {}),
+    ...(f.preview ? { preview: true } : {}),
+  }));
+  const main = items.find((f) => !f.preview) ?? items[0];
+  return { name: main.name, format: main.format, ...(main.fileId ? { fileId: main.fileId, size: main.size } : {}), files: items };
+}
 
 /** Address of a verified store: salacope.online/@handle (lower case, 3 to 30 characters). */
 export const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{1,28})[a-z0-9]$/;

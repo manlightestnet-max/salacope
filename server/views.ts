@@ -1,5 +1,6 @@
 import type {
   Listing,
+  ListingFile,
   Notification,
   Order,
   OrderEvent,
@@ -9,6 +10,7 @@ import type {
   Ticket,
   User,
 } from '../src/shared/db/schema.js';
+import { filesOf } from '../src/shared/domain/listings.js';
 import { isAdminUid } from './compliance.js';
 
 /** Rows -> the app's types. What a viewer may not see is removed here, never in the app. */
@@ -69,7 +71,19 @@ export const promoEnded = (r: { promo_ends_at?: string | Date | null }) => Boole
 export const priceNow = (r: { price_xaf: number; compare_at_xaf?: number | null; promo_ends_at?: string | Date | null }): number =>
   promoEnded(r) && r.compare_at_xaf ? r.compare_at_xaf : r.price_xaf;
 
-export const listingView = (r: any): Listing => ({
+/**
+ * What someone other than the seller learns of a product's files: their names and sizes, and the address of the free samples.
+ * The identifiers of the paid files never leave the server for them (the buyer downloads through the order).
+ */
+const publicFile = (file: ListingFile): ListingFile => ({
+  name: file.name,
+  format: file.format,
+  size: file.size,
+  files: filesOf(file).map((f) => ({ name: f.name, format: f.format, size: f.size, ...(f.preview && f.fileId ? { fileId: f.fileId, preview: true } : {}) })),
+});
+
+/** `viewerId`: who the offer is shown to (`null`: nobody signed in). Left out, the server itself reads it and gets everything. */
+export const listingView = (r: any, viewerId?: string | null): Listing => ({
   id: r.id,
   sellerId: r.seller_id,
   kind: r.kind,
@@ -86,7 +100,7 @@ export const listingView = (r: any): Listing => ({
   deliveryDays: opt(r.delivery_days),
   revisions: opt(r.revisions),
   briefQuestions: opt(r.brief_questions),
-  file: opt(r.file),
+  file: r.file ? (viewerId === undefined || viewerId === r.seller_id ? r.file : publicFile(r.file)) : undefined,
   status: r.status,
   hiddenReason: opt(r.hidden_reason),
   hiddenAt: opt(r.hidden_at),

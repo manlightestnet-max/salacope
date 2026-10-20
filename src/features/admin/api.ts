@@ -202,6 +202,8 @@ export interface AdminSettings {
   promoMaxDays: number;
   /** Sellers may set a price of 0. */
   freeOffers: boolean;
+  /** Most files one digital product can deliver. */
+  maxProductFiles: number;
 }
 
 export interface AdminLockdown {
@@ -252,7 +254,7 @@ export interface AdminFundDetail {
     id: string;
     number: string;
     status: 'paid' | 'in_progress' | 'delivered' | 'completed' | 'cancelled' | 'disputed';
-    item: { title: string; kind: string; deliveryDays?: number; revisions?: number; file?: { name?: string; format?: string } };
+    item: { title: string; kind: string; deliveryDays?: number; revisions?: number; file?: { name?: string; format?: string; files?: { name: string }[] } };
     amounts: { subtotal: number; discount: number; total: number; fee: number; net: number };
     brief: { question: string; answer: string }[] | null;
     release_at: string | null;

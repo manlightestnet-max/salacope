@@ -1,5 +1,5 @@
 import { ROUTES } from '../../src/shared/config/routes.js';
-import { MIN_PRICE_RANGE } from '../../src/shared/config/platform.js';
+import { MIN_PRICE_RANGE, PRODUCT_FILES_RANGE } from '../../src/shared/config/platform.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { refundSentence } from '../../src/shared/domain/refund.js';
 import type { KycDocumentKind, RiskLevel } from '../../src/shared/domain/kyc.js';
@@ -791,6 +791,10 @@ route('PUT', '/admin/settings', async (ctx) => {
   };
   const promoDays = Number(ctx.body.promoMaxDays);
   if (!Number.isInteger(promoDays) || promoDays < 1 || promoDays > 365) throw new DomainError('Durée maximale d’une promotion : indiquez un nombre de jours entre 1 et 365.');
+  const maxFiles = Number(ctx.body.maxProductFiles);
+  if (!Number.isInteger(maxFiles) || maxFiles < PRODUCT_FILES_RANGE.min || maxFiles > PRODUCT_FILES_RANGE.max) {
+    throw new DomainError(`Fichiers par produit : indiquez un nombre entre ${PRODUCT_FILES_RANGE.min} et ${PRODUCT_FILES_RANGE.max}.`);
+  }
   const before = currentPlatform();
   const settings = {
     feeRate: rate(ctx.body.feeRate, 'Commission générale', false) as number,
@@ -803,6 +807,7 @@ route('PUT', '/admin/settings', async (ctx) => {
     minPriceServiceXaf: price(ctx.body.minPriceServiceXaf, 'Prix minimum des services', true),
     promoMaxDays: promoDays,
     freeOffers: ctx.body.freeOffers === true,
+    maxProductFiles: maxFiles,
   };
   await savePlatform(settings);
   await tx(async (q) => audit(q, admin, 'settings.save', null, { before, after: settings }));

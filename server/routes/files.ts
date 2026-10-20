@@ -1,9 +1,14 @@
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { STORAGE } from '../../src/shared/config/platform.js';
+import { filesOf } from '../../src/shared/domain/listings.js';
+import type { ListingFile } from '../../src/shared/db/schema.js';
+import { SELLABLE_SELLERS } from '../compliance.js';
 import { query } from '../db.js';
 import { route } from '../http.js';
 import { checkDownloadLink } from '../mail.js';
+import { addressOf, secondsToWait } from '../ratelimit.js';
 import { confirmUpload, downloadUrl, reserveUpload, target, usedBytes } from '../storage/index.js';
+import { discardProductFile } from '../storage/products.js';
 
 /**
  * Files: what the app may ask of storage. Uploads go straight from the browser to the bucket with a short-lived address
@@ -47,10 +52,20 @@ route('POST', '/files/:id/complete', async (ctx) => {
   return { file: { id: file.id, size: Number(file.size) } };
 });
 
-/** The file of a digital product the buyer paid for (or the seller's own copy): a link that works for two minutes. */
+/**
+ * Which file of a product the person asks for: the one named by `wanted` (it must be one the product delivers), else the main one.
+ * → its identifier, or null when the product has no file stored.
+ */
+const fileToServe = (file: ListingFile | undefined, wanted: string | null): string | null => {
+  const files = filesOf(file).filter((f) => f.fileId);
+  if (wanted) return files.find((f) => f.fileId === wanted)?.fileId ?? null;
+  return (files.find((f) => !f.preview) ?? files[0])?.fileId ?? null;
+};
+
+/** A file of a digital product the buyer paid for (or the seller's own copy): a link that works for two minutes. */
 route('GET', '/orders/:id/file', async (ctx) => {
   const userId = await ctx.userId();
-  const [order] = await query<{ buyer_id: string; seller_id: string; status: string; item: { file?: { fileId?: string } } }>(
+  const [order] = await query<{ buyer_id: string; seller_id: string; status: string; item: { file?: ListingFile } }>(
     'SELECT buyer_id, seller_id, status, item FROM orders WHERE id = $1',
     [ctx.params.id]
   );
@@ -58,8 +73,8 @@ route('GET', '/orders/:id/file', async (ctx) => {
   if (order.buyer_id === userId && !['delivered', 'completed', 'disputed'].includes(order.status)) {
     throw new DomainError('Le fichier sera disponible dès que le paiement sera confirmé.', 409);
   }
-  const fileId = order.item?.file?.fileId;
-  if (!fileId) throw new DomainError('Ce produit n’a pas encore de fichier sur le serveur : écrivez au vendeur dans la discussion.', 404);
+  const fileId = fileToServe(order.item?.file, ctx.search.get('f'));
+  if (!fileId) throw new DomainError(ctx.search.get('f') ? 'Ce fichier ne fait pas partie de cette commande.' : 'Ce produit n’a pas encore de fichier sur le serveur : écrivez au vendeur dans la discussion.', 404);
   const link = await downloadUrl(fileId, 120);
   if (!link) throw new DomainError('Fichier introuvable. Écrivez au vendeur dans la discussion.', 404);
   // Kept as evidence for disputes (the table may not be migrated yet: a download is never refused for that).
@@ -69,15 +84,45 @@ route('GET', '/orders/:id/file', async (ctx) => {
 
 /**
  * The download link sent to a guest's e-mail: it works without signing in for 30 days (signed by the server), and hands
- * out a two-minute address each time, like the button in the app.
+ * out a two-minute address each time, like the button in the app. `f` picks one file of a product that has several.
  */
 route('GET', '/orders/:id/download', async (ctx) => {
   if (!checkDownloadLink(ctx.params.id, ctx.search.get('e'), ctx.search.get('t'))) throw new DomainError('Ce lien de téléchargement n’est plus valable. Ouvrez votre achat sur Salacope.', 403);
-  const [order] = await query<{ buyer_id: string; status: string; item: { file?: { fileId?: string } } }>('SELECT buyer_id, status, item FROM orders WHERE id = $1', [ctx.params.id]);
+  const [order] = await query<{ buyer_id: string; status: string; item: { file?: ListingFile } }>('SELECT buyer_id, status, item FROM orders WHERE id = $1', [ctx.params.id]);
   if (!order || !['delivered', 'completed', 'disputed'].includes(order.status)) throw new DomainError('Ce fichier n’est pas disponible.', 404);
-  const fileId = order.item?.file?.fileId;
+  const fileId = fileToServe(order.item?.file, ctx.search.get('f'));
   const link = fileId ? await downloadUrl(fileId, 120) : null;
   if (!link) throw new DomainError('Fichier introuvable. Écrivez au vendeur depuis votre achat sur Salacope.', 404);
   await query('INSERT INTO order_downloads (order_id, user_id) VALUES ($1, $2)', [ctx.params.id, order.buyer_id]).catch(() => undefined);
   return new Response(null, { status: 302, headers: { Location: link.url, 'Cache-Control': 'no-store' } });
+});
+
+/**
+ * A free sample: a file the seller marked as a preview, downloadable from the offer page without buying (nor signing in).
+ * Only for an offer that is online (or the seller's own), and only for a file flagged as a sample: the paid files are never
+ * reachable from here, whatever identifier is sent.
+ */
+route('GET', '/listings/:id/preview', async (ctx) => {
+  const wait = secondsToWait(addressOf(ctx.headers), 'sample');
+  if (wait) throw new DomainError(`Trop de demandes : réessayez dans ${wait} s.`, 429);
+  const wanted = ctx.search.get('f');
+  if (!wanted) throw new DomainError('Indiquez le fichier d’aperçu.');
+  const viewer = await ctx.viewerId();
+  const [row] = await query<{ file: ListingFile | null }>(
+    `SELECT file FROM listings WHERE id = $1 AND kind = 'digital'
+       AND ((status = 'published' AND hidden_at IS NULL AND seller_id IN (${SELLABLE_SELLERS})) OR seller_id = $2)`,
+    [ctx.params.id, viewer]
+  );
+  const sample = filesOf(row?.file).find((f) => f.fileId === wanted && f.preview);
+  if (!sample?.fileId) throw new DomainError('Cet aperçu n’est pas disponible.', 404);
+  const link = await downloadUrl(sample.fileId, 120);
+  if (!link) throw new DomainError('Cet aperçu n’est pas disponible.', 404);
+  return link;
+});
+
+/** A seller takes back a file they sent and did not keep (the offer is not saved with it, or they changed their mind). */
+route('DELETE', '/files/:id', async (ctx) => {
+  const userId = await ctx.accountId();
+  await discardProductFile(userId, ctx.params.id);
+  return { removed: true };
 });

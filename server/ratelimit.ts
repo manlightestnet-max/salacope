@@ -8,7 +8,7 @@ const WINDOW = 60_000;
 const hits = new Map<string, number[]>();
 
 /** Requests per minute and address, by bucket. */
-const LIMITS: Record<string, number> = { catalogue: 150, preview: 600, public: 1200, free: 12 };
+const LIMITS: Record<string, number> = { catalogue: 150, preview: 600, public: 1200, free: 12, sample: 30 };
 
 /** Which bucket a request counts in. */
 export const bucketOf = (method: string, path: string) => {

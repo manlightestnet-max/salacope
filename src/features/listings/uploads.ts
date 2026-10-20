@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { request } from '@/shared/api';
+import { formatFileSize } from '@/shared/lib';
 
 /** What storage offers this person: which kinds of file can be kept, and the room left. */
 export interface StorageUsage {
@@ -64,10 +65,10 @@ export async function uploadProductFile(file: File, onProgress: (fraction: numbe
   return { id, name: file.name, size: file.size };
 }
 
-/** The file of an order (buyer who has paid, or the seller): opens the download. */
-export async function downloadOrderFile(orderId: string): Promise<void> {
-  const { url } = await request<{ url: string; name: string }>('GET', `/orders/${encodeURIComponent(orderId)}/file`);
-  window.location.assign(url);
+/** The seller takes back a file they sent and did not keep (best effort: the server refuses one an offer still lists). */
+export async function discardUpload(fileId: string): Promise<void> {
+  await request('DELETE', `/files/${encodeURIComponent(fileId)}`).catch(() => undefined);
+  usageCache = null;
 }
 
-export const formatBytes = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} Mo` : `${Math.max(1, Math.round(bytes / 1024))} Ko`);
+export const formatBytes = formatFileSize;

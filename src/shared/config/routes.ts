@@ -40,6 +40,7 @@ export const ROUTES = {
     listings: '/dashboard/offres',
     newListing: '/dashboard/offres/nouvelle',
     listing: (id: string) => `/dashboard/offres/${id}`,
+    listingSection: (id: string, section: string) => `/dashboard/offres/${id}/${section}`,
     sales: '/dashboard/ventes',
     sale: (id: string) => `/dashboard/ventes/${id}`,
     customers: '/dashboard/clients',

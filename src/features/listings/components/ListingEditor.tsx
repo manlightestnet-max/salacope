@@ -1,20 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import clsx from 'clsx';
-import { Check, Download, ImagePlus, Link2, Plus, Trash2, Wrench } from 'lucide-react';
-import { BriefQuestion, Category, Listing, ListingKind } from '@/shared/db';
-import { Button, Field, Input, Panel, Select, Textarea } from '@/shared/ui';
-import { createId, cropImageFile } from '@/shared/lib';
-import { PLATFORM, minPriceFor } from '@/shared/config/platform';
-import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb, fetchGallery } from '@/features/catalog';
-import { LISTING_LIMITS, featureLines, featuresError, promoError } from '@/shared/domain';
-import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
-import { ProductFileField } from './ProductFileField';
-import { PromotionFields } from './PromotionFields';
-
-const REVISION_OPTIONS = Array.from({ length: PLATFORM.maxRevisions + 1 }, (_, n) => ({
-  value: String(n),
-  label: n === 0 ? 'Aucune retouche' : `${n} retouche${n > 1 ? 's' : ''}`,
-}));
+import { Check, Download, Wrench } from 'lucide-react';
+import { ListingKind } from '@/shared/db';
+import { Button, Panel } from '@/shared/ui';
+import { minPriceFor } from '@/shared/config/platform';
+import { CATEGORIES, COVER_FORMAT, ListingCover, ListingPrice, cardBreadcrumb } from '@/features/catalog';
+import { ListingInput } from '../api';
+import { stepError, useListingForm } from '../listingForm';
+import { CategoryField, DeliveryFields, DescriptionFields, InfoFields, MediaFields, PriceFields } from './ListingFields';
 
 const KIND_OPTIONS: { kind: ListingKind; title: string; text: string; icon: typeof Download }[] = [
   { kind: 'digital', title: 'Produit numérique', text: 'Fichier ou accès livré automatiquement au paiement.', icon: Download },
@@ -29,57 +22,6 @@ const STEP_HELP: Record<(typeof STEPS)[number], string> = {
   Livraison: 'Comment le client reçoit ce qu’il achète.',
   'Couverture et prix': 'L’image du catalogue et le prix payé par le client.',
   Vérification: 'Relisez avant de publier : l’offre apparaît aussitôt dans le catalogue.',
-};
-
-const fromListing = (l?: Listing): ListingInput => ({
-  kind: l?.kind ?? 'digital',
-  category: l?.category ?? 'ebook',
-  title: l?.title ?? '',
-  summary: l?.summary ?? '',
-  description: l?.description ?? '',
-  features: l?.features ?? [],
-  priceXaf: l?.priceXaf ?? 0,
-  compareAtXaf: l?.compareAtXaf,
-  promoEndsAt: l?.promo?.endsAt,
-  coverImage: l?.coverImage ?? '',
-  // Existing offer: loaded from the server below; new offer: none yet.
-  gallery: l?.galleryCount ? undefined : [],
-  deliveryDays: l?.deliveryDays ?? 3,
-  revisions: l?.revisions ?? 1,
-  briefQuestions: l?.briefQuestions ?? [],
-  fileName: l?.file?.name ?? '',
-  fileFormat: l?.file?.format ?? 'PDF',
-  fileId: l?.file?.fileId,
-  fileSize: l?.file?.size,
-});
-
-/** "12 / 120" next to a label; turns red past the limit. */
-const Count: React.FC<{ value: number; max: number }> = ({ value, max }) => (
-  <span className={clsx('ml-auto text-xs tabular-nums', value > max ? 'text-red-600' : 'text-gray-400')}>
-    {value} / {max}
-  </span>
-);
-
-/** What is still missing on a step (checked before moving on). */
-const stepError = (step: number, f: ListingInput, free = false): string | undefined => {
-  if (step === 1) {
-    if (f.title.trim().length < 8) return 'Le titre doit faire au moins 8 caractères.';
-    if (!f.summary.trim()) return 'Ajoutez un résumé en une phrase.';
-    const features = featuresError(f.features);
-    if (features) return features;
-  }
-  if (step === 2) {
-    if (f.kind === 'service' && (!f.deliveryDays || f.deliveryDays < 1)) return 'Indiquez un délai de livraison.';
-    if (f.kind === 'digital' && !f.fileId) return 'Envoyez le fichier livré au client.';
-  }
-  if (step === 3 && free && f.priceXaf !== 0) return 'Une offre gratuite a un prix de 0.';
-  if (step === 3 && free && !PLATFORM.freeOffers) return 'Les offres gratuites ne sont pas autorisées pour le moment.';
-  if (step === 3 && free && f.compareAtXaf && f.compareAtXaf < minPriceFor(f.kind)) return `Une offre gratuite pendant une promotion repasse à un prix d’au moins ${minPriceFor(f.kind)} FCFA.`;
-  if (step === 3 && !free && (!f.priceXaf || f.priceXaf < minPriceFor(f.kind))) return `Le prix minimum est de ${minPriceFor(f.kind)} FCFA.`;
-  if (step === 3 && !Number.isInteger(f.priceXaf)) return 'Prix en FCFA entiers, sans virgule ni point.';
-  if (step === 3 && f.compareAtXaf && f.compareAtXaf <= f.priceXaf) return 'Le prix barré doit être plus élevé que le prix de vente.';
-  if (step === 3) return promoError(f.promoEndsAt, f.compareAtXaf);
-  return undefined;
 };
 
 /** Numbered steps; completed ones can be reopened. */
@@ -155,226 +97,24 @@ const Preview: React.FC<{ form: ListingInput; sellerName: string; size?: 'md' | 
   );
 };
 
-/** Cover from the device (cropped to the category's shape) or from a link. */
-const CoverInput: React.FC<{ value: string; category: Category; onChange: (value: string) => void }> = ({ value, category, onChange }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const [showUrl, setShowUrl] = useState(value.startsWith('http'));
-  const format = COVER_FORMAT[category];
-
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
-    setError(undefined);
-    setBusy(true);
-    try {
-      const [w, h] = COVER_SIZE[format];
-      onChange(await cropImageFile(file, w, h));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Field label="Couverture" optional hint={`${COVER_HINT[format]} L'image est recadrée automatiquement.`} error={error}>
-      {(id) => (
-        <div className="space-y-3">
-          <input
-            ref={inputRef}
-            id={id}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              onFile(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button icon={<ImagePlus className="w-4 h-4" />} loading={busy} onClick={() => inputRef.current?.click()}>
-              {value ? 'Changer d’image' : 'Importer une image'}
-            </Button>
-            <Button variant="ghost" icon={<Link2 className="w-4 h-4" />} onClick={() => setShowUrl((v) => !v)}>
-              Lien
-            </Button>
-            {value && (
-              <Button variant="ghost" onClick={() => onChange('')}>
-                Retirer
-              </Button>
-            )}
-          </div>
-          {showUrl && (
-            <Input type="url" placeholder="https://…" value={value.startsWith('data:') ? '' : value} onChange={(e) => onChange(e.target.value)} aria-label="Lien de l'image" />
-          )}
-        </div>
-      )}
-    </Field>
-  );
-};
-
-/** Up to LISTING_LIMITS.gallery more images, after the cover, cropped to the same shape. */
-const GalleryInput: React.FC<{ value: string[] | undefined; category: Category; onChange: (value: string[]) => void }> = ({ value, category, onChange }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const format = COVER_FORMAT[category];
-  const images = value ?? [];
-  const room = LISTING_LIMITS.gallery - images.length;
-
-  const onFiles = async (files: File[]) => {
-    setError(undefined);
-    setBusy(true);
-    try {
-      const [w, h] = COVER_SIZE[format];
-      const added = await Promise.all(files.slice(0, room).map((f) => cropImageFile(f, w, h)));
-      onChange([...images, ...added]);
-      if (files.length > room) setError(`${LISTING_LIMITS.gallery} images au maximum en plus de la couverture.`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Field
-      label="Autres images"
-      optional
-      action={<span className="ml-auto text-xs text-gray-400 tabular-nums">{images.length} / {LISTING_LIMITS.gallery}</span>}
-      hint="Montrez l’intérieur, un aperçu, un résultat : les clients les font défiler sur la fiche."
-      error={error}
-    >
-      {(id) =>
-        value === undefined ? (
-          <div className="flex gap-2">
-            {[0, 1].map((i) => (
-              <span key={i} className={clsx('w-20 shimmer rounded-lg', COVER_ASPECT[format])} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {images.map((src, i) => (
-              <div key={i} className={clsx('relative w-20 overflow-hidden rounded-lg border border-gray-200', COVER_ASPECT[format])}>
-                <img src={src} alt="" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => onChange(images.filter((_, j) => j !== i))}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-canvas/85 flex items-center justify-center text-gray-700 hover:text-gray-900"
-                  aria-label={`Retirer l’image ${i + 2}`}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {room > 0 && (
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={busy}
-                className={clsx(
-                  'w-20 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700',
-                  COVER_ASPECT[format],
-                  busy && 'shimmer'
-                )}
-              >
-                <ImagePlus className="w-4 h-4" />
-                Ajouter
-              </button>
-            )}
-            <input
-              ref={inputRef}
-              id={id}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                void onFiles(Array.from(e.target.files ?? []));
-                e.target.value = '';
-              }}
-            />
-          </div>
-        )
-      }
-    </Field>
-  );
-};
-
-const BriefQuestionsEditor: React.FC<{ value: BriefQuestion[]; onChange: (value: BriefQuestion[]) => void }> = ({ value, onChange }) => {
-  const update = (id: string, patch: Partial<BriefQuestion>) => onChange(value.map((q) => (q.id === id ? { ...q, ...patch } : q)));
-  return (
-    <div className="space-y-2">
-      {value.map((q, i) => (
-        <div key={q.id} className="flex items-center gap-2">
-          <Input
-            value={q.label}
-            onChange={(e) => update(q.id, { label: e.target.value })}
-            placeholder={i === 0 ? 'Ex. : nom de votre marque' : 'Question'}
-            aria-label={`Question ${i + 1}`}
-            maxLength={120}
-            className="flex-1 min-w-0"
-          />
-          <label className="shrink-0 flex items-center gap-1.5 text-xs text-gray-600 select-none">
-            <input type="checkbox" checked={q.required} onChange={(e) => update(q.id, { required: e.target.checked })} className="accent-[rgb(var(--accent))]" />
-            Obligatoire
-          </label>
-          <button
-            type="button"
-            onClick={() => onChange(value.filter((x) => x.id !== q.id))}
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            aria-label={`Supprimer la question ${i + 1}`}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
-      {value.length < MAX_BRIEF_QUESTIONS && (
-        <Button size="sm" variant="ghost" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => onChange([...value, { id: createId('q', 4), label: '', required: true }])}>
-          Ajouter une question
-        </Button>
-      )}
-    </div>
-  );
-};
-
 export interface ListingEditorProps {
-  listing?: Listing;
   sellerName: string;
-  /** New offer: step by step. Existing offer: every step reachable, saved from the page bar. */
+  /** Called with the finished form, and whether to publish it right away. */
   onSubmit: (input: ListingInput, publish: boolean) => void;
 }
 
 export const LISTING_FORM_ID = 'listing-form';
 
 /**
- * Guided offer editor: type → presentation → delivery → cover and price → review,
- * with a live preview of the catalogue card.
+ * The creation of an offer, step by step: type → presentation → delivery → cover and price → review, with a live preview of the
+ * catalogue card. Once the offer exists it is never edited here again: it has its own screens (one section at a time).
  */
-export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerName, onSubmit }) => {
-  const isNew = !listing;
-  const [form, setForm] = useState<ListingInput>(() => fromListing(listing));
-  const [featuresText, setFeaturesText] = useState(form.features.join('\n'));
-  // The gallery of an existing offer is not in the catalogue: fetch it to edit it.
-  useEffect(() => {
-    if (!listing?.galleryCount) return;
-    let live = true;
-    void fetchGallery(listing).then((images) => live && setForm((f) => (f.gallery === undefined ? { ...f, gallery: images } : f)));
-    return () => {
-      live = false;
-    };
-  }, [listing]);
-  // A free offer has a price of 0 (an empty price on a new offer is just not filled in yet).
-  const [free, setFree] = useState(Boolean(listing && listing.priceXaf === 0));
-  const [step, setStep] = useState(isNew ? 0 : 1);
-  const [reached, setReached] = useState(isNew ? 0 : STEPS.length - 1);
+export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubmit }) => {
+  const { form, setForm, set, featuresText, setFeaturesText, free, setFree, input } = useListingForm();
+  const [step, setStep] = useState(0);
+  const [reached, setReached] = useState(0);
   const [error, setError] = useState<string>();
-  const set = <K extends keyof ListingInput>(key: K, value: ListingInput[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const featureList = featuresText.split('\n');
-  const input = (): ListingInput => ({ ...form, features: featureList });
 
-  const categories = CATEGORIES.filter((c) => c.kind === form.kind);
   const chooseKind = (kind: ListingKind) => setForm((f) => ({ ...f, kind, category: CATEGORIES.find((c) => c.kind === kind)!.id }));
 
   const goTo = (target: number) => {
@@ -423,13 +163,11 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                 Précédent
               </Button>
               <div className="flex gap-2">
-                {last && isNew && <Button onClick={() => onSubmit(input(), false)}>Enregistrer en brouillon</Button>}
+                {last && <Button onClick={() => onSubmit(input(), false)}>Enregistrer en brouillon</Button>}
                 {last ? (
-                  isNew && (
-                    <Button type="submit" variant="primary">
-                      Publier l’offre
-                    </Button>
-                  )
+                  <Button type="submit" variant="primary">
+                    Publier l’offre
+                  </Button>
                 ) : (
                   <Button variant="primary" onClick={() => goTo(step + 1)}>
                     Suivant
@@ -446,13 +184,8 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                   <button
                     key={kind}
                     type="button"
-                    disabled={!isNew}
                     onClick={() => chooseKind(kind)}
-                    className={clsx(
-                      'text-left rounded-2xl border p-4 transition-colors disabled:cursor-not-allowed',
-                      form.kind === kind ? 'border-primary-600 ring-1 ring-primary-600 bg-primary-50/40' : 'border-gray-200 hover:border-gray-300',
-                      !isNew && form.kind !== kind && 'opacity-50'
-                    )}
+                    className={clsx('text-left rounded-2xl border p-4 transition-colors', form.kind === kind ? 'border-primary-600 ring-1 ring-primary-600 bg-primary-50/40' : 'border-gray-200 hover:border-gray-300')}
                   >
                     <Icon className="w-4 h-4 text-gray-500 mb-2" />
                     <div className="text-sm font-medium text-gray-900">{title}</div>
@@ -460,126 +193,23 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
                   </button>
                 ))}
               </div>
-              <Field label="Catégorie">
-                {() => (
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => set('category', c.id)}
-                        aria-pressed={form.category === c.id}
-                        className={clsx(
-                          'h-8 rounded-full border px-3 text-[13px] font-medium transition-colors',
-                          form.category === c.id ? 'bg-accent border-accent text-on-accent' : 'border-gray-200 text-gray-600 hover:text-gray-900'
-                        )}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Field>
+              <CategoryField form={form} set={set} />
             </>
           )}
 
           {step === 1 && (
             <>
-              <Field label="Titre" action={<Count value={form.title.trim().length} max={LISTING_LIMITS.title} />}>
-                {(id) => <Input id={id} maxLength={LISTING_LIMITS.title} value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus />}
-              </Field>
-              <Field label="Résumé" hint="Une phrase affichée sous le titre." action={<Count value={form.summary.trim().length} max={LISTING_LIMITS.summary} />}>
-                {(id) => <Input id={id} maxLength={LISTING_LIMITS.summary} value={form.summary} onChange={(e) => set('summary', e.target.value)} />}
-              </Field>
-              <Field label="Description">
-                {(id) => <Textarea id={id} rows={6} value={form.description} onChange={(e) => set('description', e.target.value)} />}
-              </Field>
-              <Field
-                label="Ce qui est inclus"
-                action={<Count value={featureLines(featureList).length} max={LISTING_LIMITS.features} />}
-                hint={`Un élément par ligne, ${LISTING_LIMITS.feature} caractères au maximum chacun. Facultatif.`}
-                error={featuresError(featureList)}
-              >
-                {(id) => <Textarea id={id} rows={4} value={featuresText} onChange={(e) => setFeaturesText(e.target.value)} />}
-              </Field>
+              <InfoFields form={form} set={set} autoFocus />
+              <DescriptionFields form={form} set={set} featuresText={featuresText} setFeaturesText={setFeaturesText} />
             </>
           )}
 
-          {step === 2 &&
-            (form.kind === 'service' ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Délai de livraison" hint="À compter de l'acceptation.">
-                    {(id) => (
-                      <Input
-                        id={id}
-                        type="number"
-                        min={1}
-                        max={90}
-                        trailing="jours"
-                        value={form.deliveryDays ?? ''}
-                        onChange={(e) => set('deliveryDays', Number(e.target.value))}
-                      />
-                    )}
-                  </Field>
-                  <Field label="Retouches incluses">
-                    {(id) => (
-                      <Select
-                        id={id}
-                        value={String(form.revisions ?? 0)}
-                        options={REVISION_OPTIONS}
-                        onChange={(v) => set('revisions', Number(v))}
-                        className="w-full"
-                      />
-                    )}
-                  </Field>
-                </div>
-                <Field label="Brief demandé au client" optional hint="Il y répond en payant : vous avez tout pour démarrer, sans aller-retour.">
-                  {() => <BriefQuestionsEditor value={form.briefQuestions ?? []} onChange={(v) => set('briefQuestions', v)} />}
-                </Field>
-              </>
-            ) : (
-              <ProductFileField form={form} setForm={setForm} listingId={listing?.id} />
-            ))}
+          {step === 2 && <DeliveryFields form={form} set={set} setForm={setForm} />}
 
           {step === 3 && (
             <>
-              <CoverInput value={form.coverImage} category={form.category} onChange={(v) => set('coverImage', v)} />
-              <GalleryInput value={form.gallery} category={form.category} onChange={(v) => set('gallery', v)} />
-              <Field label="Prix de vente" hint={free ? 'Gratuit : aucun paiement. Avec une promotion, l’offre est gratuite jusqu’à la fin du compte à rebours puis repasse à l’ancien prix.' : `Minimum ${minPriceFor(form.kind)} FCFA.`}>
-                {(id) => (
-                  <Input
-                    id={id}
-                    type="number"
-                    inputMode="numeric"
-                    min={free ? 0 : minPriceFor(form.kind)}
-                    step={1}
-                    trailing="FCFA"
-                    value={free ? 0 : form.priceXaf || ''}
-                    disabled={free}
-                    onChange={(e) => set('priceXaf', Number(e.target.value))}
-                    className="max-w-xs"
-                  />
-                )}
-              </Field>
-              {(PLATFORM.freeOffers || free) && (
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={free}
-                    onChange={(e) => {
-                      setFree(e.target.checked);
-                      set('priceXaf', 0);
-                    }}
-                    className="mt-1 w-4 h-4 accent-[rgb(var(--accent))]"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-gray-900">Offre gratuite</span>
-                    <span className="block text-xs text-gray-500">Le client l’obtient sans payer. Idéal pour un cadeau ou pour attirer des clients ; combinez-la avec une promotion pour la rendre gratuite un temps seulement.</span>
-                  </span>
-                </label>
-              )}
-              <PromotionFields form={form} set={set} />
+              <MediaFields form={form} set={set} />
+              <PriceFields form={form} set={set} free={free} setFree={setFree} />
             </>
           )}
 
@@ -589,12 +219,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
               <ul className="space-y-2">
                 {checklist.map((c) => (
                   <li key={c.label} className="flex items-center gap-2 text-sm">
-                    <span
-                      className={clsx(
-                        'w-5 h-5 rounded-full flex items-center justify-center',
-                        c.ok ? 'bg-accent text-on-accent' : 'bg-gray-100 text-gray-400'
-                      )}
-                    >
+                    <span className={clsx('w-5 h-5 rounded-full flex items-center justify-center', c.ok ? 'bg-accent text-on-accent' : 'bg-gray-100 text-gray-400')}>
                       <Check className="w-3 h-3" />
                     </span>
                     <span className={c.ok ? 'text-gray-900' : 'text-gray-500'}>{c.label}</span>

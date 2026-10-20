@@ -12,9 +12,11 @@ export type { OrderPermissions, Perspective } from '@/shared/domain';
 export const paymentMethodLabel = (order: Pick<Order, 'payment'>) =>
   order.payment.channel
     ? PAYMENT_CHANNELS[order.payment.channel].label
-    : order.payment.via === 'wallet'
-      ? 'Wallet LightPay'
-      : 'Mobile Money via LightPay';
+    : order.payment.via === 'free'
+      ? 'Offre gratuite'
+      : order.payment.via === 'wallet'
+        ? 'Wallet LightPay'
+        : 'Mobile Money via LightPay';
 
 /** Order page for each party. */
 export const orderHref = (order: Pick<Order, 'id'>, perspective: Perspective) =>

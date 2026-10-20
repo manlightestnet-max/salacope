@@ -64,6 +64,8 @@ export const MESSAGE_DEFS: MessageDef[] = [
   // ------------------------------------------------------------ purchases (buyer)
   def('purchase.ready', 'Achats', 'Produit numérique payé : le fichier est prêt', ['commande', 'offre'], 'Votre achat est prêt · {commande}', '{offre} : téléchargez votre fichier.'),
   def('purchase.paid', 'Achats', 'Service payé', ['commande', 'offre'], 'Commande {commande} payée', '{offre} · le vendeur va accepter votre commande.'),
+  def('purchase.free_ready', 'Achats', 'Produit numérique gratuit : le fichier est prêt', ['commande', 'offre'], 'Votre produit gratuit est prêt · {commande}', '{offre} : téléchargez votre fichier.'),
+  def('purchase.free', 'Achats', 'Service gratuit commandé', ['commande', 'offre'], 'Commande {commande} enregistrée', '{offre} · gratuite, le vendeur va accepter votre commande.'),
   def('purchase.accepted', 'Achats', 'Le vendeur accepte la commande', ['commande', 'offre', 'date'], 'Commande acceptée', 'Livraison prévue le {date}'),
   def('purchase.delivered', 'Achats', 'Le vendeur livre le service', ['commande', 'offre'], 'Commande {commande} livrée', 'Vérifiez la livraison puis validez-la.'),
   def('purchase.cancelled', 'Achats', 'Le vendeur annule (client remboursé)', ['commande', 'offre', 'remboursement'], 'Commande {commande} annulée', '{remboursement}'),
@@ -74,6 +76,7 @@ export const MESSAGE_DEFS: MessageDef[] = [
 
   // ------------------------------------------------------------ sales (seller)
   def('sale.new', 'Ventes', 'Nouvelle commande (argent bloqué)', ['commande', 'offre', 'montant'], 'Nouvelle commande {commande}', '{offre} · {montant} (bloqués jusqu’à validation)'),
+  def('sale.free', 'Ventes', 'Nouvelle commande gratuite', ['commande', 'offre'], 'Nouvelle commande gratuite {commande}', '{offre} · offre gratuite, aucun paiement.'),
   def('sale.released', 'Ventes', 'Le client valide : paiement versé', ['commande', 'montant'], 'Paiement libéré · {commande}', '+{montant} sur votre wallet LightPay'),
   def('sale.released_auto', 'Ventes', 'Paiement versé à la fin du délai', ['commande', 'montant'], 'Paiement libéré · {commande}', '+{montant} sur votre wallet LightPay (validation automatique)'),
   def('sale.cancelled', 'Ventes', 'Le client annule', ['commande', 'offre'], 'Commande {commande} annulée par le client', '{offre}'),

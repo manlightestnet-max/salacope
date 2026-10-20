@@ -1,4 +1,5 @@
 import { ROUTES } from '../../src/shared/config/routes.js';
+import { MIN_PRICE_RANGE } from '../../src/shared/config/platform.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
 import { refundSentence } from '../../src/shared/domain/refund.js';
 import type { KycDocumentKind, RiskLevel } from '../../src/shared/domain/kyc.js';
@@ -780,6 +781,16 @@ route('PUT', '/admin/settings', async (ctx) => {
     if (!Number.isInteger(n) || n < 1 || n > 60) throw new DomainError(`${label} : indiquez un nombre de jours entre 1 et 60.`);
     return n;
   };
+  const price = (v: unknown, label: string, optional: boolean) => {
+    if (optional && (v === null || v === undefined || v === '')) return null;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < MIN_PRICE_RANGE.min || n > MIN_PRICE_RANGE.max) {
+      throw new DomainError(`${label} : indiquez un montant entier entre ${MIN_PRICE_RANGE.min} et ${MIN_PRICE_RANGE.max} FCFA.`);
+    }
+    return n;
+  };
+  const promoDays = Number(ctx.body.promoMaxDays);
+  if (!Number.isInteger(promoDays) || promoDays < 1 || promoDays > 365) throw new DomainError('Durée maximale d’une promotion : indiquez un nombre de jours entre 1 et 365.');
   const before = currentPlatform();
   const settings = {
     feeRate: rate(ctx.body.feeRate, 'Commission générale', false) as number,
@@ -787,6 +798,11 @@ route('PUT', '/admin/settings', async (ctx) => {
     feeRateService: rate(ctx.body.feeRateService, 'Commission des services', true),
     digitalHoldDays: days(ctx.body.digitalHoldDays, 'Délai des produits numériques'),
     serviceValidationDays: days(ctx.body.serviceValidationDays, 'Délai des services'),
+    minPriceXaf: price(ctx.body.minPriceXaf, 'Prix minimum général', false) as number,
+    minPriceDigitalXaf: price(ctx.body.minPriceDigitalXaf, 'Prix minimum des produits numériques', true),
+    minPriceServiceXaf: price(ctx.body.minPriceServiceXaf, 'Prix minimum des services', true),
+    promoMaxDays: promoDays,
+    freeOffers: ctx.body.freeOffers === true,
   };
   await savePlatform(settings);
   await tx(async (q) => audit(q, admin, 'settings.save', null, { before, after: settings }));

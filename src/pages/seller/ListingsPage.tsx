@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MoreHorizontal, Package, Plus } from 'lucide-react';
 import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Menu, Page, Panel, Segmented, Skeleton, Stat, StatGrid, Tabs } from '@/shared/ui';
 import { useRememberedParam, useServiceAction } from '@/shared/hooks';
-import { formatDate, formatNumber, formatXaf, plural } from '@/shared/lib';
+import { formatDate, formatNumber, formatPrice, formatXaf, plural } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { useCurrentUser } from '@/features/session';
 import { KIND_LABEL, ListingThumb } from '@/features/catalog';
@@ -121,7 +121,7 @@ export const ListingsPage: React.FC = () => {
                     }
                     trailing={
                       <span className="flex flex-col items-end gap-0.5">
-                        <span className="font-medium text-gray-900">{formatXaf(listing.priceXaf)}</span>
+                        <span className="font-medium text-gray-900">{formatPrice(listing.priceXaf)}</span>
                         {m.revenue > 0 && <span className="text-xs text-gray-500">{formatXaf(m.revenue)} encaissés</span>}
                       </span>
                     }

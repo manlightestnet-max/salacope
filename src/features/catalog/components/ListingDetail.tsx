@@ -14,6 +14,7 @@ import { ListingGallery } from './ListingGallery';
 import { ShareButton } from './ShareButton';
 import { trackListing, useListingStats } from '../api';
 import { ListingPrice } from './ListingPrice';
+import { PromoCountdown } from './PromoCountdown';
 import { SellerCard } from './SellerCard';
 
 /** What the page is drawn with until the offer is known: only its text sizes count, it is painted as shimmer. */
@@ -127,7 +128,7 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
     </Button>
   ) : (
     <Button to={checkoutHref} variant="primary" block size="lg" onClick={() => trackListing(listing.id, 'click')}>
-      {isService ? 'Commander' : 'Acheter'}
+      {listing.priceXaf === 0 ? 'Obtenir gratuitement' : isService ? 'Commander' : 'Acheter'}
     </Button>
   );
 
@@ -153,6 +154,7 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         <div className="min-w-0 space-y-6">
+          {!pending && listing.promo && <PromoCountdown listing={listing} />}
           {format === 'portrait' || format === 'square' ? (
             // Books and square covers sit beside the title, like a product sheet.
             <div ref={galleryRef} className="flex flex-col sm:flex-row gap-5 sm:items-start">
@@ -227,12 +229,18 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
               <li className="flex gap-2">
                 <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>
-                  Paiement MTN MoMo ou Airtel Money.{' '}
-                  <P>
-                    {listing.kind === 'digital'
-                      ? `Accès immédiat ; le vendeur est payé ${PLATFORM.digitalHoldDays} jours plus tard si vous ne signalez aucun problème.`
-                      : `Le vendeur est payé après votre validation, ou ${PLATFORM.serviceValidationDays} jours après la livraison.`}
-                  </P>
+                  {listing.priceXaf === 0 ? (
+                    <P>{listing.kind === 'digital' ? 'Offre gratuite : aucun paiement, accès immédiat.' : 'Offre gratuite : aucun paiement, le vendeur accepte votre commande.'}</P>
+                  ) : (
+                    <>
+                      Paiement MTN MoMo ou Airtel Money.{' '}
+                      <P>
+                        {listing.kind === 'digital'
+                          ? `Accès immédiat ; le vendeur est payé ${PLATFORM.digitalHoldDays} jours plus tard si vous ne signalez aucun problème.`
+                          : `Le vendeur est payé après votre validation, ou ${PLATFORM.serviceValidationDays} jours après la livraison.`}
+                      </P>
+                    </>
+                  )}
                 </span>
               </li>
             </ul>

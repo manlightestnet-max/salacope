@@ -1,8 +1,9 @@
 import React from 'react';
-import { BellRing, CalendarClock, Compass, Globe, Percent } from 'lucide-react';
+import { BellRing, CalendarClock, Compass, Globe, Percent, Tag } from 'lucide-react';
 import { adminApi, useAdminResource } from '@/features/admin';
 import { EmptyState, List, ListRow, Page, Panel, SkeletonRows } from '@/shared/ui';
 import { percent } from '@/shared/config/platform';
+import { formatXaf } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 
 const icon = (Icon: React.ElementType) => (
@@ -10,6 +11,13 @@ const icon = (Icon: React.ElementType) => (
     <Icon className="w-4 h-4" />
   </span>
 );
+
+/** The smallest price in a sentence: one amount, or one per kind of offer. */
+const priceText = (s: { minPriceXaf: number; minPriceDigitalXaf: number | null; minPriceServiceXaf: number | null }) => {
+  const digital = s.minPriceDigitalXaf ?? s.minPriceXaf;
+  const service = s.minPriceServiceXaf ?? s.minPriceXaf;
+  return digital === service ? `Prix minimum ${formatXaf(digital)}` : `Minimum ${formatXaf(digital)} produits numériques, ${formatXaf(service)} services`;
+};
 
 /** The rules the administration controls: each opens in its own screen. */
 export const AdminSettingsPage: React.FC = () => {
@@ -37,6 +45,12 @@ export const AdminSettingsPage: React.FC = () => {
               leading={icon(CalendarClock)}
               title="Délais de paiement du vendeur"
               subtitle={`${s.digitalHoldDays} jours produits numériques · ${s.serviceValidationDays} jours services`}
+            />
+            <ListRow
+              to={ROUTES.admin.settingsSection('prix')}
+              leading={icon(Tag)}
+              title="Prix minimum et promotions"
+              subtitle={`${priceText(s)} · promotions de ${s.promoMaxDays} jours au plus${s.freeOffers ? ' · offres gratuites autorisées' : ''}`}
             />
             <ListRow
               to={ROUTES.admin.settingsSection('explorer')}

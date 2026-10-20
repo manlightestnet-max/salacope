@@ -3,6 +3,9 @@ const LOCALE = 'fr-FR';
 /** 12500 -> "12 500 FCFA" */
 export const formatXaf = (amount: number): string => `${Math.round(amount).toLocaleString(LOCALE)} FCFA`;
 
+/** The price of an offer: 0 is "Gratuit" (sums of money, which can be 0 too, keep using `formatXaf`). */
+export const formatPrice = (amount: number): string => (amount === 0 ? 'Gratuit' : formatXaf(amount));
+
 /** 12500 -> "12 500" */
 export const formatNumber = (value: number): string => value.toLocaleString(LOCALE);
 

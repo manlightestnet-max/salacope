@@ -37,6 +37,16 @@ export const PaymentLine: React.FC<{ order: Order; perspective: Perspective; cla
   const seller = perspective === 'seller';
   const net = order.amounts.net !== order.amounts.total;
 
+  // Nothing was paid: no funds to follow, no operator, no reference.
+  if (order.amounts.total === 0) {
+    return (
+      <div className={clsx('flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-500', className)}>
+        <span className="text-base font-semibold tracking-tight text-gray-900">Gratuit</span>
+        <span>Offre gratuite · aucun paiement</span>
+      </div>
+    );
+  }
+
   return (
     <div className={clsx('flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-500', className)}>
       <span className="text-base font-semibold tracking-tight tabular-nums text-gray-900">{formatXaf(seller ? order.amounts.net : order.amounts.total)}</span>

@@ -6,6 +6,7 @@ import { newId } from '../ids.js';
 import { loadOrder, loadSelf } from '../load.js';
 import { notify } from '../notify.js';
 import { OrderRow, authorize, formatXaf, purgeEphemeral, toBuyer } from '../orders.js';
+import { priceNow } from '../views.js';
 
 /** The order chat beyond plain messages: receipts, ephemeral mode, blocks, payment-request cards, seller's tags. */
 
@@ -72,7 +73,8 @@ route('POST', '/orders/:id/payment-requests', async (ctx) => {
     await requireNotBlocked(q, row);
     const [l] = await q("SELECT * FROM listings WHERE id = $1 AND seller_id = $2 AND status = 'published'", [String(ctx.body.listingId ?? ''), userId]);
     if (!l) throw new DomainError('Choisissez une de vos offres en ligne.', 404);
-    const request = { listingId: l.id, title: l.title, priceXaf: l.price_xaf, coverImage: l.cover_image, category: l.category };
+    if (priceNow(l) === 0) throw new DomainError('Cette offre est gratuite : il n’y a rien à payer.');
+    const request = { listingId: l.id, title: l.title, priceXaf: priceNow(l), coverImage: l.cover_image, category: l.category };
     const at = new Date().toISOString();
     await q("INSERT INTO order_messages (id, order_id, author_id, body, kind, data, at) VALUES ($1, $2, $3, '', 'payment_request', $4::jsonb, $5)", [
       newId('msg'),
@@ -83,7 +85,7 @@ route('POST', '/orders/:id/payment-requests', async (ctx) => {
     ]);
     await q('UPDATE orders SET updated_at = $2 WHERE id = $1', [row.id, at]);
     await notify(q, [
-      toBuyer(row, 'purchase.payment_request', { offre: l.title, montant: formatXaf(l.price_xaf), minutes: PAYMENT_REQUEST_MINUTES }),
+      toBuyer(row, 'purchase.payment_request', { offre: l.title, montant: formatXaf(priceNow(l)), minutes: PAYMENT_REQUEST_MINUTES }),
     ]);
   });
   return orderPatch(userId, ctx.params.id);

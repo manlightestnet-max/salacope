@@ -60,6 +60,15 @@ export const userView = (r: any, self: boolean): User => ({
     : undefined,
 });
 
+/**
+ * A promotion with a countdown has a regular price (`compare_at_xaf`), a promotional price (`price_xaf`) and an end. After the end the
+ * regular price applies again: nobody is sold at a "limited" price once the clock has run out.
+ */
+export const promoEnded = (r: { promo_ends_at?: string | Date | null }) => Boolean(r.promo_ends_at) && new Date(r.promo_ends_at as string).getTime() <= Date.now();
+/** The price an offer is sold at right now. */
+export const priceNow = (r: { price_xaf: number; compare_at_xaf?: number | null; promo_ends_at?: string | Date | null }): number =>
+  promoEnded(r) && r.compare_at_xaf ? r.compare_at_xaf : r.price_xaf;
+
 export const listingView = (r: any): Listing => ({
   id: r.id,
   sellerId: r.seller_id,
@@ -69,8 +78,9 @@ export const listingView = (r: any): Listing => ({
   summary: r.summary,
   description: r.description,
   features: r.features ?? [],
-  priceXaf: r.price_xaf,
-  compareAtXaf: opt(r.compare_at_xaf),
+  priceXaf: priceNow(r),
+  compareAtXaf: promoEnded(r) ? undefined : opt(r.compare_at_xaf),
+  promo: r.promo_ends_at && !promoEnded(r) ? { startsAt: new Date(r.promo_starts_at ?? r.updated_at).toISOString(), endsAt: new Date(r.promo_ends_at).toISOString() } : undefined,
   galleryCount: r.gallery_count ? Number(r.gallery_count) : undefined,
   coverImage: imageUrl('l', r.id, r.cover_image, new Date(r.updated_at).getTime()) ?? '',
   deliveryDays: opt(r.delivery_days),

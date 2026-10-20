@@ -4,11 +4,12 @@ import { Check, Download, ImagePlus, Link2, Plus, Trash2, Wrench } from 'lucide-
 import { BriefQuestion, Category, Listing, ListingKind } from '@/shared/db';
 import { Button, Field, Input, Panel, Select, Textarea } from '@/shared/ui';
 import { createId, cropImageFile } from '@/shared/lib';
-import { PLATFORM } from '@/shared/config/platform';
+import { PLATFORM, minPriceFor } from '@/shared/config/platform';
 import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover, ListingPrice, cardBreadcrumb, fetchGallery } from '@/features/catalog';
-import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
+import { LISTING_LIMITS, featureLines, featuresError, promoError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
 import { ProductFileField } from './ProductFileField';
+import { PromotionFields } from './PromotionFields';
 
 const REVISION_OPTIONS = Array.from({ length: PLATFORM.maxRevisions + 1 }, (_, n) => ({
   value: String(n),
@@ -39,6 +40,7 @@ const fromListing = (l?: Listing): ListingInput => ({
   features: l?.features ?? [],
   priceXaf: l?.priceXaf ?? 0,
   compareAtXaf: l?.compareAtXaf,
+  promoEndsAt: l?.promo?.endsAt,
   coverImage: l?.coverImage ?? '',
   // Existing offer: loaded from the server below; new offer: none yet.
   gallery: l?.galleryCount ? undefined : [],
@@ -59,7 +61,7 @@ const Count: React.FC<{ value: number; max: number }> = ({ value, max }) => (
 );
 
 /** What is still missing on a step (checked before moving on). */
-const stepError = (step: number, f: ListingInput): string | undefined => {
+const stepError = (step: number, f: ListingInput, free = false): string | undefined => {
   if (step === 1) {
     if (f.title.trim().length < 8) return 'Le titre doit faire au moins 8 caractères.';
     if (!f.summary.trim()) return 'Ajoutez un résumé en une phrase.';
@@ -70,9 +72,13 @@ const stepError = (step: number, f: ListingInput): string | undefined => {
     if (f.kind === 'service' && (!f.deliveryDays || f.deliveryDays < 1)) return 'Indiquez un délai de livraison.';
     if (f.kind === 'digital' && !f.fileId) return 'Envoyez le fichier livré au client.';
   }
-  if (step === 3 && (!f.priceXaf || f.priceXaf < PLATFORM.minPriceXaf)) return `Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`;
+  if (step === 3 && free && f.priceXaf !== 0) return 'Une offre gratuite a un prix de 0.';
+  if (step === 3 && free && !PLATFORM.freeOffers) return 'Les offres gratuites ne sont pas autorisées pour le moment.';
+  if (step === 3 && free && f.compareAtXaf && f.compareAtXaf < minPriceFor(f.kind)) return `Une offre gratuite pendant une promotion repasse à un prix d’au moins ${minPriceFor(f.kind)} FCFA.`;
+  if (step === 3 && !free && (!f.priceXaf || f.priceXaf < minPriceFor(f.kind))) return `Le prix minimum est de ${minPriceFor(f.kind)} FCFA.`;
   if (step === 3 && !Number.isInteger(f.priceXaf)) return 'Prix en FCFA entiers, sans virgule ni point.';
   if (step === 3 && f.compareAtXaf && f.compareAtXaf <= f.priceXaf) return 'Le prix barré doit être plus élevé que le prix de vente.';
+  if (step === 3) return promoError(f.promoEndsAt, f.compareAtXaf);
   return undefined;
 };
 
@@ -359,6 +365,8 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
       live = false;
     };
   }, [listing]);
+  // A free offer has a price of 0 (an empty price on a new offer is just not filled in yet).
+  const [free, setFree] = useState(Boolean(listing && listing.priceXaf === 0));
   const [step, setStep] = useState(isNew ? 0 : 1);
   const [reached, setReached] = useState(isNew ? 0 : STEPS.length - 1);
   const [error, setError] = useState<string>();
@@ -372,7 +380,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
   const goTo = (target: number) => {
     // Moving forward checks every step in between.
     for (let s = step; s < target; s += 1) {
-      const problem = stepError(s, input());
+      const problem = stepError(s, input(), free);
       if (problem) {
         setStep(s);
         setError(problem);
@@ -390,7 +398,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
     { ok: Boolean(form.description.trim()), label: 'Description' },
     { ok: form.kind === 'service' ? Boolean(form.deliveryDays) : Boolean(form.fileId), label: form.kind === 'service' ? 'Délai de livraison' : 'Fichier livré' },
     { ok: Boolean(form.coverImage.trim()), label: 'Couverture' },
-    { ok: form.priceXaf >= PLATFORM.minPriceXaf, label: 'Prix' },
+    { ok: free ? form.priceXaf === 0 : form.priceXaf >= minPriceFor(form.kind), label: 'Prix' },
   ];
 
   return (
@@ -538,40 +546,40 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ listing, sellerNam
             <>
               <CoverInput value={form.coverImage} category={form.category} onChange={(v) => set('coverImage', v)} />
               <GalleryInput value={form.gallery} category={form.category} onChange={(v) => set('gallery', v)} />
-              <Field label="Prix" hint={`Minimum ${PLATFORM.minPriceXaf} FCFA.`}>
+              <Field label="Prix de vente" hint={free ? 'Gratuit : aucun paiement. Avec une promotion, l’offre est gratuite jusqu’à la fin du compte à rebours puis repasse à l’ancien prix.' : `Minimum ${minPriceFor(form.kind)} FCFA.`}>
                 {(id) => (
                   <Input
                     id={id}
                     type="number"
                     inputMode="numeric"
-                    min={PLATFORM.minPriceXaf}
+                    min={free ? 0 : minPriceFor(form.kind)}
                     step={1}
                     trailing="FCFA"
-                    value={form.priceXaf || ''}
+                    value={free ? 0 : form.priceXaf || ''}
+                    disabled={free}
                     onChange={(e) => set('priceXaf', Number(e.target.value))}
                     className="max-w-xs"
                   />
                 )}
               </Field>
-              <Field
-                label="Prix barré"
-                optional
-                hint="Pour une promotion : l’ancien prix, affiché barré avec le pourcentage de réduction. Laissez vide sinon."
-                error={form.compareAtXaf && form.priceXaf && form.compareAtXaf <= form.priceXaf ? 'Doit être plus élevé que le prix de vente.' : undefined}
-              >
-                {(id) => (
-                  <Input
-                    id={id}
-                    type="number"
-                    inputMode="numeric"
-                    step={1}
-                    trailing="FCFA"
-                    value={form.compareAtXaf || ''}
-                    onChange={(e) => set('compareAtXaf', e.target.value ? Number(e.target.value) : undefined)}
-                    className="max-w-xs"
+              {(PLATFORM.freeOffers || free) && (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={free}
+                    onChange={(e) => {
+                      setFree(e.target.checked);
+                      set('priceXaf', 0);
+                    }}
+                    className="mt-1 w-4 h-4 accent-[rgb(var(--accent))]"
                   />
-                )}
-              </Field>
+                  <span>
+                    <span className="block text-sm font-medium text-gray-900">Offre gratuite</span>
+                    <span className="block text-xs text-gray-500">Le client l’obtient sans payer. Idéal pour un cadeau ou pour attirer des clients ; combinez-la avec une promotion pour la rendre gratuite un temps seulement.</span>
+                  </span>
+                </label>
+              )}
+              <PromotionFields form={form} set={set} />
             </>
           )}
 

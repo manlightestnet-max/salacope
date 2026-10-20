@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Gift, Lock, ShieldCheck } from 'lucide-react';
 import { auth } from '@/shared/api';
 import { Listing } from '@/shared/db';
 import { Button, Card, CardBody, CardHeader, Field, Handoff, Input, Textarea } from '@/shared/ui';
-import { atLeast, formatXaf, getTheme } from '@/shared/lib';
+import { atLeast, formatPrice, formatXaf, getTheme } from '@/shared/lib';
 import { releaseDays } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 import { CONTACT_BLOCKED, containsContact, priceOrder } from '@/shared/domain';
@@ -48,9 +48,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<LightPayLink>({ step: 'request', attempt: 1 });
 
-  useEffect(warmLightPay, []);
+  useEffect(() => {
+    if (listing.priceXaf > 0) warmLightPay();
+  }, [listing.priceXaf]);
 
   const amounts = priceOrder(listing.priceXaf, listing.kind);
+  const free = amounts.total === 0;
   const questions = listing.briefQuestions ?? [];
 
   const pay = async () => {
@@ -74,7 +77,13 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
     setBusy(true);
     setLink({ step: 'request', attempt: 1 });
     try {
-      const { checkoutUrl, attemptId } = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined, email: member ? undefined : email.trim() }), 400);
+      const started = await atLeast(startCheckout({ listingId: listing.id, brief, invoice: showInvoice ? company : undefined, email: member ? undefined : email.trim() }), 400);
+      // Free offer: nothing to pay, the order is already there.
+      if (started.free) {
+        navigate(ROUTES.account.order(started.orderId));
+        return;
+      }
+      const { checkoutUrl, attemptId } = started;
       // Connecting to LightPay: two tries, each one visible; then LightPay's own page takes over.
       let lightpay;
       for (let attempt = 1; attempt <= 2 && !lightpay; attempt++) {
@@ -119,7 +128,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
           {member ? (
             <CardHeader title="Votre compte" />
           ) : (
-            <CardHeader title="Sans compte" description="Payez directement par mobile money. Votre commande et le chat restent sur cet appareil." />
+            <CardHeader title="Sans compte" description={free ? 'Obtenez-le directement. Votre commande et le chat restent sur cet appareil.' : 'Payez directement par mobile money. Votre commande et le chat restent sur cet appareil.'} />
           )}
           <CardBody className="space-y-4">
             {member ? (
@@ -201,16 +210,16 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
           <dl className="space-y-2 text-sm border-t border-gray-100 pt-4">
             <div className="flex justify-between text-gray-600">
               <dt>Prix</dt>
-              <dd className="tabular-nums">{formatXaf(amounts.subtotal)}</dd>
+              <dd className="tabular-nums">{formatPrice(amounts.subtotal)}</dd>
             </div>
             <div className="flex justify-between font-semibold text-gray-900 text-base pt-1">
               <dt>Total</dt>
-              <dd className="tabular-nums">{formatXaf(amounts.total)}</dd>
+              <dd className="tabular-nums">{formatPrice(amounts.total)}</dd>
             </div>
-            <p className="text-xs text-gray-500">Les frais de l’opérateur, s’il y en a, sont affichés sur la page de paiement avant validation.</p>
+            {!free && <p className="text-xs text-gray-500">Les frais de l’opérateur, s’il y en a, sont affichés sur la page de paiement avant validation.</p>}
           </dl>
 
-          <RefundPreview total={amounts.total} />
+          {!free && <RefundPreview total={amounts.total} />}
 
           {error && (
             <p className="text-sm text-red-600" role="alert">
@@ -218,11 +227,20 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
             </p>
           )}
 
-          <Button type="submit" variant="primary" size="lg" block disabled={busy || showSignIn} icon={<Lock className="w-4 h-4" />}>
-            Payer {formatXaf(amounts.total)}
+          <Button type="submit" variant="primary" size="lg" block loading={free && busy} disabled={busy || showSignIn} icon={free ? <Gift className="w-4 h-4" /> : <Lock className="w-4 h-4" />}>
+            {free ? 'Obtenir gratuitement' : `Payer ${formatPrice(amounts.total)}`}
           </Button>
           <div className="flex gap-2 text-xs text-gray-500">
             <ShieldCheck className="w-4 h-4 shrink-0 text-gray-400" />
+            {free ? (
+              <p>
+                Offre gratuite : aucun paiement. {listing.kind === 'digital' ? 'Votre fichier est disponible tout de suite dans vos achats.' : 'Le vendeur va accepter votre commande.'} En continuant, vous acceptez les{' '}
+                <Link to={ROUTES.legal.terms} className="underline">
+                  conditions générales
+                </Link>
+                .
+              </p>
+            ) : (
             <p>
               Paiement par MTN MoMo ou Airtel Money, sans compte LightPay (le wallet LightPay reste possible). {listing.kind === 'digital' ? `Le vendeur n'est payé que ${releaseDays(listing.kind)} jours après votre achat, si vous ne signalez aucun problème.` : `Le vendeur n'est payé qu'après votre validation, ou ${releaseDays(listing.kind)} jours après la livraison.`} En payant, vous acceptez les{' '}
               <Link to={ROUTES.legal.terms} className="underline">
@@ -230,11 +248,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ listing }) => {
               </Link>
               .
             </p>
+            )}
           </div>
         </CardBody>
       </Card>
 
-      {busy && (
+      {busy && !free && (
         <Handoff
           overlay
           from="salacope"

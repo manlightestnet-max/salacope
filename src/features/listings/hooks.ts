@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Listing, useDb } from '@/shared/db';
 import { cacheKey, cached, remember } from '@/shared/hooks';
-import type { DateRange, DayStat } from '@/shared/domain';
+import type { Analytics, DateRange } from '@/shared/domain';
 import { ListingInsight, fetchAnalytics, fetchInsights } from '@/features/catalog';
 
 export interface ManagedListing {
@@ -43,21 +43,22 @@ export function useListingInsights(): Map<string, ListingInsight> | null {
 }
 
 /**
- * Daily views and clicks of the seller's offers over a period. The last answer of each period is kept (coming back to the
- * dashboard shows it at once, then it is checked again); `rows` is `undefined` only the first time, `failed` if they cannot be read.
+ * What the server counted for the seller over a period: offer views and clicks, and store page visits, day by day. The last
+ * answer of each period is kept (coming back to the dashboard shows it at once, then it is checked again); `counted` is
+ * `undefined` only the first time, `failed` if it cannot be read.
  */
-export function useSellerAnalytics(range: DateRange): { rows: DayStat[] | undefined; failed: boolean } {
+export function useSellerAnalytics(range: DateRange): { counted: Analytics | undefined; failed: boolean } {
   const key = cacheKey('analytics', [range.from, range.to]);
-  const [rows, setRows] = useState<DayStat[] | undefined>(() => cached<DayStat[]>(key));
+  const [counted, setCounted] = useState<Analytics | undefined>(() => cached<Analytics>(key));
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let live = true;
-    setRows(cached<DayStat[]>(key));
+    setCounted(cached<Analytics>(key));
     setFailed(false);
     fetchAnalytics(range).then(
       (r) => {
         remember(key, r);
-        if (live) setRows(r);
+        if (live) setCounted(r);
       },
       () => live && setFailed(true)
     );
@@ -66,5 +67,5 @@ export function useSellerAnalytics(range: DateRange): { rows: DayStat[] | undefi
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  return { rows, failed };
+  return { counted, failed };
 }

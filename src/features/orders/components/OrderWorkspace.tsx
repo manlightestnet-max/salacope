@@ -102,7 +102,7 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
             <CardBody className="pt-0">
               <DescriptionList
                 items={[
-                  { label: 'Payé', value: formatXaf(order.amounts.total) },
+                  { label: 'Payé', value: order.amounts.total === 0 ? 'Gratuit' : formatXaf(order.amounts.total) },
                   ...(order.amounts.discount
                     ? [{ label: `Remise ${order.couponCode}`, value: `−${formatXaf(order.amounts.discount)}` }]
                     : []),
@@ -112,8 +112,8 @@ export const OrderWorkspace: React.FC<{ view: OrderView; perspective: Perspectiv
                         { label: 'Net', value: formatXaf(order.amounts.net) },
                       ]
                     : []),
-                  { label: 'Fonds', value: FUNDS_LABEL[fundsState(order.status)] },
-                  { label: 'Via', value: `${paymentMethodLabel(order)} · ${order.payment.reference}` },
+                  ...(order.amounts.total === 0 ? [] : [{ label: 'Fonds', value: FUNDS_LABEL[fundsState(order.status)] }]),
+                  { label: 'Via', value: order.amounts.total === 0 ? paymentMethodLabel(order) : `${paymentMethodLabel(order)} · ${order.payment.reference}` },
                   ...(order.payment.code ? [{ label: 'Code', value: <span className="font-mono">{order.payment.code}</span> }] : []),
                 ]}
               />

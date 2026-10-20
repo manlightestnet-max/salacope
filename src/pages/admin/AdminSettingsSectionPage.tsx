@@ -6,7 +6,7 @@ import { formatXaf } from '@/shared/lib';
 import { percent } from '@/shared/config/platform';
 import { ROUTES } from '@/shared/config/routes';
 
-const TITLES: Record<string, string> = { commission: 'Commission', delais: 'Délais de paiement du vendeur' };
+const TITLES: Record<string, string> = { commission: 'Commission', delais: 'Délais de paiement du vendeur', prix: 'Prix minimum et promotions' };
 
 /** Percentages are typed as such (10 for 10 %) and stored as fractions. */
 const toPercent = (r: number | null) => (r === null ? '' : String(Math.round(r * 1000) / 10));
@@ -139,6 +139,57 @@ const DelaysForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
   );
 };
 
+/** Whole FCFA typed as such; an empty field means "the general one". */
+const fromAmount = (v: string) => (v.trim() === '' ? null : Number(v.replace(/\s/g, '')));
+
+const PricesForm: React.FC<{ s: AdminSettings }> = ({ s }) => {
+  const { busy, error, save } = useSaveSettings();
+  const [general, setGeneral] = useState(String(s.minPriceXaf));
+  const [digital, setDigital] = useState(s.minPriceDigitalXaf === null ? '' : String(s.minPriceDigitalXaf));
+  const [service, setService] = useState(s.minPriceServiceXaf === null ? '' : String(s.minPriceServiceXaf));
+  const [promoDays, setPromoDays] = useState(String(s.promoMaxDays));
+  const [freeOffers, setFreeOffers] = useState(s.freeOffers);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save({ ...s, minPriceXaf: fromAmount(general) ?? NaN, minPriceDigitalXaf: fromAmount(digital), minPriceServiceXaf: fromAmount(service), promoMaxDays: Number(promoDays), freeOffers });
+      }}
+      className="space-y-4"
+    >
+      <Panel
+        title="Prix minimum d’une vente"
+        description="Le plus petit prix qu’un vendeur peut fixer. Il s’applique aux offres créées ou modifiées ensuite : une offre déjà en ligne garde son prix. Ne descendez pas sous le dépôt minimum réglé dans l’administration de LightPay : en dessous, le paiement serait refusé."
+      >
+        <div className="space-y-4">
+          <Field label="Prix minimum général (FCFA)" hint="S’applique quand un type d’offre n’a pas le sien.">
+            {(id) => <Input id={id} inputMode="numeric" value={general} onChange={(e) => setGeneral(e.target.value)} />}
+          </Field>
+          <Field label="Produit numérique (FCFA)" optional hint="Vide : le prix minimum général.">
+            {(id) => <Input id={id} inputMode="numeric" value={digital} onChange={(e) => setDigital(e.target.value)} />}
+          </Field>
+          <Field label="Service (FCFA)" optional hint="Vide : le prix minimum général.">
+            {(id) => <Input id={id} inputMode="numeric" value={service} onChange={(e) => setService(e.target.value)} />}
+          </Field>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" checked={freeOffers} onChange={(e) => setFreeOffers(e.target.checked)} className="mt-1 w-4 h-4 accent-[rgb(var(--accent))]" />
+            <span>
+              <span className="block text-sm font-medium text-gray-900">Autoriser les offres gratuites</span>
+              <span className="block text-xs text-gray-500">Le vendeur peut mettre un prix de 0, ou une promotion gratuite avec compte à rebours. Les offres gratuites déjà en ligne restent ; aucun argent ne circule, donc aucune commission.</span>
+            </span>
+          </label>
+        </div>
+      </Panel>
+      <Panel title="Promotions avec compte à rebours" description="Le vendeur choisit une date de fin : une horloge s’affiche en haut de l’offre, et à la fin le prix repasse à l’ancien prix.">
+        <Field label="Durée maximale (jours)" hint="Aucune promotion ne peut durer plus longtemps.">
+          {(id) => <Input id={id} inputMode="numeric" value={promoDays} onChange={(e) => setPromoDays(e.target.value)} />}
+        </Field>
+        <SaveBar error={error} busy={busy} />
+      </Panel>
+    </form>
+  );
+};
+
 /** `/admin/parametres/:section` */
 export const AdminSettingsSectionPage: React.FC = () => {
   const { section = '' } = useParams<{ section: string }>();
@@ -146,7 +197,7 @@ export const AdminSettingsSectionPage: React.FC = () => {
   if (!(section in TITLES)) return <Navigate to={ROUTES.admin.settings} replace />;
   return (
     <Page title={TITLES[section]} width="narrow" back={{ to: ROUTES.admin.settings, label: 'Paramètres' }}>
-      {error ? <EmptyState title="Paramètres indisponibles" description={error} /> : !data ? <SkeletonRows rows={3} /> : section === 'commission' ? <CommissionForm s={data} /> : <DelaysForm s={data} />}
+      {error ? <EmptyState title="Paramètres indisponibles" description={error} /> : !data ? <SkeletonRows rows={3} /> : section === 'commission' ? <CommissionForm s={data} /> : section === 'prix' ? <PricesForm s={data} /> : <DelaysForm s={data} />}
     </Page>
   );
 };

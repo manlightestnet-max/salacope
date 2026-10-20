@@ -144,15 +144,21 @@ export async function markReceived(userId: string): Promise<void> {
   }
 }
 
+/** An order of an offer that cost nothing: no payment, no hold at LightPay, nothing to release or refund. */
+export const isFree = (row: Pick<OrderRow, 'amounts'>) => row.amounts.total === 0;
+
 const requireHold = (row: OrderRow) => {
   if (!row.lightpay_hold_id) throw new DomainError('Paiement introuvable sur LightPay : contactez le support.', 409);
   return row.lightpay_hold_id;
 };
 
 /** The buyer validates (or the window passed): LightPay pays the seller. */
-export const captureFunds = (row: OrderRow, resolveDispute = false) => lightpay.capture(requireHold(row), `salacope:capture:${row.id}`, resolveDispute);
+export const captureFunds = (row: OrderRow, resolveDispute = false): Promise<unknown> =>
+  isFree(row) ? Promise.resolve(null) : lightpay.capture(requireHold(row), `salacope:capture:${row.id}`, resolveDispute);
 /** Cancelled: LightPay refunds the buyer (to their wallet, or to the number that paid). */
 export async function refundFunds(row: OrderRow, resolveDispute = false): Promise<OrderRefund> {
+  // A free order moved no money: nothing to give back.
+  if (isFree(row)) return { paid: 0, sent: 0, operatorFee: 0, lightpayFee: 0, via: 'wallet', at: new Date().toISOString() };
   const result: any = await lightpay.release(requireHold(row), `salacope:release:${row.id}`, resolveDispute);
   const paid = row.amounts.total;
   const at = new Date().toISOString();
@@ -164,7 +170,77 @@ export async function refundFunds(row: OrderRow, resolveDispute = false): Promis
   const releaseAt = result.refund.release_at ? new Date(result.refund.release_at).toISOString() : undefined;
   return { paid, sent, operatorFee: Math.max(0, paid - sent - lightpayFee), lightpayFee, via: 'mobile_money', at, ...(releaseAt ? { releaseAt } : {}) };
 }
-export const freezeFunds = (row: OrderRow, reason: string) => lightpay.dispute(requireHold(row), reason);
+export const freezeFunds = (row: OrderRow, reason: string): Promise<unknown> => (isFree(row) ? Promise.resolve(null) : lightpay.dispute(requireHold(row), reason));
+
+export interface NewOrder {
+  listingId: string;
+  sellerId: string;
+  buyerId: string;
+  /** What was agreed at checkout: the offer as it was, the buyer, the invoice, the brief and the amounts. */
+  details: { item: Order['item']; buyer: Order['buyer']; invoice: Order['invoice'] | null; brief?: Order['brief']; amounts: Order['amounts'] };
+  payment: Order['payment'];
+  /** The money held at LightPay (null for a free offer). */
+  holdId: string | null;
+  attemptId: string | null;
+}
+
+/**
+ * Creates the order of a payment that went through, or of a free offer taken without paying (same rows, same events, same
+ * notifications). A free digital product is complete at once: there is no money to hold and release.
+ */
+export async function insertOrder(q: Query, o: NewOrder): Promise<{ id: string; number: string }> {
+  const d = o.details;
+  const [{ n }] = await q<{ n: number }>("SELECT nextval('order_number_seq') AS n");
+  const now = new Date().toISOString();
+  const digital = d.item.kind === 'digital';
+  const free = d.amounts.total === 0;
+  const id = newId('ord');
+  const number = `SC-${n}`;
+  await q(
+    `INSERT INTO orders (id, number, listing_id, item, seller_id, buyer_id, buyer, invoice, payment, brief, amounts, status,
+       release_at, attempt_id, lightpay_hold_id, created_at, updated_at)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14, $15, $16, $16)`,
+    [
+      id,
+      number,
+      o.listingId,
+      json(d.item),
+      o.sellerId,
+      o.buyerId,
+      json(d.buyer),
+      json(d.invoice),
+      json(o.payment),
+      json(d.brief ?? []),
+      json(d.amounts),
+      digital ? (free ? 'completed' : 'delivered') : 'paid',
+      digital && !free ? addDays(now, PLATFORM.digitalHoldDays) : null,
+      o.attemptId,
+      o.holdId,
+      now,
+    ]
+  );
+  const event = (type: string, actor: string | null, note: string | null = null) =>
+    q('INSERT INTO order_events (id, order_id, type, actor_id, note, at) VALUES ($1, $2, $3, $4, $5, $6)', [newId('evt'), id, type, actor, note, now]);
+  await event('paid', o.buyerId, free ? 'Offre gratuite : aucun paiement' : null);
+  if (digital) await event('delivered', null);
+  if (digital && free) await event('completed', null);
+  await notify(q, [
+    {
+      userId: o.sellerId,
+      event: free ? 'sale.free' : 'sale.new',
+      vars: { commande: number, offre: d.item.title, ...(free ? {} : { montant: formatXaf(d.amounts.net) }) },
+      href: orderHref(id, 'seller'),
+    },
+    // The buyer's receipt: a guest also gets it by e-mail, with the download link of a digital product.
+    {
+      userId: o.buyerId,
+      event: free ? (digital ? 'purchase.free_ready' : 'purchase.free') : digital ? 'purchase.ready' : 'purchase.paid',
+      vars: { commande: number, offre: d.item.title },
+      href: orderHref(id, 'buyer'),
+    },
+  ]);
+  return { id, number };
+}
 
 /**
  * A payment attempt settles from its LightPay session: completed -> the order is created
@@ -180,52 +256,16 @@ export async function settleAttempt(attemptId: string, known?: LightPaySession):
     if (!a || a.status !== 'pending') return;
 
     if (session.status === 'COMPLETED') {
-      const d = a.details;
-      const [{ n }] = await q<{ n: number }>("SELECT nextval('order_number_seq') AS n");
-      const now = new Date().toISOString();
-      const digital = d.item.kind === 'digital';
-      const orderId = newId('ord');
-      await q(
-        `INSERT INTO orders (id, number, listing_id, item, seller_id, buyer_id, buyer, invoice, payment, brief, amounts, status,
-           release_at, attempt_id, lightpay_hold_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14, $15, $16, $16)`,
-        [
-          orderId,
-          `SC-${n}`,
-          a.listing_id,
-          json(d.item),
-          a.seller_id,
-          a.buyer_id,
-          json(d.buyer),
-          json(d.invoice),
-          json({ reference: session.id, code: a.code, via: session.payer?.type === 'lightpay' ? 'wallet' : 'mobile_money' }),
-          json(d.brief ?? []),
-          json(d.amounts),
-          digital ? 'delivered' : 'paid',
-          digital ? addDays(now, PLATFORM.digitalHoldDays) : null,
-          a.id,
-          session.hold_id,
-          now,
-        ]
-      );
-      await q('INSERT INTO order_events (id, order_id, type, actor_id, at) VALUES ($1, $2, $3, $4, $5)', [newId('evt'), orderId, 'paid', a.buyer_id, now]);
-      if (digital) await q('INSERT INTO order_events (id, order_id, type, actor_id, at) VALUES ($1, $2, $3, NULL, $4)', [newId('evt'), orderId, 'delivered', now]);
+      const { id: orderId } = await insertOrder(q, {
+        listingId: a.listing_id,
+        sellerId: a.seller_id,
+        buyerId: a.buyer_id,
+        details: a.details,
+        payment: { reference: session.id, code: a.code, via: session.payer?.type === 'lightpay' ? 'wallet' : 'mobile_money' },
+        holdId: session.hold_id,
+        attemptId: a.id,
+      });
       await q("UPDATE payment_attempts SET status = 'succeeded', order_id = $2, updated_at = NOW(), checked_at = NOW() WHERE id = $1", [a.id, orderId]);
-      await notify(q, [
-        {
-          userId: a.seller_id,
-          event: 'sale.new',
-          vars: { commande: `SC-${n}`, offre: d.item.title, montant: formatXaf(d.amounts.net) },
-          href: orderHref(orderId, 'seller'),
-        },
-        // The buyer's receipt: a guest also gets it by e-mail, with the download link of a digital product.
-        {
-          userId: a.buyer_id,
-          event: digital ? 'purchase.ready' : 'purchase.paid',
-          vars: { commande: `SC-${n}`, offre: d.item.title },
-          href: orderHref(orderId, 'buyer'),
-        },
-      ]);
       return;
     }
 

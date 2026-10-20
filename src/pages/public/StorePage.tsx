@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { Button, Container, EmptyState, SkeletonStore, useBooting } from '@/shared/ui';
 import { useDb } from '@/shared/db';
 import { ROUTES } from '@/shared/config/routes';
 import { useFreshCatalog, useStoreLink } from '@/shared/api';
-import { SellerProfile, useShopFront } from '@/features/catalog';
+import { SellerProfile, trackStore, useShopFront } from '@/features/catalog';
 
 /**
  * `/boutique/:id` and `/@handle` (verified stores): shareable store page (quick view comes
@@ -20,6 +20,12 @@ export const PublicStorePage: React.FC = () => {
   );
 
   useShopFront(seller);
+  // The store's own visits (never the owner's) feed the seller's dashboard.
+  const sellerId = seller?.id;
+  const mine = useDb((s) => s.sessionUserId === sellerId, [sellerId]);
+  useEffect(() => {
+    if (sellerId && !mine) trackStore(sellerId);
+  }, [sellerId, mine]);
   const opening = useStoreLink(at ? `@${at}` : id, Boolean(seller));
   const booting = useBooting();
   if ((booting || opening) && !seller) return <Container size="lg" className="py-8"><SkeletonStore /></Container>;

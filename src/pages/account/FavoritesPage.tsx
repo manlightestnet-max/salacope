@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, LayoutGrid, Rows3 } from 'lucide-react';
 import { Button, EmptyState, Page, Panel, Segmented, Table, TBody, THead, Td, Th, Tr } from '@/shared/ui';
 import { useDb } from '@/shared/db';
-import { formatDate, formatXaf } from '@/shared/lib';
+import { formatDate, formatPrice } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { displayName, useCurrentUser } from '@/features/session';
 import { FavoriteButton } from '@/features/library';
@@ -104,7 +104,7 @@ export const FavoritesPage: React.FC = () => {
                       <div className="min-w-0">
                         <div className="text-gray-900 truncate group-hover:underline underline-offset-2">{listing.title}</div>
                         <div className="text-xs text-gray-500 truncate">
-                          <span className="sm:hidden font-medium text-gray-900 tabular-nums">{formatXaf(listing.priceXaf)} · </span>
+                          <span className="sm:hidden font-medium text-gray-900 tabular-nums">{formatPrice(listing.priceXaf)} · </span>
                           {displayName(seller)}
                         </div>
                       </div>
@@ -114,7 +114,7 @@ export const FavoritesPage: React.FC = () => {
                     <KindBadge kind={listing.kind} category={listing.category} />
                   </Td>
                   <Td align="right" className="hidden sm:table-cell font-medium text-gray-900 whitespace-nowrap">
-                    {formatXaf(listing.priceXaf)}
+                    {formatPrice(listing.priceXaf)}
                   </Td>
                   <Td className="hidden xl:table-cell whitespace-nowrap text-gray-500">{formatDate(savedAt)}</Td>
                   <Td align="right" className="pl-0 sm:pl-4">

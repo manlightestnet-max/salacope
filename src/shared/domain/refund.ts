@@ -15,6 +15,7 @@ export const refundDepartureTime = (r: OrderRefund): string | null =>
 
 /** What a refund came to, in one sentence ("Vous êtes remboursé de …"). */
 export const refundSentence = (r: OrderRefund, format: (n: number) => string): string => {
+  if (r.paid === 0) return 'Commande annulée : elle était gratuite, rien n’est à rembourser.';
   if (r.sent <= 0) return 'Le montant est trop faible pour couvrir les frais de retrait : contactez le support.';
   const departs = refundDepartureTime(r);
   const when = departs ? ` Le virement part à ${departs}.` : '';

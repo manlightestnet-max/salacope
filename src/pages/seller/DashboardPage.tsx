@@ -52,13 +52,13 @@ export const DashboardPage: React.FC = () => {
   const range = pick.id === 'custom' && pick.from && pick.to ? { from: pick.from, to: pick.to } : (presets.find((p) => p.id === pick.id) ?? presets[1]).range;
 
   const offer = offerId !== 'all' && listings.some((m) => m.listing.id === offerId) ? offerId : undefined;
-  const { rows, failed } = useSellerAnalytics(range);
-  const f = useMemo(() => dashboardFigures(orders, rows ?? [], range, offer), [orders, rows, range.from, range.to, offer]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { counted, failed } = useSellerAnalytics(range);
+  const f = useMemo(() => dashboardFigures(orders, counted?.stats ?? [], range, offer, counted?.store), [orders, counted, range.from, range.to, offer]); // eslint-disable-line react-hooks/exhaustive-deps
   const titles = useMemo(() => new Map(listings.map((m) => [m.listing.id, m.listing])), [listings]);
 
   const todo = orders.filter((o) => needsAction(o, 'seller')).length;
-  const visits = rows === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : formatNumber(f.views);
-  const rate = rows === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : percent(f.conversion);
+  const visits = counted === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : formatNumber(f.views);
+  const rate = counted === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : percent(f.conversion);
 
   const bars = (value: (p: (typeof f.series)[number]) => number): BarDatum[] => f.series.map((p) => ({ key: p.key, label: p.label, value: value(p) }));
   const every = Math.max(1, Math.ceil(f.series.length / 6));
@@ -112,7 +112,7 @@ export const DashboardPage: React.FC = () => {
   );
   const visitTiles = (
     <>
-      <StatTile label="Nombre total de visites" value={visits} help="Fiche d’une offre ouverte, une fois par visite. Vos propres visites ne comptent pas." />
+      <StatTile label="Nombre total de visites" value={visits} help="Fiches d’offres ouvertes, une seule fois par visiteur et par jour. Vos propres visites, les robots et les aperçus de liens ne comptent pas." />
       <StatTile label="Taux de conversion" value={rate} help="Les ventes divisées par les visites sur la période." />
     </>
   );
@@ -193,15 +193,20 @@ export const DashboardPage: React.FC = () => {
       {view === 'visites' && (
         <div className="space-y-4">
           <StatSection title="Visites">
-            {visitTiles}
+            <StatTile label="Nombre total de visites" value={visits} help="Fiches d’offres ouvertes, une seule fois par visiteur et par jour. Vos propres visites, les robots et les aperçus de liens ne comptent pas." />
+            <StatTile
+              label="Visites de la boutique"
+              value={counted === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed || offer ? '—' : formatNumber(f.storeViews)}
+              help="Page de votre boutique ouverte, une seule fois par visiteur et par jour. Non disponible quand une offre est filtrée."
+            />
             <StatTile
               label="Clics sur « Acheter »"
-              value={rows === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : formatNumber(f.clicks)}
+              value={counted === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : formatNumber(f.clicks)}
               help="Visiteurs qui ont touché « Acheter » ou « Commander » sur la période."
             />
             <StatTile
               label="Taux de clic"
-              value={rows === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : percent(f.clickRate)}
+              value={counted === undefined && !failed ? <Skeleton className="h-8 w-16" /> : failed ? '—' : percent(f.clickRate)}
               help="Les clics sur « Acheter » divisés par les visites."
             />
           </StatSection>

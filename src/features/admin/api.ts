@@ -194,6 +194,14 @@ export interface AdminSettings {
   feeRateService: number | null;
   digitalHoldDays: number;
   serviceValidationDays: number;
+  /** Smallest price of an offer, general and per kind (`null` = the general one). */
+  minPriceXaf: number;
+  minPriceDigitalXaf: number | null;
+  minPriceServiceXaf: number | null;
+  /** Longest promotion with a countdown, in days. */
+  promoMaxDays: number;
+  /** Sellers may set a price of 0. */
+  freeOffers: boolean;
 }
 
 export interface AdminLockdown {

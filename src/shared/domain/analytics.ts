@@ -16,6 +16,18 @@ export interface DayStat {
   clicks: number;
 }
 
+/** Visits of the store's own page on one day. */
+export interface StoreDayStat {
+  day: string;
+  views: number;
+}
+
+/** What the server counted over a period. */
+export interface Analytics {
+  stats: DayStat[];
+  store: StoreDayStat[];
+}
+
 const pad = (n: number) => String(n).padStart(2, '0');
 export const dayOf = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const at = (day: string) => new Date(`${day}T12:00:00`);
@@ -59,6 +71,8 @@ export interface DashboardFigures {
   /** Customers who bought from this store at least twice (ever). */
   repeatCustomers: number;
   views: number;
+  /** Visits of the store's own page. */
+  storeViews: number;
   clicks: number;
   conversion: number | null;
   clickRate: number | null;
@@ -75,7 +89,7 @@ const MONTHS_FROM = 92;
  * Everything the dashboard shows for a period. `listingId` narrows sales and visits to one offer; new customers are always
  * judged against the whole store (someone who bought another offer before is not new).
  */
-export function dashboardFigures(orders: Order[], stats: DayStat[], range: DateRange, listingId?: string): DashboardFigures {
+export function dashboardFigures(orders: Order[], stats: DayStat[], range: DateRange, listingId?: string, store: StoreDayStat[] = []): DashboardFigures {
   const live = orders.filter((o) => o.status !== 'cancelled');
   const firstDay = new Map<string, string>();
   const boughtTimes = new Map<string, number>();
@@ -157,6 +171,7 @@ export function dashboardFigures(orders: Order[], stats: DayStat[], range: DateR
     newCustomers: [...buyers.keys()].filter((id) => inRange(firstDay.get(id) ?? '')).length,
     repeatCustomers: [...buyers.keys()].filter((id) => (boughtTimes.get(id) ?? 0) >= 2).length,
     views,
+    storeViews: store.filter((s) => inRange(s.day)).reduce((sum, s) => sum + s.views, 0),
     clicks,
     conversion: ratio(sold.length, views),
     clickRate: ratio(clicks, views),

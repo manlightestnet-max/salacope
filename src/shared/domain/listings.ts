@@ -1,4 +1,4 @@
-import { PLATFORM } from '../config/platform.js';
+import { PLATFORM, minPriceFor } from '../config/platform.js';
 import type { BriefQuestion, Category, Listing, ListingKind } from '../db/schema.js';
 import { DomainError } from './errors.js';
 
@@ -12,6 +12,11 @@ export interface ListingInput {
   priceXaf: number;
   /** Promotion: former price, higher than `priceXaf`; empty = no promotion. */
   compareAtXaf?: number;
+  /**
+   * End of a promotion shown with a countdown (ISO date). Needs `compareAtXaf`; at that moment the price goes back to
+   * `compareAtXaf`. Empty = a lasting reduction (no countdown).
+   */
+  promoEndsAt?: string;
   coverImage: string;
   /** Extra images after the cover. `undefined`: unchanged (not loaded yet in the editor). */
   gallery?: string[];
@@ -46,6 +51,17 @@ export function featuresError(features: string[] | undefined): string | undefine
   return undefined;
 }
 
+/** What is wrong with a promotion's end date, in words the seller can act on (the same check runs in the editor and on the server). */
+export function promoError(endsAt: string | undefined, compareAtXaf: number | undefined, now = Date.now()): string | undefined {
+  if (!endsAt) return undefined;
+  const end = Date.parse(endsAt);
+  if (!Number.isFinite(end)) return 'Date de fin de la promotion invalide.';
+  if (!compareAtXaf) return 'Une promotion avec compte à rebours demande l’ancien prix (prix barré).';
+  if (end <= now + 60_000) return 'La fin de la promotion doit être dans le futur.';
+  if (end > now + PLATFORM.promoMaxDays * 86_400_000) return `Une promotion dure ${PLATFORM.promoMaxDays} jours au plus.`;
+  return undefined;
+}
+
 export function validateListing(input: ListingInput): void {
   if (input.kind !== 'digital' && input.kind !== 'service') throw new DomainError('Type d’offre invalide.');
   if (!CATEGORY_IDS.includes(input.category)) throw new DomainError('Catégorie invalide.');
@@ -59,8 +75,12 @@ export function validateListing(input: ListingInput): void {
   // Blank lines are not items (they are dropped when saved), so they never count.
   const features = featuresError(Array.isArray(input.features) ? input.features : []);
   if (features) throw new DomainError(features);
-  if (!Number.isFinite(input.priceXaf) || input.priceXaf < PLATFORM.minPriceXaf) {
-    throw new DomainError(`Le prix minimum est de ${PLATFORM.minPriceXaf} FCFA.`);
+  const minimum = minPriceFor(input.kind);
+  // 0 is a free offer (or free during a promotion): allowed only when the administration lets sellers do it.
+  if (input.priceXaf === 0) {
+    if (!PLATFORM.freeOffers) throw new DomainError(`Les offres gratuites ne sont pas autorisées : le prix minimum est de ${minimum} FCFA.`);
+  } else if (!Number.isFinite(input.priceXaf) || input.priceXaf < minimum) {
+    throw new DomainError(`Le prix minimum est de ${minimum} FCFA.`);
   }
   if (input.priceXaf > LIMITS.price) throw new DomainError('Prix trop élevé.');
   if (input.gallery !== undefined) {
@@ -71,6 +91,12 @@ export function validateListing(input: ListingInput): void {
   if (input.compareAtXaf) {
     if (!Number.isInteger(input.compareAtXaf) || input.compareAtXaf > LIMITS.price) throw new DomainError('Prix barré invalide.');
     if (input.compareAtXaf <= input.priceXaf) throw new DomainError('Le prix barré doit être plus élevé que le prix de vente.');
+    // Free during a promotion: the price it goes back to is a real price, so it respects the minimum.
+    if (input.priceXaf === 0 && input.compareAtXaf < minimum) throw new DomainError(`Une offre gratuite pendant une promotion repasse à un prix d’au moins ${minimum} FCFA.`);
+  }
+  if (input.promoEndsAt) {
+    const error = promoError(input.promoEndsAt, input.compareAtXaf);
+    if (error) throw new DomainError(error);
   }
   // FCFA have no centimes: 100.50 is refused, never rounded behind the seller's back.
   if (!Number.isInteger(input.priceXaf)) throw new DomainError('Prix en FCFA entiers, sans virgule ni point.');
@@ -93,7 +119,7 @@ export function validateListing(input: ListingInput): void {
 type ListingFields = Pick<
   Listing,
   'kind' | 'category' | 'title' | 'summary' | 'description' | 'features' | 'priceXaf' | 'compareAtXaf' | 'coverImage' | 'deliveryDays' | 'revisions' | 'briefQuestions' | 'file'
-> & { gallery?: string[] };
+> & { gallery?: string[]; promoEndsAt?: string };
 
 /** The stored fields of a listing, cleaned. Past orders keep their own snapshot. */
 export const listingFields = (input: ListingInput): ListingFields => ({
@@ -105,6 +131,7 @@ export const listingFields = (input: ListingInput): ListingFields => ({
   features: featureLines(input.features),
   priceXaf: Math.round(input.priceXaf),
   compareAtXaf: input.compareAtXaf ? Math.round(input.compareAtXaf) : undefined,
+  promoEndsAt: input.compareAtXaf && input.promoEndsAt ? new Date(input.promoEndsAt).toISOString() : undefined,
   coverImage: String(input.coverImage ?? '').trim(),
   gallery: input.gallery,
   deliveryDays: input.kind === 'service' ? Math.round(input.deliveryDays!) : undefined,

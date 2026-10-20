@@ -6,6 +6,7 @@ import { ROUTES } from '../../src/shared/config/routes.js';
 import type { Listing } from '../../src/shared/db/schema.js';
 import { Query, json, query, tx } from '../db.js';
 import { route } from '../http.js';
+import { firstSight } from '../visits.js';
 import { newId } from '../ids.js';
 import {
   loadAttempts,
@@ -59,7 +60,7 @@ async function loadCatalog(userId: string | null, stores: string[]) {
   const [users, listings, stats, reviews] = await Promise.all([
     loadUsers(userId, stores),
     query(
-      `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, cover_image, delivery_days,
+      `SELECT id, seller_id, kind, category, title, summary, description, features, price_xaf, compare_at_xaf, promo_starts_at, promo_ends_at, cover_image, delivery_days,
          revisions, brief_questions, file, status, published_at, created_at, updated_at, jsonb_array_length(gallery) AS gallery_count,
          CASE WHEN seller_id = $1 THEN hidden_reason END AS hidden_reason, CASE WHEN seller_id = $1 THEN hidden_at END AS hidden_at
        FROM listings WHERE ${VISIBLE_LISTINGS}
@@ -79,7 +80,7 @@ async function loadCatalog(userId: string | null, stores: string[]) {
 async function catalogVersion(userId: string | null, stores: string[]) {
   const [row] = await query<{ v: string }>(
     `SELECT md5(
-       COALESCE((SELECT string_agg(id || ':' || updated_at::text, ',' ORDER BY id) FROM listings WHERE ${VISIBLE_LISTINGS}), '') || '|' ||
+       COALESCE((SELECT string_agg(id || ':' || updated_at::text || ':' || (promo_ends_at IS NOT NULL AND promo_ends_at <= NOW())::text, ',' ORDER BY id) FROM listings WHERE ${VISIBLE_LISTINGS}), '') || '|' ||
        COALESCE((SELECT string_agg(user_id || ':' || store_name || ':' || COALESCE(headline, '') || ':' || COALESCE(city, '') || ':' || COALESCE(handle, '') || ':' ||
                  kyc_status || ':' || COALESCE(suspended_at::text, '') || ':' || COALESCE(length(logo), 0) || ':' || private_store::text, ',' ORDER BY user_id)
                  FROM merchants WHERE NOT private_store OR user_id = ANY($2)), '') || '|' ||
@@ -200,7 +201,7 @@ const tellFollowers = async (q: Query, listing: Listing) => {
 };
 
 const checkedInput = (body: any): ListingInput => {
-  const input = { ...body, gallery: Array.isArray(body.gallery) ? body.gallery : undefined, priceXaf: Number(body.priceXaf), compareAtXaf: body.compareAtXaf ? Number(body.compareAtXaf) : undefined, deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined } as ListingInput;
+  const input = { ...body, gallery: Array.isArray(body.gallery) ? body.gallery : undefined, priceXaf: Number(body.priceXaf), compareAtXaf: body.compareAtXaf ? Number(body.compareAtXaf) : undefined, deliveryDays: body.deliveryDays ? Number(body.deliveryDays) : undefined, promoEndsAt: body.promoEndsAt || undefined } as ListingInput;
   validateListing(input);
   const fields = listingFields(input);
   if (!fields.coverImage) throw new DomainError('Ajoutez une image de couverture.');
@@ -241,8 +242,9 @@ route('POST', '/listings', async (ctx) => {
     if (publish) await requirePayouts(q, sellerId);
     await q(
       `INSERT INTO listings (id, seller_id, kind, category, title, summary, description, features, price_xaf, cover_image,
-         delivery_days, revisions, brief_questions, file, status, published_at, compare_at_xaf, gallery)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16, $17, $18::jsonb)`,
+         delivery_days, revisions, brief_questions, file, status, published_at, compare_at_xaf, gallery, promo_starts_at, promo_ends_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15, $16, $17, $18::jsonb,
+         CASE WHEN $19::timestamptz IS NULL THEN NULL ELSE NOW() END, $19::timestamptz)`,
       [
         id,
         sellerId,
@@ -262,6 +264,7 @@ route('POST', '/listings', async (ctx) => {
         publish ? new Date().toISOString() : null,
         fields.compareAtXaf ?? null,
         json(fields.gallery ?? []),
+        fields.promoEndsAt ?? null,
       ]
     );
     const created = (await loadListing(id, q))!;
@@ -279,7 +282,9 @@ route('PATCH', '/listings/:id', async (ctx) => {
     await q(
       `UPDATE listings SET kind = $2, category = $3, title = $4, summary = $5, description = $6, features = $7::jsonb,
          price_xaf = $8, cover_image = $9, delivery_days = $10, revisions = $11, brief_questions = $12::jsonb, file = $13::jsonb,
-         compare_at_xaf = $14, gallery = COALESCE($15::jsonb, gallery), updated_at = NOW()
+         compare_at_xaf = $14, gallery = COALESCE($15::jsonb, gallery),
+         promo_starts_at = CASE WHEN $17::boolean THEN promo_starts_at WHEN $16::timestamptz IS NULL THEN NULL WHEN promo_ends_at IS DISTINCT FROM $16::timestamptz THEN NOW() ELSE promo_starts_at END,
+         promo_ends_at = CASE WHEN $17::boolean THEN promo_ends_at ELSE $16::timestamptz END, updated_at = NOW()
        WHERE id = $1`,
       [
         ctx.params.id,
@@ -297,6 +302,9 @@ route('PATCH', '/listings/:id', async (ctx) => {
         json(fields.file),
         fields.compareAtXaf ?? null,
         fields.gallery === undefined ? null : json(fields.gallery),
+        fields.promoEndsAt ?? null,
+        // A client that does not know promotions (an older app) never sends the field: the running promotion is left alone.
+        !('promoEndsAt' in (ctx.body.listing ?? {})),
       ]
     );
     return (await loadListing(ctx.params.id, q))!;
@@ -362,15 +370,33 @@ route('GET', '/listings/:id/gallery', async (ctx) => {
   return { images: row.gallery ?? [] };
 });
 
-/** A visit of the offer page, or a click on Buy. The seller's own visits never count. */
+/**
+ * A visit of the offer page, or a click on Buy: counted once per visitor and per day, never for the seller's own visits nor
+ * for crawlers and scripts (so a refresh, a bot or a loop cannot inflate the seller's figures).
+ */
 route('POST', '/listings/:id/track', async (ctx) => {
-  const column = ctx.body.type === 'click' ? 'clicks' : 'views';
+  const type = ctx.body.type === 'click' ? 'click' : 'view';
+  const column = type === 'click' ? 'clicks' : 'views';
   const viewer = await ctx.viewerId();
+  const [offer] = await query("SELECT id FROM listings WHERE id = $1 AND status = 'published' AND seller_id IS DISTINCT FROM $2", [ctx.params.id, viewer]);
+  if (!offer || !(await firstSight(type, offer.id, ctx.headers))) return { ok: true };
   await query(
-    `INSERT INTO listing_daily_stats (listing_id, day, ${column})
-     SELECT id, CURRENT_DATE, 1 FROM listings WHERE id = $1 AND status = 'published' AND seller_id IS DISTINCT FROM $2
+    `INSERT INTO listing_daily_stats (listing_id, day, ${column}) VALUES ($1, CURRENT_DATE, 1)
      ON CONFLICT (listing_id, day) DO UPDATE SET ${column} = listing_daily_stats.${column} + 1`,
-    [ctx.params.id, viewer]
+    [offer.id]
+  );
+  return { ok: true };
+});
+
+/** A visit of a store's own page (`/boutique/:id`, `/@handle`), counted like an offer's: once per visitor and per day. */
+route('POST', '/stores/:id/track', async (ctx) => {
+  const viewer = await ctx.viewerId();
+  const [store] = await query('SELECT user_id FROM merchants WHERE user_id = $1 AND user_id IS DISTINCT FROM $2', [ctx.params.id, viewer]);
+  if (!store || !(await firstSight('store', store.user_id, ctx.headers))) return { ok: true };
+  await query(
+    `INSERT INTO store_daily_stats (seller_id, day, views) VALUES ($1, CURRENT_DATE, 1)
+     ON CONFLICT (seller_id, day) DO UPDATE SET views = store_daily_stats.views + 1`,
+    [store.user_id]
   );
   return { ok: true };
 });
@@ -403,7 +429,11 @@ route('GET', '/seller/analytics', async (ctx) => {
      WHERE l.seller_id = $1 AND s.day BETWEEN $2::date AND $3::date ORDER BY s.day LIMIT 50000`,
     [sellerId, from, to]
   );
-  return { stats: rows };
+  const store = await query(
+    'SELECT day::text AS day, views FROM store_daily_stats WHERE seller_id = $1 AND day BETWEEN $2::date AND $3::date ORDER BY day',
+    [sellerId, from, to]
+  );
+  return { stats: rows, store };
 });
 
 /** The seller's figures per offer: views, clicks (30 days and all time) and revenue of completed sales. */

@@ -18,8 +18,15 @@ export const PLATFORM = {
   /** Time the buyer has to approve the Mobile Money request on their phone. */
   paymentTimeoutSeconds: 60,
   minWithdrawalXaf: 1000,
-  /** Same as the mobile-money minimum: below it an offer could not be paid. */
+  /** Smallest price of an offer. Keep it at or above LightPay's own minimum deposit: below it an offer could not be paid. */
   minPriceXaf: 1000,
+  /** Own minimum for digital products / services; `null` = the general one. Set by the administration. */
+  minPriceDigitalXaf: null as number | null,
+  minPriceServiceXaf: null as number | null,
+  /** Longest promotion with a countdown, in days: its price goes back to the former one at the end. */
+  promoMaxDays: 30,
+  /** Sellers may set a price of 0 (a free offer, or free during a promotion). Set by the administration. */
+  freeOffers: true,
   country: 'République du Congo',
   /** Where the team is based (footer). */
   headquarters: 'Luanda, Angola',
@@ -31,6 +38,9 @@ export const PLATFORM = {
 /** The commission rate that applies to an offer of this kind. */
 export const feeRateFor = (kind?: 'digital' | 'service') => (kind === 'digital' ? PLATFORM.feeRateDigital : kind === 'service' ? PLATFORM.feeRateService : null) ?? PLATFORM.feeRate;
 
+/** The smallest price an offer of this kind may have. */
+export const minPriceFor = (kind?: 'digital' | 'service') => (kind === 'digital' ? PLATFORM.minPriceDigitalXaf : kind === 'service' ? PLATFORM.minPriceServiceXaf : null) ?? PLATFORM.minPriceXaf;
+
 export const computeFee = (amount: number, kind?: 'digital' | 'service') => Math.round(amount * feeRateFor(kind));
 
 /** What the administration may change; the server sends it with the data and the app applies it. */
@@ -40,10 +50,20 @@ export interface PlatformSettings {
   feeRateService: number | null;
   digitalHoldDays: number;
   serviceValidationDays: number;
+  minPriceXaf: number;
+  minPriceDigitalXaf: number | null;
+  minPriceServiceXaf: number | null;
+  promoMaxDays: number;
+  freeOffers: boolean;
 }
+
+/** Lowest minimum price the administration may set (whole FCFA), and the highest. */
+export const MIN_PRICE_RANGE = { min: 100, max: 1_000_000 } as const;
 
 const rate = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 0.5 ? v : undefined);
 const days = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 60 ? v : undefined);
+const minPrice = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= MIN_PRICE_RANGE.min && v <= MIN_PRICE_RANGE.max ? v : undefined);
+const promoDays = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 365 ? v : undefined);
 
 /** Replaces the defaults with the saved settings (values that make no sense are ignored). */
 export function applyPlatform(s?: Partial<PlatformSettings> | null) {
@@ -53,6 +73,11 @@ export function applyPlatform(s?: Partial<PlatformSettings> | null) {
   PLATFORM.feeRateService = s.feeRateService === null ? null : (rate(s.feeRateService) ?? PLATFORM.feeRateService);
   PLATFORM.digitalHoldDays = days(s.digitalHoldDays) ?? PLATFORM.digitalHoldDays;
   PLATFORM.serviceValidationDays = days(s.serviceValidationDays) ?? PLATFORM.serviceValidationDays;
+  PLATFORM.minPriceXaf = minPrice(s.minPriceXaf) ?? PLATFORM.minPriceXaf;
+  PLATFORM.minPriceDigitalXaf = s.minPriceDigitalXaf === null ? null : (minPrice(s.minPriceDigitalXaf) ?? PLATFORM.minPriceDigitalXaf);
+  PLATFORM.minPriceServiceXaf = s.minPriceServiceXaf === null ? null : (minPrice(s.minPriceServiceXaf) ?? PLATFORM.minPriceServiceXaf);
+  PLATFORM.promoMaxDays = promoDays(s.promoMaxDays) ?? PLATFORM.promoMaxDays;
+  if (typeof s.freeOffers === 'boolean') PLATFORM.freeOffers = s.freeOffers;
 }
 
 export const percent = (r: number) => `${Math.round(r * 1000) / 10} %`;

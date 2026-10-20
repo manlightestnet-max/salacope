@@ -74,6 +74,11 @@ export interface Listing {
   priceXaf: number;
   /** Promotion: the former price, struck through next to `priceXaf` (always higher). */
   compareAtXaf?: number;
+  /**
+   * A promotion with a countdown, only while it runs: `priceXaf` is then the promotional price and `compareAtXaf` the regular one,
+   * which comes back at `endsAt`.
+   */
+  promo?: { startsAt: string; endsAt: string };
   /** Number of extra images after the cover (loaded when the offer is opened). */
   galleryCount?: number;
   coverImage: string;
@@ -196,7 +201,7 @@ export interface Order {
    * `code` is the payment attempt that paid the order (quoted in support tickets), `reference` the
    * LightPay payment. `via`: LightPay wallet or Mobile Money (the payer picks on LightPay).
    */
-  payment: { channel?: PaymentChannel; phone?: string; reference: string; code?: string; via?: 'wallet' | 'mobile_money' };
+  payment: { channel?: PaymentChannel; phone?: string; reference: string; code?: string; via?: 'wallet' | 'mobile_money' | 'free' };
   /** Buyer's answers to the listing's brief questions. */
   brief?: { question: string; answer: string }[];
   amounts: { subtotal: number; discount: number; total: number; fee: number; net: number };

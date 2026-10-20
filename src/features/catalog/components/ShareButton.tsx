@@ -2,7 +2,7 @@ import React from 'react';
 import { Facebook, Link2, Mail, MessageCircle, Send, Share2, Twitter } from 'lucide-react';
 import { Button, Menu, MenuItem, useToast } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
-import { formatXaf } from '@/shared/lib';
+import { formatPrice } from '@/shared/lib';
 import { User } from '@/shared/db';
 import { storeHref } from '../model';
 
@@ -70,7 +70,7 @@ ${url}`)}`) },
 
 /** Share an offer (its public page). */
 export const ShareButton: React.FC<{ listing: { id: string; title: string; priceXaf: number }; className?: string }> = ({ listing, className }) => (
-  <ShareMenu url={publicListingUrl(listing.id)} title={listing.title} text={`${listing.title} · ${formatXaf(listing.priceXaf)} sur Salacope`} className={className} />
+  <ShareMenu url={publicListingUrl(listing.id)} title={listing.title} text={`${listing.title} · ${formatPrice(listing.priceXaf)} sur Salacope`} className={className} />
 );
 
 /** Share a store: its own address (@name once verified), else its public page. */

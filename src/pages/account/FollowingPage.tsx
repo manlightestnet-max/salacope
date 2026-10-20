@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck, ChevronDown, UserRound } from 'lucide-react';
 import { EmptyState, Page, Panel, ProtectedImage, SearchField } from '@/shared/ui';
 import { Listing, User, useDb } from '@/shared/db';
-import { formatRelative, formatXaf, getInitials } from '@/shared/lib';
+import { formatPrice, formatRelative, getInitials } from '@/shared/lib';
 import { ROUTES } from '@/shared/config/routes';
 import { displayName, useCurrentUser } from '@/features/session';
 import { FollowButton, markFollowSeen, publishedAt, useFollowUpdates, useFollowedSellers } from '@/features/library';
@@ -28,7 +28,7 @@ const OfferTile: React.FC<{ listing: Listing; isNew: boolean }> = ({ listing, is
       )}
     </div>
     <p className="mt-2 text-xs font-medium text-gray-900 line-clamp-2 group-hover:underline underline-offset-2">{listing.title}</p>
-    <p className="mt-0.5 text-xs text-primary-700 font-semibold tabular-nums">{formatXaf(listing.priceXaf)}</p>
+    <p className="mt-0.5 text-xs text-primary-700 font-semibold tabular-nums">{formatPrice(listing.priceXaf)}</p>
     <p className="text-[11px] text-gray-400">{formatRelative(publishedAt(listing))}</p>
   </Link>
 );

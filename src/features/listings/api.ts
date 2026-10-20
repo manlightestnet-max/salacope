@@ -8,14 +8,14 @@ export { MAX_BRIEF_QUESTIONS };
 /** Checked here for instant feedback, then again by the server. */
 export async function createListing(input: ListingInput, publish: boolean): Promise<Listing> {
   validateListing(input);
-  const { listing } = await mutate<{ listing: Listing }>('POST', '/listings', { listing: input, publish });
+  const { listing } = await mutate<{ listing: Listing }>('POST', '/listings', { listing: { ...input, promoEndsAt: input.promoEndsAt ?? null }, publish });
   return listing;
 }
 
 /** Past orders keep their own snapshot, so edits never change what was sold. */
 export async function updateListing(listingId: string, input: ListingInput): Promise<void> {
   validateListing(input);
-  await mutate('PATCH', `/listings/${encodeURIComponent(listingId)}`, { listing: input });
+  await mutate('PATCH', `/listings/${encodeURIComponent(listingId)}`, { listing: { ...input, promoEndsAt: input.promoEndsAt ?? null } });
 }
 
 export async function setListingStatus(listingId: string, status: Listing['status']): Promise<void> {

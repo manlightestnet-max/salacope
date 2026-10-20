@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { request } from '@/shared/api';
 import { Listing, db } from '@/shared/db';
 import { noteListing } from '@/shared/lib';
-import type { DateRange, DayStat } from '@/shared/domain';
+import type { Analytics, DateRange } from '@/shared/domain';
 
 /** Extra images of each offer, fetched once per version of the offer. */
 const galleries = new Map<string, Promise<string[]>>();
@@ -75,8 +75,19 @@ export interface ListingInsight {
 }
 
 /** Views and clicks of the seller's offers, day by day, over the dashboard's period. */
-export const fetchAnalytics = (range: DateRange) =>
-  request<{ stats: DayStat[] }>('GET', `/seller/analytics?from=${range.from}&to=${range.to}`).then((r) => r.stats);
+export const fetchAnalytics = (range: DateRange) => request<Analytics>('GET', `/seller/analytics?from=${range.from}&to=${range.to}`);
+
+/** A visit of a store's own page (once per browser session; the server counts one per visitor and per day). */
+export function trackStore(sellerId: string) {
+  const key = `salacope:viewed-store:${sellerId}`;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    // private mode: count it anyway
+  }
+  void request('POST', `/stores/${encodeURIComponent(sellerId)}/track`, {}).catch(() => undefined);
+}
 
 export const fetchInsights = () => request<{ insights: ListingInsight[] }>('GET', '/seller/insights').then((r) => r.insights);
 

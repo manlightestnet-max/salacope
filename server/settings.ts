@@ -36,6 +36,11 @@ export const currentPlatform = (): PlatformSettings => ({
   feeRateService: PLATFORM.feeRateService,
   digitalHoldDays: PLATFORM.digitalHoldDays,
   serviceValidationDays: PLATFORM.serviceValidationDays,
+  minPriceXaf: PLATFORM.minPriceXaf,
+  minPriceDigitalXaf: PLATFORM.minPriceDigitalXaf,
+  minPriceServiceXaf: PLATFORM.minPriceServiceXaf,
+  promoMaxDays: PLATFORM.promoMaxDays,
+  freeOffers: PLATFORM.freeOffers,
 });
 
 export async function ensurePlatform(): Promise<void> {

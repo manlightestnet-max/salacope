@@ -22,6 +22,8 @@ import {
   formatDay,
   formatXaf,
   freezeFunds,
+  insertOrder,
+  isFree,
   refundFunds,
   settleAttempt,
   shapeOf,
@@ -29,7 +31,8 @@ import {
   toSeller,
   transition,
 } from '../orders.js';
-import { attemptView } from '../views.js';
+import { attemptView, priceNow } from '../views.js';
+import { addressOf, secondsToWait } from '../ratelimit.js';
 import { requireNotBlocked } from './chat.js';
 import { openDisputeRoom } from '../disputes.js';
 import { SELLABLE_SELLERS } from '../compliance.js';
@@ -75,7 +78,6 @@ route('POST', '/checkout', async (ctx) => {
     const [owned] = await query("SELECT 1 FROM orders WHERE buyer_id = $1 AND listing_id = $2 AND status <> 'cancelled' LIMIT 1", [buyerId, listing.id]);
     if (owned) throw new DomainError('Vous avez déjà acheté ce produit : retrouvez-le dans vos achats.', 409);
   }
-  if (!listing.lightpay_connection_id) throw new DomainError('Ce vendeur n’a pas encore activé ses paiements. Réessayez plus tard.', 409);
 
   const answers: Record<string, string> = ctx.body.brief && typeof ctx.body.brief === 'object' ? ctx.body.brief : {};
   const questions: { id: string; label: string; required: boolean }[] = listing.brief_questions ?? [];
@@ -87,7 +89,7 @@ route('POST', '/checkout', async (ctx) => {
   const companyName = text(ctx.body.invoice?.companyName, 120);
   const invoice = companyName ? { companyName, taxId: text(ctx.body.invoice?.taxId, 40) } : null;
   const [buyer] = await query("SELECT name, COALESCE(email, '') AS email, phone FROM users WHERE id = $1", [buyerId]);
-  const amounts = priceOrder(listing.price_xaf, listing.kind);
+  const amounts = priceOrder(priceNow(listing), listing.kind);
   const item = {
     title: listing.title,
     kind: listing.kind,
@@ -97,6 +99,25 @@ route('POST', '/checkout', async (ctx) => {
     revisions: listing.revisions ?? undefined,
     file: listing.file ?? undefined,
   };
+
+  // A free offer (price 0, or free during a promotion): no payment page, no LightPay. The order exists at once.
+  if (amounts.total === 0) {
+    const wait = secondsToWait(addressOf(ctx.headers), 'free');
+    if (wait) throw new DomainError(`Trop de demandes : réessayez dans ${wait} s.`, 429);
+    const { id } = await tx((q) =>
+      insertOrder(q, {
+        listingId: listing.id,
+        sellerId: listing.seller_id,
+        buyerId: buyerId!,
+        details: { item, buyer, invoice, brief, amounts },
+        payment: { reference: 'gratuit', code: paymentCode(), via: 'free' },
+        holdId: null,
+        attemptId: null,
+      })
+    );
+    return { free: true, orderId: id, guestKey: guest?.key, patch: { orders: [await loadOrder(buyerId!, id)] } };
+  }
+  if (!listing.lightpay_connection_id) throw new DomainError('Ce vendeur n’a pas encore activé ses paiements. Réessayez plus tard.', 409);
 
   const attemptId = newId('pay');
   const code = paymentCode();
@@ -263,6 +284,8 @@ act('cancel', 'cancel', async (row, userId, ctx, q) => {
 });
 
 const openDispute = async (row: OrderRow, userId: string, reason: string, q: Query) => {
+  // A dispute freezes money and the administration then decides who gets it: a free order has none (the support handles it).
+  if (isFree(row)) throw new DomainError('Cette commande est gratuite : aucun argent n’est en jeu. Écrivez au support, ou annulez-la si le service n’est pas accepté.');
   await freezeFunds(row, reason);
   // The dispute room is opened with the dispute: it tells the seller where to answer.
   await openDisputeRoom(q, row, userId, reason);

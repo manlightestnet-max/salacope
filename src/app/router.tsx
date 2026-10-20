@@ -36,7 +36,6 @@ import { SalesPage } from '@/pages/seller/SalesPage';
 import { ListingsPage } from '@/pages/seller/ListingsPage';
 import { ListingEditorPage } from '@/pages/seller/ListingEditorPage';
 import { ListingManagePage } from '@/pages/seller/ListingManagePage';
-import { ListingSectionPage } from '@/pages/seller/ListingSectionPage';
 import { CustomersPage } from '@/pages/seller/CustomersPage';
 import { PayoutsPage } from '@/pages/seller/PayoutsPage';
 import { PaymentReturnPage } from '@/pages/account/PaymentReturnPage';
@@ -182,8 +181,7 @@ export const router = createBrowserRouter([
               { path: '/dashboard/ventes/:id', element: <OrderPage as="seller" /> },
               { path: ROUTES.seller.listings, element: <ListingsPage /> },
               { path: ROUTES.seller.newListing, element: <ListingEditorPage /> },
-              { path: '/dashboard/offres/:id', element: <ListingManagePage /> },
-              { path: '/dashboard/offres/:id/:section', element: <ListingSectionPage /> },
+              { path: '/dashboard/offres/:id/:section?', element: <ListingManagePage /> },
               { path: ROUTES.seller.customers, element: <CustomersPage /> },
               { path: '/dashboard/clients/:id', element: <CustomerPage /> },
               { path: ROUTES.seller.payouts, element: <PayoutsPage /> },

@@ -22,7 +22,7 @@ import { CheckoutPage } from '@/pages/shared/CheckoutPage';
 import { ExplorerPage } from '@/pages/account/ExplorerPage';
 import { AccountSearchPage } from '@/pages/account/AccountSearchPage';
 import { OpenStorePage } from '@/pages/account/OpenStorePage';
-import { AmlPolicy, CookiePolicy, LegalNotice, PrivacyPolicy, RefundPolicy, Terms } from '@/pages/legal/LegalPages';
+import { AccountDeletion, AmlPolicy, CookiePolicy, LegalNotice, PrivacyPolicy, RefundPolicy, Terms } from '@/pages/legal/LegalPages';
 import { OrdersPage } from '@/pages/account/OrdersPage';
 import { FavoritesPage } from '@/pages/account/FavoritesPage';
 import { FollowingPage } from '@/pages/account/FollowingPage';
@@ -124,6 +124,7 @@ export const router = createBrowserRouter([
           { path: 'confidentialite', element: <PrivacyPolicy /> },
           { path: 'cookies', element: <CookiePolicy /> },
           { path: 'lutte-anti-blanchiment', element: <AmlPolicy /> },
+          { path: 'suppression-compte', element: <AccountDeletion /> },
         ],
       },
       { path: '/compte', element: <RedirectAccount /> },

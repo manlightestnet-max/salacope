@@ -11,6 +11,7 @@ const LINKS = [
   { to: ROUTES.legal.privacy, label: 'Confidentialité' },
   { to: ROUTES.legal.cookies, label: 'Cookies' },
   { to: ROUTES.legal.aml, label: 'Lutte anti-blanchiment' },
+  { to: ROUTES.legal.deletion, label: 'Supprimer son compte' },
 ];
 
 export const LegalLayout: React.FC = () => (

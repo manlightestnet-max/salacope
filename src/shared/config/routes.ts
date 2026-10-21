@@ -82,6 +82,7 @@ export const ROUTES = {
     privacy: '/legal/confidentialite',
     cookies: '/legal/cookies',
     aml: '/legal/lutte-anti-blanchiment',
+    deletion: '/legal/suppression-compte',
     amlPolicyPdf: '/legal/salacope-aml-cft-policy.pdf',
   },
 } as const;

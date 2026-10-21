@@ -257,7 +257,60 @@ export const PrivacyPolicy: React.FC = () => (
     <section>
       <h2>Vos droits</h2>
       <p>
-        Accès, rectification et suppression, dans les limites des obligations de conservation : <Contact />.
+        Accès, rectification et suppression, dans les limites des obligations de conservation : <Contact />. Pour supprimer
+        votre compte, suivez la <Link to={ROUTES.legal.deletion}>procédure de suppression</Link>.
+      </p>
+    </section>
+  </Doc>
+);
+
+/** How to have a Salacope account deleted, and what is kept (Google Play asks for this page). */
+export const AccountDeletion: React.FC = () => (
+  <Doc title="Supprimer votre compte Salacope">
+    <section>
+      <p>
+        Cette page explique comment demander la suppression de votre compte Salacope (site salacope.online et application
+        Android Salacope, éditées par {COMPANY.legalName}), et ce qui est effacé ou conservé.
+      </p>
+    </section>
+    <section>
+      <h2>Comment demander la suppression</h2>
+      <ul>
+        <li>
+          Écrivez à <Contact /> depuis l’adresse e-mail de votre compte, avec pour objet « Suppression de compte ».
+        </li>
+        <li>
+          Ou, connecté, ouvrez une demande au support (<Link to={`${ROUTES.account.newTicket}?sujet=other`}>Support</Link>) en
+          demandant la suppression de votre compte.
+        </li>
+        <li>Nous confirmons la demande par e-mail, puis le compte est supprimé dans un délai de 30 jours.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Avant la suppression</h2>
+      <ul>
+        <li>Les commandes en cours et les litiges ouverts doivent être terminés.</li>
+        <li>
+          Vendeurs : retirez d’abord votre solde depuis votre wallet LightPay. Le wallet LightPay est un compte distinct, qui
+          n’est pas supprimé avec votre compte Salacope.
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h2>Données supprimées</h2>
+      <ul>
+        <li>Votre profil : nom, e-mail, téléphone et photo ; votre connexion au compte.</li>
+        <li>Votre boutique et vos offres, avec leurs images et leurs fichiers.</li>
+        <li>Vos favoris, vos abonnements à des boutiques et vos notifications.</li>
+        <li>L’identifiant de notification de votre téléphone.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Données conservées</h2>
+      <p>
+        L’historique des commandes et des paiements, les messages qui s’y rattachent et les données de vérification d’identité
+        des vendeurs sont conservés au moins 10 ans après la fin de la relation, comme l’exige la lutte contre le blanchiment.
+        Ils ne servent alors qu’à répondre aux obligations légales et aux autorités qui les demandent.
       </p>
     </section>
   </Doc>

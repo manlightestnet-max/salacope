@@ -21,7 +21,7 @@ route('GET', '/sitemap.xml', async (ctx) => {
     { loc: `${base}/`, mod: undefined as string | undefined },
     { loc: `${base}/vendre`, mod: undefined },
     { loc: `${base}/recherche`, mod: undefined },
-    ...['', '/cgu', '/remboursement', '/confidentialite', '/cookies', '/lutte-anti-blanchiment'].map((p) => ({ loc: `${base}/legal${p}`, mod: undefined })),
+    ...['', '/cgu', '/remboursement', '/confidentialite', '/cookies', '/lutte-anti-blanchiment', '/suppression-compte'].map((p) => ({ loc: `${base}/legal${p}`, mod: undefined })),
     ...stores.map((s) => ({ loc: s.handle ? `${base}/@${s.handle}` : `${base}/s/${s.user_id}`, mod: undefined })),
     ...offers.map((o) => ({ loc: `${base}/p/${o.id}`, mod: String(o.updated_at).slice(0, 10) })),
   ];

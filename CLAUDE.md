@@ -48,7 +48,7 @@ Marketplace de produits numériques et de services pour la République du Congo 
 
 - Sobre, façon Stripe / Linear / Kubeta : peu d'éléments, textes courts, pas de décoration gratuite (ni dégradé, ni emoji, ni bordure colorée sur le côté).
 - Une information utile par bloc ; la hiérarchie passe par la taille et la graisse, pas par la couleur.
-- Couvertures selon le type : livres en portrait, formations en 16:9, services en paysage, templates et coaching en carré. Un bloc = une seule forme (grille en colonnes décalées pour les résultats mélangés).
+- Couvertures selon le type : livres en portrait, formations en 16:9, services en paysage, templates et coaching en carré. Un bloc = une seule forme (grille en colonnes décalées pour les résultats mélangés). **La fiche d'une offre** montre ses images pareil pour tous les types : grand visualiseur à gauche des miniatures (`ListingGallery thumbs="side"`), une couverture portrait ou carrée y reste entière, jamais rognée ; l'éditeur montre la couverture dès qu'elle est choisie.
 - Thème nuit par défaut, clair disponible. Couleurs **uniquement via les tokens** (`src/styles/tokens.css`), jamais de hex en dur dans un composant (seule exception : les logos des opérateurs).
 - Vitrine : pastilles et boutons arrondis, animations douces et discrètes (apparition au défilement), toujours désactivées avec `prefers-reduced-motion`.
 - Données honnêtes : aucun chiffre, avis ou note inventé ; tout vient de la base.

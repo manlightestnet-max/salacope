@@ -156,31 +156,14 @@ export const ListingDetail: React.FC<{ view: ListingView | null; sellerSales?: n
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         <div className="min-w-0 space-y-6">
           {!pending && listing.promo && <PromoCountdown listing={listing} />}
-          {format === 'portrait' || format === 'square' ? (
-            // Books and square covers sit beside the title, like a product sheet.
-            <div ref={galleryRef} className="flex flex-col sm:flex-row gap-5 sm:items-start">
-              {pending ? (
-                <Skeleton className={clsx('shrink-0 w-full mx-auto sm:mx-0', COVER_ASPECT[format], format === 'portrait' ? 'max-w-[18rem] sm:w-44' : 'max-w-[20rem] sm:w-52')} />
-              ) : (
-                <ListingGallery
-                  listing={listing}
-                  className={clsx('shrink-0 shadow-sm w-full mx-auto sm:mx-0', format === 'portrait' ? 'max-w-[18rem] sm:w-44' : 'max-w-[20rem] sm:w-52')}
-                />
-              )}
-              {heading}
-            </div>
-          ) : (
-            <>
-              <div ref={galleryRef}>
-                {pending ? (
-                  <Skeleton className={clsx('-mx-4 sm:mx-0 rounded-xl', COVER_ASPECT[format])} />
-                ) : (
-                  <ListingGallery listing={listing} thumbs="side" className="-mx-4 sm:mx-0" />
-                )}
-              </div>
-              {heading}
-            </>
-          )}
+          <div ref={galleryRef}>
+            {pending ? (
+              <Skeleton className={clsx('-mx-4 sm:mx-0 rounded-xl', format === 'video' ? COVER_ASPECT.video : COVER_ASPECT.landscape)} />
+            ) : (
+              <ListingGallery listing={listing} thumbs="side" className="-mx-4 sm:mx-0" />
+            )}
+          </div>
+          {heading}
 
           <ListingStats listingId={pending ? undefined : listing.id} />
 

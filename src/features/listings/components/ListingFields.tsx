@@ -5,7 +5,7 @@ import { BriefQuestion, Category } from '@/shared/db';
 import { Button, Field, Input, Select, Textarea } from '@/shared/ui';
 import { createId, cropImageFile } from '@/shared/lib';
 import { PLATFORM, minPriceFor } from '@/shared/config/platform';
-import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE } from '@/features/catalog';
+import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE, ListingCover } from '@/features/catalog';
 import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
 import { DraftOpener, ProductFilesField } from './ProductFilesField';
@@ -60,6 +60,8 @@ const CoverInput: React.FC<{ value: string; category: Category; onChange: (value
               e.target.value = '';
             }}
           />
+          {/* What the catalogue will show, in the shape of the category: the cover is seen as soon as it is chosen. */}
+          {value && <ListingCover bare src={value} category={category} className={clsx('shadow-sm', format === 'portrait' ? 'w-32' : format === 'square' ? 'w-40' : 'w-full max-w-xs')} />}
           <div className="flex flex-wrap gap-2">
             <Button icon={<ImagePlus className="w-4 h-4" />} loading={busy} onClick={() => inputRef.current?.click()}>
               {value ? 'Changer d’image' : 'Importer une image'}

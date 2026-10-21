@@ -20,7 +20,7 @@ import { signAttachments } from '../storage/attachments.js';
 import { closeDisputeRoom } from '../disputes.js';
 import { offloadImage, pruneImages } from '../storage/images.js';
 import { migrateBatch, remaining } from '../storage/migrate.js';
-import { PURPOSES, Purpose, StorageConfig, StorageError, deleteObject, getObject, loadStorageConfig, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
+import { PURPOSES, Purpose, StorageConfig, StorageError, deleteObject, getObject, loadStorageConfig, publicUrlOf, putObject, readStoredFile, saveStorageConfig, target } from '../storage/index.js';
 
 /**
  * Salacope administration (AML/CFT policy §4 and §6): sellers and their identity checks,
@@ -453,8 +453,18 @@ route('POST', '/admin/storage/test', async (ctx) => {
     try {
       await putObject(t, key, Buffer.from('salacope'), 'text/plain');
       const back = (await getObject(t, key)).toString('utf8');
+      let ok = back === 'salacope';
+      let message = ok ? 'Connexion réussie' : 'Lecture différente de l’écriture';
+      // Pictures are shown straight from the bucket's public address: it has to serve what was just written.
+      if (ok && purpose === 'image') {
+        const res = await fetch(publicUrlOf(t, key), { cache: 'no-store' }).catch(() => null);
+        if (!res?.ok || (await res.text()) !== 'salacope') {
+          ok = false;
+          message = `Écriture réussie, mais l’adresse publique ne sert pas le fichier (${res ? `réponse ${res.status}` : 'injoignable'}). Ce n’est pas l’adresse publique de CE bucket, ou son accès public n’est pas activé : Cloudflare → R2 → ce bucket → Paramètres → Accès public.`;
+        }
+      }
       await deleteObject(t, key);
-      results.push({ purpose, ok: back === 'salacope', message: back === 'salacope' ? 'Connexion réussie' : 'Lecture différente de l’écriture' });
+      results.push({ purpose, ok, message });
     } catch (err) {
       results.push({ purpose, ok: false, message: err instanceof StorageError ? `Cloudflare : ${err.detail}` : err instanceof DomainError ? err.message : 'Échec de la connexion' });
     }

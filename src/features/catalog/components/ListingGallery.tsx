@@ -10,7 +10,7 @@ import { LoadingImage } from './ListingCover';
 
 /**
  * Images of an offer in the shape of its category: swipe on a phone, arrows on a computer, a tap opens them full screen
- * (zoom). One image: just the cover. With `thumbs="side"` (wide covers) it reads like a shop app: a column of thumbnails
+ * (zoom). One image: just the cover. With `thumbs="side"` (the offer page, every kind of offer) it reads like a shop app: a column of thumbnails
  * on the left of the big image on computers, a row of thumbnails under it on phones; the heart and the zoom sit on the image.
  */
 export const ListingGallery: React.FC<{ listing: Listing; className?: string; thumbs?: 'side' }> = ({ listing, className, thumbs }) => {
@@ -20,7 +20,10 @@ export const ListingGallery: React.FC<{ listing: Listing; className?: string; th
   const stripRow = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [viewing, setViewing] = useState<number | null>(null);
-  const aspect = COVER_ASPECT[COVER_FORMAT[listing.category]];
+  const format = COVER_FORMAT[listing.category];
+  // The big viewer of an offer page is wide for every kind of offer; a portrait or square cover stays whole in it (never cropped).
+  const whole = thumbs === 'side' && (format === 'portrait' || format === 'square');
+  const aspect = whole ? COVER_ASPECT.landscape : COVER_ASPECT[format];
   const count = Math.max(images.length, loading ? expected : 0);
   const side = thumbs === 'side' && count > 1;
 
@@ -88,7 +91,7 @@ export const ListingGallery: React.FC<{ listing: Listing; className?: string; th
                 className="relative shrink-0 w-full h-full snap-center cursor-zoom-in"
                 aria-label={`Agrandir l’image ${i + 1} sur ${count}`}
               >
-                <LoadingImage src={src} className="w-full h-full object-cover" />
+                <LoadingImage src={src} className={clsx('w-full h-full', whole ? 'object-contain' : 'object-cover')} />
               </button>
             ))}
             {loading && <Skeleton className="shrink-0 w-full h-full rounded-none" />}

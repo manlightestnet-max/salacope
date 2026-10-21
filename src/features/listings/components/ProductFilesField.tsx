@@ -4,7 +4,8 @@ import clsx from 'clsx';
 import { Field, FileRow, Skeleton, Switch } from '@/shared/ui';
 import { PLATFORM } from '@/shared/config/platform';
 import { fileFormat } from '@/shared/lib';
-import { ListingInput } from '../api';
+import { ListingFileItem } from '@/shared/db';
+import { ListingInput, saveDraftFiles } from '../api';
 import { discardUpload, formatBytes, uploadProductFile, useStorageUsage } from '../uploads';
 
 /** A file being sent (or that failed): shown under the ones already kept. */
@@ -18,6 +19,11 @@ interface Sending {
 
 let counter = 0;
 
+/** Creating an offer: the first file sent opens a draft (`open` gives its id), and the files are saved in it as they change. */
+export interface DraftOpener {
+  open: () => Promise<string>;
+}
+
 const closeButton = 'w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700';
 
 /**
@@ -25,17 +31,23 @@ const closeButton = 'w-10 h-10 rounded-full flex items-center justify-center tex
  * (Cloudflare R2) with its own progress, and can be marked as a free sample that anyone may download from the offer page. Nothing is
  * ever kept in the database.
  */
-export const ProductFilesField: React.FC<{ form: ListingInput; setForm: React.Dispatch<React.SetStateAction<ListingInput>>; listingId?: string }> = ({
-  form,
-  setForm,
-  listingId,
-}) => {
+export const ProductFilesField: React.FC<{
+  form: ListingInput;
+  setForm: React.Dispatch<React.SetStateAction<ListingInput>>;
+  listingId?: string;
+  draft?: DraftOpener;
+}> = ({ form, setForm, listingId, draft }) => {
   const { usage, loaded, reload } = useStorageUsage();
   const picker = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState<Sending[]>([]);
   const [over, setOver] = useState(false);
   const [notice, setNotice] = useState<string>();
   const files = form.files ?? [];
+  // The latest list, for the uploads that finish one after the other; saved in the draft one change after the other.
+  const latest = useRef(files);
+  latest.current = files;
+  const draftId = useRef<string>();
+  const saving = useRef<Promise<unknown>>(Promise.resolve());
   const max = PLATFORM.maxProductFiles;
   const room = max - files.length - sending.length;
 
@@ -54,14 +66,24 @@ export const ProductFilesField: React.FC<{ form: ListingInput; setForm: React.Di
     );
   }
 
+  /** Takes the new list into the form and, while creating, into the draft (so closing the page loses nothing). */
+  const commit = (next: ListingFileItem[]) => {
+    latest.current = next;
+    setForm((f) => ({ ...f, files: next }));
+    const id = draftId.current;
+    if (id) saving.current = saving.current.then(() => saveDraftFiles(id, next)).catch(() => undefined);
+  };
+
   const patch = (key: number, change: Partial<Sending>) => setSending((all) => all.map((u) => (u.key === key ? { ...u, ...change } : u)));
 
   const send = async (file: File) => {
     const key = (counter += 1);
     setSending((all) => [...all, { key, name: file.name, size: file.size, progress: 0 }]);
     try {
-      const up = await uploadProductFile(file, (progress) => patch(key, { progress }), listingId);
-      setForm((f) => ({ ...f, files: [...(f.files ?? []), { name: up.name, format: fileFormat(up.name), fileId: up.id, size: up.size }] }));
+      // Creating an offer: the draft opens now, with what is typed so far, and the file is tied to it.
+      draftId.current ??= listingId ? undefined : await draft?.open();
+      const up = await uploadProductFile(file, (progress) => patch(key, { progress }), listingId ?? draftId.current);
+      commit([...latest.current, { name: up.name, format: fileFormat(up.name), fileId: up.id, size: up.size }]);
       setSending((all) => all.filter((u) => u.key !== key));
       reload();
     } catch (e) {
@@ -95,13 +117,14 @@ export const ProductFilesField: React.FC<{ form: ListingInput; setForm: React.Di
 
   const remove = (fileId: string) => {
     setNotice(undefined);
-    setForm((f) => ({ ...f, files: (f.files ?? []).filter((x) => x.fileId !== fileId) }));
-    // A file sent today and not kept frees its space at once; one the offer already lists is dropped when the offer is saved.
-    void discardUpload(fileId).then(reload);
+    commit(latest.current.filter((x) => x.fileId !== fileId));
+    // In a draft the file is deleted from storage as the list is saved. On an existing offer, a file sent today and not kept frees
+    // its space at once; one the offer already lists is dropped when the offer is saved.
+    if (!draftId.current) void discardUpload(fileId).then(reload);
+    else void saving.current.then(reload);
   };
 
-  const toggleSample = (fileId: string, preview: boolean) =>
-    setForm((f) => ({ ...f, files: (f.files ?? []).map((x) => (x.fileId === fileId ? { ...x, preview } : x)) }));
+  const toggleSample = (fileId: string, preview: boolean) => commit(latest.current.map((x) => (x.fileId === fileId ? { ...x, preview } : x)));
 
   const used = Math.min(100, Math.round((usage.usedBytes / usage.quotaBytes) * 100));
   const samples = files.filter((f) => f.preview).length;

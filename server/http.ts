@@ -98,7 +98,12 @@ export async function handle(request: Request): Promise<Response> {
   const bypassGuard = lockRoute || (admin && level !== 'total');
   const values = path.match(match.pattern)!.slice(1);
 
-  const rawBody = method === 'GET' || method === 'HEAD' ? '' : await request.text();
+  let rawBody = '';
+  try {
+    rawBody = method === 'GET' || method === 'HEAD' ? '' : await request.text();
+  } catch {
+    return reply(400, { error: 'Requête illisible.' });
+  }
   let body: any = {};
   if (rawBody) {
     try {

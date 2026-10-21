@@ -8,7 +8,7 @@ import { PLATFORM, minPriceFor } from '@/shared/config/platform';
 import { CATEGORIES, COVER_ASPECT, COVER_FORMAT, COVER_HINT, COVER_SIZE } from '@/features/catalog';
 import { LISTING_LIMITS, featureLines, featuresError } from '@/shared/domain';
 import { ListingInput, MAX_BRIEF_QUESTIONS } from '../api';
-import { ProductFilesField } from './ProductFilesField';
+import { DraftOpener, ProductFilesField } from './ProductFilesField';
 import { PromotionFields } from './PromotionFields';
 
 const REVISION_OPTIONS = Array.from({ length: PLATFORM.maxRevisions + 1 }, (_, n) => ({
@@ -316,7 +316,7 @@ export const PriceFields: React.FC<FieldsProps & { free: boolean; setFree: (v: b
   </>
 );
 
-export const DeliveryFields: React.FC<FieldsProps & { setForm: React.Dispatch<React.SetStateAction<ListingInput>>; listingId?: string }> = ({ form, set, setForm, listingId }) =>
+export const DeliveryFields: React.FC<FieldsProps & { setForm: React.Dispatch<React.SetStateAction<ListingInput>>; listingId?: string; draft?: DraftOpener }> = ({ form, set, setForm, listingId, draft }) =>
   form.kind === 'service' ? (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -332,5 +332,5 @@ export const DeliveryFields: React.FC<FieldsProps & { setForm: React.Dispatch<Re
       </Field>
     </>
   ) : (
-    <ProductFilesField form={form} setForm={setForm} listingId={listingId} />
+    <ProductFilesField form={form} setForm={setForm} listingId={listingId} draft={draft} />
   );

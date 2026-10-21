@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Check, Download, Wrench } from 'lucide-react';
 import { ListingKind } from '@/shared/db';
@@ -6,7 +6,7 @@ import { Button, Panel } from '@/shared/ui';
 import { minPriceFor } from '@/shared/config/platform';
 import { inputFiles } from '@/shared/domain';
 import { CATEGORIES, COVER_FORMAT, ListingCover, ListingPrice, cardBreadcrumb } from '@/features/catalog';
-import { ListingInput } from '../api';
+import { ListingInput, createDraft } from '../api';
 import { stepError, useListingForm } from '../listingForm';
 import { CategoryField, DeliveryFields, DescriptionFields, InfoFields, MediaFields, PriceFields } from './ListingFields';
 
@@ -101,8 +101,8 @@ const Preview: React.FC<{ form: ListingInput; sellerName: string; size?: 'md' | 
 
 export interface ListingEditorProps {
   sellerName: string;
-  /** Called with the finished form, and whether to publish it right away. */
-  onSubmit: (input: ListingInput, publish: boolean) => void;
+  /** Called with the finished form, whether to publish it right away, and the draft the first file sent opened (if any). */
+  onSubmit: (input: ListingInput, publish: boolean, draftId?: string) => void;
 }
 
 export const LISTING_FORM_ID = 'listing-form';
@@ -116,6 +116,18 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubm
   const [step, setStep] = useState(0);
   const [reached, setReached] = useState(0);
   const [error, setError] = useState<string>();
+  // The first file sent opens a draft with what is typed so far: the file belongs to it from then on.
+  const draftId = useRef<string>();
+  const opening = useRef<Promise<string>>();
+  const openDraft = () => {
+    if (draftId.current) return Promise.resolve(draftId.current);
+    opening.current ??= createDraft(input())
+      .then((listing) => (draftId.current = listing.id))
+      .finally(() => {
+        opening.current = undefined;
+      });
+    return opening.current;
+  };
 
   const chooseKind = (kind: ListingKind) => setForm((f) => ({ ...f, kind, category: CATEGORIES.find((c) => c.kind === kind)!.id }));
 
@@ -148,7 +160,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubm
       id={LISTING_FORM_ID}
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(input(), true);
+        onSubmit(input(), true, draftId.current);
       }}
       className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start"
     >
@@ -165,7 +177,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubm
                 Précédent
               </Button>
               <div className="flex gap-2">
-                {last && <Button onClick={() => onSubmit(input(), false)}>Enregistrer en brouillon</Button>}
+                {last && <Button onClick={() => onSubmit(input(), false, draftId.current)}>Enregistrer en brouillon</Button>}
                 {last ? (
                   <Button type="submit" variant="primary">
                     Publier l’offre
@@ -206,7 +218,7 @@ export const ListingEditor: React.FC<ListingEditorProps> = ({ sellerName, onSubm
             </>
           )}
 
-          {step === 2 && <DeliveryFields form={form} set={set} setForm={setForm} />}
+          {step === 2 && <DeliveryFields form={form} set={set} setForm={setForm} draft={{ open: openDraft }} />}
 
           {step === 3 && (
             <>

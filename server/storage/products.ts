@@ -72,8 +72,8 @@ export async function discardProductFile(ownerId: string, fileId: string): Promi
 }
 
 /**
- * Uploads that no offer lists and nobody bought (the seller closed the page, changed their mind) are removed after a day, so they
- * do not eat the seller's space for ever. → how many were removed.
+ * Uploads tied to no offer that still exists, that no offer lists and nobody bought (the seller closed the page before a draft
+ * was created, changed their mind) are removed after a day, so they do not eat the seller's space for ever. → how many were removed.
  */
 export async function sweepOrphanProductFiles(limit = 50): Promise<number> {
   if (!(await target('product'))) return 0;
@@ -81,6 +81,7 @@ export async function sweepOrphanProductFiles(limit = 50): Promise<number> {
   const rows = await query<{ id: string; object_key: string }>(
     `SELECT f.id, f.object_key FROM stored_files f
      WHERE f.purpose = 'product' AND f.created_at < NOW() - INTERVAL '1 day'
+       AND (f.ref IS NULL OR NOT EXISTS (SELECT 1 FROM listings d WHERE d.id = f.ref))
        AND NOT EXISTS (SELECT 1 FROM listings l WHERE (l.file->>'fileId' = f.id OR l.file->'files' @> jsonb_build_array(jsonb_build_object('fileId', f.id))))
        AND NOT EXISTS (SELECT 1 FROM orders o WHERE ${carried('o.item')})
        AND NOT EXISTS (SELECT 1 FROM payment_attempts a WHERE a.status = 'pending' AND ${carried("a.details->'item'")})

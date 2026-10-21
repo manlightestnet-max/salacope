@@ -29,7 +29,7 @@ const seen = new Set<string>();
 
 /** Image that fades in over a shimmer of its own shape the first time it loads; afterwards it is simply there. */
 export const LoadingImage: React.FC<{ src: string; alt?: string; className?: string }> = ({ src, alt = '', className }) => {
-  const [loaded, setLoaded] = useState(() => seen.has(src));
+  const [loaded, setLoaded] = useState(() => !src || seen.has(src));
   const done = () => {
     seen.add(src);
     setLoaded(true);
@@ -42,7 +42,7 @@ export const LoadingImage: React.FC<{ src: string; alt?: string; className?: str
         ref={(el) => {
           if (el?.complete && el.naturalWidth > 0 && !loaded) done();
         }}
-        src={src}
+        src={src || undefined}
         alt={alt}
         loading="lazy"
         onLoad={done}

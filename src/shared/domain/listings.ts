@@ -173,7 +173,7 @@ export const listingFields = (input: ListingInput): ListingFields => ({
  * The stored shape of a product's files: the whole list, and, for the first versions of the app, the main file (the first one
  * that is not a free sample) in the fields they read.
  */
-function storedFile(files: ListingFileItem[]): ListingFile {
+export function storedFile(files: ListingFileItem[]): ListingFile {
   const items = files.map((f): ListingFileItem => ({
     name: String(f.name ?? '').trim(),
     format: f.format?.trim() || 'PDF',

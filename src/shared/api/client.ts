@@ -30,7 +30,11 @@ export async function request<T = any>(method: string, path: string, body?: unkn
     auth.signOut();
     window.location.reload();
   }
-  if (!res.ok) throw new DomainError(data?.error ?? 'Erreur du serveur. Réessayez dans un instant.', res.status);
+  if (!res.ok) {
+    // An answer with no message did not come from Salacope's own code (a proxy, the platform): its code and reference tell where.
+    const ref = res.headers.get('x-vercel-id') ?? res.headers.get('cf-ray');
+    throw new DomainError(data?.error ?? `Erreur ${res.status} : le serveur n’a pas répondu comme prévu. Réessayez dans un instant.${ref ? ` (réf. ${ref})` : ''}`, res.status);
+  }
   return data as T;
 }
 

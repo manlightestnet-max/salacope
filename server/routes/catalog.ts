@@ -1,9 +1,10 @@
 import { levelNow } from '../lockdown.js';
 import { currentExplore, currentIdentity, currentLaunchBanner, currentPlatform } from '../settings.js';
 import { DomainError } from '../../src/shared/domain/errors.js';
-import { ListingInput, filesOf, listingFields, validateListing } from '../../src/shared/domain/listings.js';
+import { CATEGORY_IDS, ListingInput, filesOf, listingFields, storedFile, validateListing } from '../../src/shared/domain/listings.js';
+import { PLATFORM, minPriceFor } from '../../src/shared/config/platform.js';
 import { ROUTES } from '../../src/shared/config/routes.js';
-import type { Listing, ListingFile } from '../../src/shared/db/schema.js';
+import type { Listing, ListingFile, ListingFileItem } from '../../src/shared/db/schema.js';
 import { Query, json, query, tx } from '../db.js';
 import { route } from '../http.js';
 import { firstSight } from '../visits.js';
@@ -24,6 +25,8 @@ import { offloadImage, offloadImages, pruneImages } from '../storage/images.js';
 import { checkProductFiles, pruneProductFiles } from '../storage/products.js';
 import { IMG_PREFIX, listingView } from '../views.js';
 import { SELLABLE_SELLERS, requireSellable } from '../compliance.js';
+
+const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 
 /** Who is asking: an account, else a guest who bought without one on this browser, else nobody. */
 async function viewerOf(ctx: { identity(): Promise<{ uid: string } | null>; viewerId(): Promise<string | null> }) {
@@ -277,6 +280,58 @@ route('POST', '/listings', async (ctx) => {
   return { listing, patch: { listings: [listing] } };
 });
 
+/**
+ * A draft that exists from the moment the seller sends a file: the file is tied to it from the start, so it is never lost nor
+ * left behind. It only holds what the seller already typed (the rest is filled in later, the offer cannot go online before).
+ */
+route('POST', '/listings/draft', async (ctx) => {
+  const sellerId = await ctx.userId();
+  await requireMerchant(sellerId);
+  const body = ctx.body.listing ?? {};
+  const kind = body.kind === 'service' ? 'service' : 'digital';
+  const category = CATEGORY_IDS.includes(body.category) ? body.category : kind === 'service' ? 'service' : 'ebook';
+  const id = newId('lst');
+  const listing = await tx(async (q) => {
+    await q(
+      `INSERT INTO listings (id, seller_id, kind, category, title, summary, description, features, price_xaf, cover_image, status, gallery)
+       VALUES ($1, $2, $3, $4, $5, $6, '', '[]'::jsonb, $7, '', 'draft', '[]'::jsonb)`,
+      [id, sellerId, kind, category, text(body.title, 120) || 'Brouillon sans titre', text(body.summary, 200), minPriceFor(kind)]
+    );
+    return (await loadListing(id, q))!;
+  });
+  return { listing, patch: { listings: [listing] } };
+});
+
+/**
+ * The files of a draft, saved as they are added or removed. Looser than saving the offer (that one checks everything): it only
+ * makes sure the files are the seller's. A file taken out is deleted from storage at once unless somebody already bought it.
+ */
+route('PUT', '/listings/:id/files', async (ctx) => {
+  const sellerId = await ctx.userId();
+  if (!Array.isArray(ctx.body.files)) throw new DomainError('Liste de fichiers invalide.');
+  const items: ListingFileItem[] = ctx.body.files.map((f: any) => ({
+    name: text(f?.name, 160),
+    format: text(f?.format, 20) || 'Fichier',
+    fileId: text(f?.fileId, 60),
+    size: Number(f?.size) || undefined,
+    ...(f?.preview ? { preview: true } : {}),
+  }));
+  if (items.length > PLATFORM.maxProductFiles) throw new DomainError(`${PLATFORM.maxProductFiles} fichiers au maximum par produit.`);
+  if (items.some((f) => !f.name || !f.fileId) || new Set(items.map((f) => f.fileId)).size !== items.length) {
+    throw new DomainError('Liste de fichiers invalide.');
+  }
+  const checked = await checkProductFiles(sellerId, ctx.params.id, items);
+  const listing = await tx(async (q) => {
+    const current = await ownedListing(q, ctx.params.id, sellerId);
+    if (current.kind !== 'digital') throw new DomainError('Seuls les produits numériques ont des fichiers.');
+    if (current.status !== 'draft') throw new DomainError('Une offre en ligne se modifie depuis sa page, avec Enregistrer.', 409);
+    await q('UPDATE listings SET file = $2::jsonb, updated_at = NOW() WHERE id = $1', [ctx.params.id, json(checked.length ? storedFile(checked) : null)]);
+    return (await loadListing(ctx.params.id, q))!;
+  });
+  await pruneProductFiles(ctx.params.id, fileIdsOf(listing.file)).catch(() => undefined);
+  return { patch: { listings: [listing] } };
+});
+
 route('PATCH', '/listings/:id', async (ctx) => {
   const sellerId = await ctx.userId();
   const fields = await withProductFiles(sellerId, await withStoredImages(sellerId, listingFields(checkedInput(ctx.body.listing ?? {})), ctx.params.id), ctx.params.id);
@@ -333,6 +388,9 @@ route('POST', '/listings/:id/status', async (ctx) => {
       const [hidden] = await q('SELECT hidden_at, hidden_reason FROM listings WHERE id = $1', [ctx.params.id]);
       if (hidden?.hidden_at) throw new DomainError(`Cette offre a été masquée par Salacope : ${hidden.hidden_reason}. Écrivez au support pour la faire rétablir.`, 403);
       await requirePayouts(q, sellerId);
+      // A draft opened by a file upload only holds what was typed so far: it cannot go online before it is complete.
+      const [cover] = await q('SELECT cover_image FROM listings WHERE id = $1', [ctx.params.id]);
+      if (current.title.trim().length < 8 || !current.summary.trim() || !cover?.cover_image) throw new DomainError('Complétez l’offre (titre, résumé, couverture) avant de la publier : ouvrez ses rubriques.');
       if (current.kind === 'digital' && !fileIdsOf(current.file).length) throw new DomainError('Envoyez d’abord le fichier livré au client (modifiez l’offre).');
     }
     await q(

@@ -40,7 +40,8 @@ class _PaymentRequestSheetState extends State<PaymentRequestSheet> {
     final colors = context.colors;
     final state = db.state;
     final listings = state.listings
-        .where((l) => l.sellerId == widget.order.sellerId && l.status == 'active')
+        // A free offer is never asked for in the chat: there is nothing to pay.
+        .where((l) => l.sellerId == widget.order.sellerId && l.status == 'published' && l.priceXaf > 0)
         .toList();
 
     return SSheet(

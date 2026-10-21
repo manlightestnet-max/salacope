@@ -12,6 +12,8 @@ import 'core/api/guest.dart';
 import 'core/api/sync.dart';
 import 'features/catalog/domain/ranking.dart';
 import 'core/push/push_service.dart';
+import 'core/routing/links.dart';
+import 'core/design/phone_text.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,13 +49,16 @@ void main() async {
   } catch (e) {
     debugPrint('[Main] Push init error: $e');
   }
-  push.onOpen = (route) => router.push(route);
+  // A tap on a notification opens its screen on top of the current one (or its tab).
+  push.onOpen = links.open;
 
   runApp(const ProviderScope(child: SalacopeApp()));
   if (fromPush != null && fromPush != '/') {
     final route = fromPush;
-    WidgetsBinding.instance.addPostFrameCallback((_) => router.push(route));
+    WidgetsBinding.instance.addPostFrameCallback((_) => links.open(route));
   }
+  // Addresses of the site (App Links, the return from LightPay) open on top of the current screen.
+  links.attach(router).ignore();
   // Every screen finds its data: the saved copy is on screen already, the server is asked in the background.
   sync.boot().ignore();
 }
@@ -72,6 +77,14 @@ class SalacopeApp extends ConsumerWidget {
       darkTheme: SalacopeTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,
+      // Text sizes for a phone, the same policy as LightPay (see PhoneTextScaler).
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(textScaler: PhoneTextScaler(media.textScaler)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

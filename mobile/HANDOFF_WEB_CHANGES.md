@@ -4,6 +4,19 @@
 
 Le serveur est déployé : tout ce qui suit est déjà en ligne côté API. Les anciens clients continuent de fonctionner, sauf là où c'est dit.
 
+## État du portage (21 octobre 2026)
+
+Tout est reporté dans `mobile/`, à tester sur téléphone :
+
+- §1 : `NextStepCard` (`features/orders/presentation/widgets/next_step_card.dart`) ferme le fil de la salle ; brief après `paid`, livraison après le dernier `delivered`, mots sous les étapes ; personne n'écrit avant l'acceptation ; dialogues partagés dans `order_dialogs.dart`. Écran commande en onglets Suivi / Brief et livraison / Historique, sans action. « À traiter » dans Messages.
+- §2 : `core/domain/refund.dart`, `RefundPreview` / `RefundReceipt` (`features/checkout/presentation/widgets/refund_notice.dart`) avant de payer et dans la commande.
+- §3 : réglages admin dans `PlatformConfig` (`minPriceFor`, `promoMaxDays`, `freeOffers`, `maxProductFiles`), « Gratuit » / « Obtenir gratuitement », réponse `free` du checkout, `PromoCountdown`, promotion et compte à rebours dans l'éditeur (`promoEndsAt: null` envoyé).
+- §4 : `ListingManageScreen` (rubriques, un seul Enregistrer) ; l'assistant ne sert qu'à créer.
+- §5 : `core/domain/analytics.dart` (+ `test/analytics_test.dart`), Aperçu vendeur refait (période, filtre d'offre, pastilles).
+- §6 : `trackStore` à l'ouverture d'une boutique.
+- §10 et §11 : plusieurs fichiers, aperçu gratuit, brouillon ouvert par le premier fichier, « Tout télécharger » ; libellés « Fichier disponible » / « Livré ».
+- §7 et §8 : rien à changer dans l'app (couverture envoyée comme le web, textes des notifications côté serveur).
+
 ---
 
 ## 1. Les commandes de service se gèrent **dans la discussion** (priorité 1)

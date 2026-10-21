@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as tabs;
-import 'package:url_launcher/url_launcher.dart' as links;
+import 'package:url_launcher/url_launcher.dart' as urls;
 import '../../../core/design/colors.dart';
+import '../../../core/routing/links.dart';
 
 /// Opens LightPay's payment page. When the LightPay app is on the phone it takes the page itself (it answers
 /// https://checkout.smlab.xyz/pay/…): the buyer pays there with their wallet or Mobile Money, and LightPay sends them
-/// back to Salacope. Otherwise the same page opens inside Salacope (Chrome Custom Tab). → whether the LightPay app took it.
+/// back to Salacope. The LightPay app runs in its own task: none of its screens stays behind Salacope's. Otherwise the same
+/// page opens inside Salacope (Chrome Custom Tab). → whether the LightPay app took it.
 Future<bool> openLightPayCheckout(BuildContext context, String checkoutUrl) async {
   final uri = Uri.parse(checkoutUrl);
-  try {
-    if (await links.launchUrl(uri, mode: links.LaunchMode.externalNonBrowserApplication)) return true;
-  } catch (_) {
-    // no app answers this address: the page opens here
-  }
+  if (await links.openInLightPay(checkoutUrl)) return true;
   if (!context.mounted) return false;
   final colors = Theme.of(context).extension<SalacopeColors>() ?? SalacopeColors.dark;
   try {
@@ -24,7 +22,7 @@ Future<bool> openLightPayCheckout(BuildContext context, String checkoutUrl) asyn
       ),
     );
   } catch (_) {
-    await links.launchUrl(uri, mode: links.LaunchMode.externalApplication);
+    await urls.launchUrl(uri, mode: urls.LaunchMode.externalApplication);
   }
   return false;
 }

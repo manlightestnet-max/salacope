@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:salacope/features/dashboard/presentation/seller_hub.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/design/colors.dart';
 import 'package:salacope/core/design/typography.dart';
@@ -48,7 +48,7 @@ class _LightPayCallbackScreenState extends State<LightPayCallbackScreen> {
       if (mounted) {
         setState(() => _loading = false);
         Future.delayed(const Duration(milliseconds: 1200), () {
-          if (mounted) context.go('/dashboard/paiements');
+          if (mounted) openSellerSection(context, 'paiements');
         });
       }
     } catch (e) {
@@ -99,7 +99,7 @@ class _LightPayCallbackScreenState extends State<LightPayCallbackScreen> {
                 SButton(
                   label: 'Retour aux paiements',
                   variant: SButtonVariant.primary,
-                  onPressed: () => context.go('/dashboard/paiements'),
+                  onPressed: () => openSellerSection(context, 'paiements'),
                 ),
               ] else ...[
                 Icon(LucideIcons.circleCheck, size: 48, color: colors.accent),
@@ -115,7 +115,7 @@ class _LightPayCallbackScreenState extends State<LightPayCallbackScreen> {
                 SButton(
                   label: 'Accéder aux paiements',
                   variant: SButtonVariant.primary,
-                  onPressed: () => context.go('/dashboard/paiements'),
+                  onPressed: () => openSellerSection(context, 'paiements'),
                 ),
               ],
             ],

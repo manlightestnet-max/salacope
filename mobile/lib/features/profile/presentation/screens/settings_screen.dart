@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salacope/features/dashboard/presentation/seller_hub.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -97,7 +98,7 @@ class SettingsScreen extends ConsumerWidget {
                       title: 'Versements',
                       subtitle: 'Vos ventes arrivent sur votre wallet LightPay',
                       value: m.lightpayConnected == true ? 'Connecté' : 'À connecter',
-                      onTap: () => context.push('/dashboard/paiements'),
+                      onTap: () => openSellerSection(context, 'paiements'),
                     ),
                     if (m.kycStatus != 'approved')
                       SSettingsRow(

@@ -12,8 +12,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -31,14 +30,31 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- App Links for LightPay returns & direct navigation -->
+            <!-- App Links: only the addresses the app has a screen for (offers, stores, purchases, sales, messages,
+                 the return from LightPay). The others (legal pages, admin…) stay on the site, in the browser. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="salacope.online" />
-                <data android:scheme="https" android:host="www.salacope.online" />
+                <data android:scheme="https" />
+                <data android:host="salacope.online" />
+                <data android:host="www.salacope.online" />
+                <data android:path="/" />
+                <data android:pathPrefix="/p/" />
+                <data android:pathPrefix="/s/" />
+                <data android:pathPrefix="/@" />
+                <data android:pathPrefix="/checkout/" />
+                <data android:pathPrefix="/paiement/retour" />
+                <data android:pathPrefix="/lightpay/callback" />
+                <data android:path="/recherche" />
+                <data android:path="/vendre" />
+                <data android:path="/ac" />
+                <data android:pathPrefix="/ac/" />
+                <data android:path="/dashboard" />
+                <data android:pathPrefix="/dashboard/" />
             </intent-filter>
+            <!-- Links are opened by the app itself (on top of the current screen), see MainActivity. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
         </activity>
         <!-- Push notifications: the Salacope mark, tinted with the logo green, on the channel of orders and messages. -->
         <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_salacope" />
@@ -56,6 +72,18 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- The LightPay app: payment pages and the seller's wallet open in it when it is on the phone. -->
+        <package android:name="com.smlab.lightpay" />
+        <!-- The browser and its Custom Tabs (legal pages, LightPay's page when its app is absent): hidden from the
+             app since Android 11 unless declared here. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

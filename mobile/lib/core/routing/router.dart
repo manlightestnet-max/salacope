@@ -15,24 +15,19 @@ import '../../features/session/presentation/screens/sign_in_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/library/presentation/screens/favorites_screen.dart';
 import '../../features/library/presentation/screens/following_screen.dart';
-import '../../features/checkout/presentation/screens/checkout_screen.dart';
 import '../../features/checkout/presentation/screens/payment_return_screen.dart';
 import '../../features/orders/presentation/screens/messages_screen.dart';
 import '../../features/orders/presentation/screens/order_chat_screen.dart';
-import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
-import '../../features/dashboard/presentation/screens/sales_screen.dart';
-import '../../features/dashboard/presentation/screens/seller_listings_screen.dart';
+import '../../features/dashboard/presentation/seller_hub.dart';
 import '../../features/dashboard/presentation/screens/listing_editor_screen.dart';
-import '../../features/dashboard/presentation/screens/payouts_screen.dart';
+import '../../features/dashboard/presentation/screens/listing_manage_screen.dart';
 import '../../features/dashboard/presentation/screens/verification_screen.dart';
-import '../../features/dashboard/presentation/screens/customers_screen.dart';
 import '../../features/dashboard/presentation/screens/open_store_screen.dart';
 import '../../features/dashboard/presentation/screens/lightpay_callback_screen.dart';
 import '../../features/support/presentation/screens/support_screen.dart';
 import '../../features/support/presentation/screens/new_ticket_screen.dart';
 import '../../features/support/presentation/screens/ticket_detail_screen.dart';
 import '../ui/screens/design_gallery_screen.dart';
-import '../ui/expand_page.dart';
 import '../../features/disputes/presentation/dispute_room_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -69,6 +64,8 @@ CustomTransitionPage<T> smoothTransitionPage<T>({
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
+  // An address the app has no screen for never shows an error page: the storefront instead.
+  onException: (context, state, router) => router.go('/'),
   redirect: (context, state) {
     final path = state.uri.path;
     if (path.startsWith('/@') && path.length > 2) return '/boutique/${Uri.encodeComponent(path.substring(1))}';
@@ -113,7 +110,7 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/boutique',
-              builder: (context, state) => const DashboardScreen(inTab: true),
+              builder: (context, state) => SellerHubScreen(initial: state.uri.queryParameters['vue']),
             ),
           ],
         ),
@@ -146,7 +143,7 @@ final GoRouter router = GoRouter(
         final heroTag = state.uri.queryParameters['hero'];
         return CustomTransitionPage(
           key: state.pageKey,
-          child: ListingDetailScreen(listingId: id, heroTag: heroTag),
+          child: ListingDetailScreen(listingId: id, heroTag: heroTag, buyNow: state.uri.queryParameters['acheter'] == '1'),
           transitionDuration: const Duration(milliseconds: 260),
           reverseTransitionDuration: const Duration(milliseconds: 300),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -284,25 +281,14 @@ final GoRouter router = GoRouter(
     ),
 
     // Checkout & Payment
+    // Buying happens in a sheet over the offer (see openCheckout).
     GoRoute(
       path: '/checkout/:id',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        final from = state.extra;
-        // From the buy button of an offer: the button bursts open into the checkout.
-        if (from is Rect) {
-          return expandFromRectPage(
-            key: state.pageKey,
-            from: from,
-            child: CheckoutScreen(listingId: id),
-          );
-        }
-        return smoothTransitionPage(
-          key: state.pageKey,
-          child: CheckoutScreen(listingId: id),
-        );
-      },
+      redirect: (context, state) => '/l/${state.pathParameters['id']}?acheter=1',
+    ),
+    GoRoute(
+      path: '/ac/checkout/:id',
+      redirect: (context, state) => '/l/${state.pathParameters['id']}?acheter=1',
     ),
     GoRoute(
       path: '/compte/checkout/:id',
@@ -464,22 +450,12 @@ final GoRouter router = GoRouter(
       },
     ),
 
-    // Seller Dashboard & Back-Office
-    GoRoute(
-      path: '/dashboard',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const DashboardScreen(),
-    ),
-    GoRoute(
-      path: '/dashboard/ventes',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SalesScreen(),
-    ),
-    GoRoute(
-      path: '/dashboard/offres',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SellerListingsScreen(),
-    ),
+    // Seller back-office: the Boutique tab and its sections (see SellerHubScreen); the web's addresses land there.
+    GoRoute(path: '/dashboard', redirect: (context, state) => '/boutique?vue=apercu'),
+    GoRoute(path: '/dashboard/ventes', redirect: (context, state) => '/boutique?vue=ventes'),
+    GoRoute(path: '/dashboard/offres', redirect: (context, state) => '/boutique?vue=offres'),
+    GoRoute(path: '/dashboard/clients', redirect: (context, state) => '/boutique?vue=clients'),
+    GoRoute(path: '/dashboard/paiements', redirect: (context, state) => '/boutique?vue=paiements'),
     GoRoute(
       path: '/dashboard/offres/nouvelle',
       parentNavigatorKey: _rootNavigatorKey,
@@ -489,24 +465,14 @@ final GoRouter router = GoRouter(
       path: '/dashboard/offres/:id',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
-        final id = state.pathParameters['id'];
-        return ListingEditorScreen(listingId: id);
+        // An offer that exists opens on its own page, one section at a time (the wizard only creates).
+        return ListingManageScreen(listingId: state.pathParameters['id'] ?? '');
       },
-    ),
-    GoRoute(
-      path: '/dashboard/paiements',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PayoutsScreen(),
     ),
     GoRoute(
       path: '/dashboard/verification',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const VerificationScreen(),
-    ),
-    GoRoute(
-      path: '/dashboard/clients',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const CustomersScreen(),
     ),
     GoRoute(
       path: '/vendre',

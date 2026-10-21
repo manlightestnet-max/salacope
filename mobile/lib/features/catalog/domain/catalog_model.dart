@@ -116,8 +116,10 @@ String deliveryLabel(Listing listing) {
     final days = listing.deliveryDays ?? 3;
     return 'Livré en $days jour${days > 1 ? 's' : ''}';
   }
+  final count = filesOf(listing.file).length;
+  if (count > 1) return '$count fichiers · accès immédiat';
   final format = listing.file?.format;
-  if (format == null) return 'Accès immédiat';
+  if (format == null || format.isEmpty) return 'Accès immédiat';
   return format.toLowerCase().startsWith('accès')
       ? 'Accès en ligne immédiat'
       : '$format · accès immédiat';

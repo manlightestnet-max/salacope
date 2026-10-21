@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salacope/features/dashboard/presentation/seller_hub.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/db/store.dart';
@@ -63,8 +64,8 @@ class ProfileScreen extends StatelessWidget {
                   children: m != null
                       ? [
                           SSettingsRow(icon: LucideIcons.layoutDashboard, title: 'Ma boutique', subtitle: m.storeName, onTap: () => context.go('/boutique')),
-                          SSettingsRow(icon: LucideIcons.package, title: 'Mes offres', onTap: () => context.push('/dashboard/offres')),
-                          SSettingsRow(icon: LucideIcons.wallet, title: 'Paiements', value: m.lightpayConnected == true ? 'LightPay connecté' : 'À connecter', onTap: () => context.push('/dashboard/paiements')),
+                          SSettingsRow(icon: LucideIcons.package, title: 'Mes offres', onTap: () => openSellerSection(context, 'offres')),
+                          SSettingsRow(icon: LucideIcons.wallet, title: 'Paiements', value: m.lightpayConnected == true ? 'LightPay connecté' : 'À connecter', onTap: () => openSellerSection(context, 'paiements')),
                         ]
                       : [
                           SSettingsRow(

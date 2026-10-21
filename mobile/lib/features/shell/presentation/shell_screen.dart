@@ -9,13 +9,52 @@ import '../../orders/domain/chat.dart';
 
 /// The bottom bar: Copes (the storefront), Achats, Messages, Boutique (sellers only) and Compte. Messages shows the unread
 /// count; Boutique shows the sales waiting on the seller. Branch indexes follow the router (Boutique is branch 3).
-class ShellScreen extends StatelessWidget {
+///
+/// Back, like Android apps: on a tab other than the first, back returns to the tab chosen before (then to Copes), and
+/// only on Copes does it leave the app. Screens opened from a tab close first, as usual.
+class ShellScreen extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const ShellScreen({super.key, required this.navigationShell});
 
+  @override
+  State<ShellScreen> createState() => _ShellScreenState();
+}
+
+class _ShellScreenState extends State<ShellScreen> {
+  /// The tabs chosen before the current one, oldest first (each one once).
+  final List<int> _history = [];
+  bool _goingBack = false;
+
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
+
+  @override
+  void didUpdateWidget(ShellScreen old) {
+    super.didUpdateWidget(old);
+    // A tab opened by an address (a notification, a link) counts as chosen too.
+    final before = old.navigationShell.currentIndex;
+    final now = navigationShell.currentIndex;
+    if (before != now && !_goingBack) _remember(before, now);
+    _goingBack = false;
+  }
+
+  void _remember(int from, int to) {
+    _history
+      ..remove(from)
+      ..remove(to)
+      ..add(from);
+  }
+
   void _onTap(int branch) {
     navigationShell.goBranch(branch, initialLocation: branch == navigationShell.currentIndex);
+  }
+
+  void _back() {
+    final current = navigationShell.currentIndex;
+    _history.remove(current);
+    final previous = _history.isNotEmpty ? _history.removeLast() : 0;
+    _goingBack = true;
+    navigationShell.goBranch(previous);
   }
 
   @override
@@ -43,7 +82,12 @@ class ShellScreen extends StatelessWidget {
         ];
         final current = navigationShell.currentIndex;
 
-        return Scaffold(
+        return PopScope(
+          canPop: current == 0,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _back();
+          },
+          child: Scaffold(
           body: Column(
             children: [
               const SOfflineBanner(),
@@ -70,6 +114,7 @@ class ShellScreen extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           ),
         );
       },

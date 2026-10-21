@@ -1,14 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as tabs;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart' as urls;
 import '../../../../core/config/env.dart';
+import '../../../../core/design/colors.dart';
 import '../../../../core/ui/s_settings.dart';
 import '../../../../core/ui/s_toast.dart';
 
-/// The legal pages live on the site (one text, kept up to date there): they open in the in-app browser.
+/// The legal pages live on the site (one text, kept up to date there): they open over the app in a browser tab.
 Future<void> openSitePage(BuildContext context, String path) async {
-  final ok = await launchUrl(Uri.parse('${Env.publicUrl}$path'), mode: LaunchMode.inAppBrowserView);
-  if (!ok && context.mounted) SToast.error(context, 'Impossible d’ouvrir la page. Vérifiez votre connexion.');
+  final colors = context.colors;
+  final uri = Uri.parse('${Env.publicUrl}$path');
+  try {
+    await tabs.launchUrl(
+      uri,
+      customTabsOptions: tabs.CustomTabsOptions(
+        colorSchemes: tabs.CustomTabsColorSchemes.defaults(toolbarColor: colors.surface),
+        shareState: tabs.CustomTabsShareState.off,
+        showTitle: true,
+      ),
+    );
+  } catch (_) {
+    // No browser with Custom Tabs: the phone's browser itself.
+    final ok = await urls.launchUrl(uri, mode: urls.LaunchMode.externalApplication).catchError((_) => false);
+    if (!ok && context.mounted) SToast.error(context, 'Impossible d’ouvrir la page. Vérifiez votre connexion.');
+  }
 }
 
 /// Conditions, refunds, privacy, anti-money-laundering: rows of a settings group.

@@ -19,8 +19,10 @@ import '../widgets/counterpart_sheet.dart';
 import '../widgets/message_ticks.dart';
 import '../widgets/payment_request_card.dart';
 import '../widgets/payment_request_sheet.dart';
-import '../widgets/validation_card.dart';
 import '../widgets/chat_parts.dart';
+import '../widgets/next_step_card.dart';
+import '../widgets/order_cards.dart';
+import '../../../catalog/presentation/widgets/mini_cover.dart';
 
 class OrderChatScreen extends StatefulWidget {
   final String orderId;
@@ -114,14 +116,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
         final isSilenced = perspective == Perspective.seller && order.chat.blocked;
         final meUser = state.users.where((u) => u.id == currentUserId).firstOrNull;
         final isMeBlocked = meUser?.blocks?.contains(order.sellerId) ?? false;
-        final perms = permissionsFor(
-          status: order.status,
-          kind: order.item.kind,
-          perspective: perspective,
-          revisions: order.item.revisions ?? 0,
-          revisionsUsed: order.revisionsUsed ?? 0,
-          extensionStatus: order.extension?.status,
-        );
+        final perms = orderPermissions(order, perspective);
 
         final canMessage = perms.message && !isSilenced;
 
@@ -135,7 +130,10 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
             .where((e) => e.type == 'delivered')
             .firstOrNull;
 
-        _scroll.onBuild(entries.length);
+        // Before any message, one line says how the discussion works; the action of the moment always closes the feed.
+        final intro = order.messages.isEmpty;
+        final count = entries.length + (intro ? 1 : 0) + 1;
+        _scroll.onBuild(count);
         _markReadIfNeeded(order, currentUserId);
 
         return Scaffold(
@@ -153,33 +151,24 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
               ),
               child: Row(
                 children: [
-                  SAvatar(
-                    name: counterpartName,
-                    src: counterpartLogo,
-                    size: SAvatarSize.md,
-                  ),
-                  const SizedBox(width: 10),
+                  // The offer the conversation is about, as on the order (a book stands up, a service lies wide).
+                  MiniCover(src: order.item.coverImage, category: order.item.category, size: 40, muted: order.status == 'cancelled'),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          counterpartName,
+                          order.item.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: SalacopeTypography.bodyStrong.copyWith(
-                            color: colors.textPrimary,
-                            fontSize: 14,
-                          ),
+                          style: SalacopeTypography.bodyStrong.copyWith(color: colors.textPrimary),
                         ),
                         Text(
-                          '${order.number} · ${order.item.title}',
+                          '$counterpartName · ${order.number}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: SalacopeTypography.caption.copyWith(
-                            color: colors.textMuted,
-                            fontSize: 11,
-                          ),
+                          style: SalacopeTypography.caption.copyWith(color: colors.textMuted),
                         ),
                       ],
                     ),
@@ -290,28 +279,54 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                   text: isBuyer ? 'Vous avez bloqué ce vendeur : il ne peut plus vous écrire.' : 'Ce client a bloqué les messages de votre boutique.',
                 ),
               Expanded(
-                child: entries.isEmpty
-                    ? SEmptyState(
-                        icon: LucideIcons.messagesSquare,
-                        title: 'Aucun message',
-                        description: 'Posez vos questions à $counterpartName ici : c’est le seul canal entre vous, les coordonnées sont bloquées.',
-                      )
-                    : ListView.builder(
+                child: ListView.builder(
                         controller: _scroll.controller,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        itemCount: entries.length,
+                        itemCount: count,
                         itemBuilder: (context, index) {
-                          final entry = entries[index];
+                          if (intro && index == 0) {
+                            return _Intro(
+                              text: order.item.kind == 'service' && order.status == 'paid'
+                                  ? isBuyer
+                                      ? 'La discussion s’ouvrira dès que le vendeur aura accepté votre commande.'
+                                      : 'La discussion s’ouvre quand vous acceptez la commande.'
+                                  : 'Aucun message. Posez vos questions à $counterpartName ici.',
+                            );
+                          }
+                          final i = index - (intro ? 1 : 0);
+                          if (i == entries.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4, bottom: 8),
+                              child: NextStepCard(order: order, perspective: perspective),
+                            );
+                          }
+                          final entry = entries[i];
                           if (entry.event != null) {
                             final ev = entry.event!;
+                            // What was said with the step (a refusal, a revision asked, a delay) is read in the conversation.
+                            final said = ev.type != 'delivered' && _said.contains(ev.type) && (ev.note ?? '').isNotEmpty ? ev.note : null;
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                ChatEventPill(label: eventLabel(ev.type), at: ev.at),
-                                if (ev.type == 'delivered' && ev.id == lastDeliveryEvent?.id && order.item.kind == 'service')
+                                ChatEventPill(label: orderEventLabel(ev.type), at: ev.at),
+                                if (said != null)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                                    child: Text(
+                                      '« $said »',
+                                      textAlign: TextAlign.center,
+                                      style: SalacopeTypography.caption.copyWith(color: colors.gray600),
+                                    ),
+                                  ),
+                                if (ev.type == 'paid' && (order.brief?.isNotEmpty ?? false))
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 12),
-                                    child: Center(child: ValidationCard(order: order, perspective: perspective, current: true)),
+                                    child: BriefCard(order: order, perspective: perspective),
+                                  ),
+                                if (ev.type == 'delivered' && ev.id == lastDeliveryEvent?.id && order.item.kind == 'service' && order.delivery != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: DeliveryCard(order: order, perspective: perspective),
                                   ),
                               ],
                             );
@@ -375,6 +390,29 @@ class _Notice extends StatelessWidget {
   }
 }
 
+/// The steps that carry a few words from the person who took them.
+const _said = {'cancelled', 'disputed', 'revision_requested', 'extension_requested', 'extension_declined'};
+
+class _Intro extends StatelessWidget {
+  final String text;
+  const _Intro({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+      child: Column(
+        children: [
+          Icon(LucideIcons.messagesSquare, size: 20, color: colors.gray300),
+          const SizedBox(height: 8),
+          Text(text, textAlign: TextAlign.center, style: SalacopeTypography.caption.copyWith(color: colors.gray500)),
+        ],
+      ),
+    );
+  }
+}
+
 class _FeedEntry {
   final String at;
   final OrderEvent? event;
@@ -382,21 +420,3 @@ class _FeedEntry {
 
   _FeedEntry({required this.at, this.event, this.message});
 }
-
-/// Same words as the web (`EVENT_LABEL` in src/features/orders/model.ts), for the server's event types.
-String eventLabel(String type) => switch (type) {
-      'paid' => 'Paiement reçu',
-      'accepted' => 'Commande acceptée',
-      'delivered' => 'Livraison effectuée',
-      'completed' => 'Réception confirmée',
-      'auto_completed' => 'Clôturée automatiquement',
-      'cancelled' => 'Commande annulée, client remboursé',
-      'funds_released' => 'Décision de Salacope : vendeur payé',
-      'funds_refunded' => 'Décision de Salacope : client remboursé',
-      'disputed' => 'Litige ouvert',
-      'revision_requested' => 'Retouche demandée',
-      'extension_requested' => 'Délai supplémentaire demandé',
-      'extension_accepted' => 'Délai supplémentaire accepté',
-      'extension_declined' => 'Délai supplémentaire refusé',
-      _ => 'Mise à jour de la commande',
-    };

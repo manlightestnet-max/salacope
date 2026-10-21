@@ -1,422 +1,178 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:salacope/core/db/models/order.dart';
+import 'package:salacope/core/db/models/listing.dart';
 import 'package:salacope/core/db/store.dart';
 import 'package:salacope/core/design/theme.dart';
 import 'package:salacope/core/design/tokens.dart';
 import 'package:salacope/core/design/typography.dart';
+import 'package:salacope/core/domain/analytics.dart';
 import 'package:salacope/core/domain/orders.dart';
 import 'package:salacope/core/lib/format.dart';
+import 'package:salacope/core/lib/remembered.dart';
 import 'package:salacope/core/ui/bar_chart.dart';
-import 'package:salacope/core/ui/s_badge.dart';
-import 'package:salacope/core/ui/s_button.dart';
+import 'package:salacope/core/ui/help_tip.dart';
 import 'package:salacope/core/ui/s_empty_state.dart';
-import 'package:salacope/core/ui/s_image.dart';
+import 'package:salacope/core/ui/s_list.dart';
 import 'package:salacope/core/ui/s_page.dart';
 import 'package:salacope/core/ui/s_panel.dart';
-import 'package:salacope/core/ui/s_segmented.dart';
-import 'package:salacope/core/ui/s_stat.dart';
+import 'package:salacope/core/ui/s_shimmer.dart';
+import 'package:salacope/features/catalog/presentation/widgets/mini_cover.dart';
 import 'package:salacope/features/verification/presentation/widgets/verification_notice.dart';
-import 'package:salacope/features/wallet/domain/wallet_model.dart';
+import '../../data/analytics_api.dart';
+import '../seller_hub.dart';
 
+const _views = ['resume', 'ventes', 'visites', 'clients', 'conversion'];
+const _periods = ['7', '30', '90', 'year', 'all', 'custom'];
+
+/// The store's figures over a period, one view per chip (Résumé, Ventes, Visites, Clients, Taux de conversion), like the web's
+/// `/dashboard`. The period, the offer filter and the view are kept for the next visit; sales and customers come from the
+/// orders, visits from the server.
 class DashboardScreen extends StatefulWidget {
-  /// Shown as the "Boutique" tab of the bottom bar (no back arrow).
+  /// Shown as a section of the Boutique tab (no back arrow).
   final bool inTab;
   const DashboardScreen({super.key, this.inTab = false});
+
+  static final Remembered _view = Remembered('seller.dashboard.view', _views, 'resume');
+  static final Remembered _period = Remembered('seller.dashboard.period', _periods, '30');
+  static final ValueNotifier<String> _offer = ValueNotifier('all');
+  static DateRange? _custom;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String _period = '30'; // '7', '30', '90', 'all'
+  Analytics? _counted;
+  bool _failed = false;
+  DateRange? _asked;
+
+  void _load(DateRange range) {
+    if (_asked == range) return;
+    _asked = range;
+    // The last answer for this period at once; the server is asked again behind it.
+    _counted = analyticsApi.last(range);
+    _failed = false;
+    analyticsApi.fetch(range).then((a) {
+      if (mounted && _asked == range) setState(() => _counted = a);
+    }).catchError((_) {
+      if (mounted && _asked == range && _counted == null) setState(() => _failed = true);
+    });
+  }
+
+  Future<void> _pickDates(String today) async {
+    final now = DateTime.parse('${today}T12:00:00');
+    final current = DashboardScreen._custom;
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2024),
+      lastDate: now,
+      initialDateRange: current == null ? null : DateTimeRange(start: DateTime.parse('${current.from}T12:00:00'), end: DateTime.parse('${current.to}T12:00:00')),
+    );
+    if (picked == null) return;
+    DashboardScreen._custom = DateRange(dayOf(picked.start), dayOf(picked.end));
+    DashboardScreen._period.value = 'custom';
+    setState(() {});
+  }
+
+  void _pickOffer(List<Listing> listings) {
+    final colors = context.colors;
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Text('Offre', style: SalacopeTypography.caption.copyWith(color: colors.gray500, fontWeight: FontWeight.w500)),
+              ),
+              for (final (id, title) in [('all', 'Toutes les offres'), for (final l in listings) (l.id, l.title)])
+                ListTile(
+                  title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: SalacopeTypography.body.copyWith(color: colors.textPrimary)),
+                  trailing: DashboardScreen._offer.value == id ? Icon(LucideIcons.check, size: 18, color: colors.accent) : null,
+                  onTap: () {
+                    DashboardScreen._offer.value = id;
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-
     return ListenableBuilder(
-      listenable: db,
+      listenable: Listenable.merge([db, DashboardScreen._view, DashboardScreen._period, DashboardScreen._offer]),
       builder: (context, _) {
         final state = db.state;
-        final currentUserId = state.sessionUserId ?? '';
-        final currentUser = state.users.where((u) => u.id == currentUserId).firstOrNull;
-        final merchant = currentUser?.merchant;
+        final me = state.sessionUserId ?? '';
+        final merchant = state.users.where((u) => u.id == me).firstOrNull?.merchant;
+        if (merchant == null) return const SizedBox.shrink();
 
-        if (merchant == null) {
-          return Scaffold(
-            backgroundColor: colors.canvas,
-            appBar: AppBar(
-              backgroundColor: colors.surface,
-              elevation: 0,
-              title: const Text('Boutique'),
-            ),
-            body: SEmptyState(
-              icon: LucideIcons.store,
-              title: 'Ouvrez votre boutique',
-              description: 'Vendez vos services et formations sur Salacope en quelques minutes.',
-              action: SButton(
-                label: 'Ouvrir ma boutique',
-                variant: SButtonVariant.primary,
-                size: SButtonSize.md,
-                pill: true,
-                onPressed: () => context.push('/vendre'),
-              ),
-            ),
-          );
+        final orders = state.orders.where((o) => o.sellerId == me).toList();
+        final listings = state.listings.where((l) => l.sellerId == me).toList();
+        final today = dayOf(DateTime.now());
+        var since = addDays(today, -29);
+        for (final o in orders) {
+          final d = dayOfIso(o.createdAt);
+          if (d.isNotEmpty && d.compareTo(since) < 0) since = d;
         }
+        final presets = <String, (String, DateRange)>{
+          '7': ('7 jours', DateRange(addDays(today, -6), today)),
+          '30': ('30 jours', DateRange(addDays(today, -29), today)),
+          '90': ('90 jours', DateRange(addDays(today, -89), today)),
+          'year': ('Cette année', DateRange('${today.substring(0, 4)}-01-01', today)),
+          'all': ('Depuis le début', DateRange(since, today)),
+        };
+        final period = DashboardScreen._period.value;
+        final custom = DashboardScreen._custom;
+        final range = period == 'custom' && custom != null ? custom : (presets[period] ?? presets['30']!).$2;
+        final offerId = DashboardScreen._offer.value;
+        final offer = offerId != 'all' && listings.any((l) => l.id == offerId) ? offerId : null;
+        _load(range);
 
-        final sellerOrders = state.orders.where((o) => o.sellerId == currentUserId).toList();
-        final balance = computeBalance(sellerOrders);
-
-        final listings = state.listings.where((l) => l.sellerId == currentUserId).toList();
-
-        final todoOrders = sellerOrders.where((o) {
-          final perms = permissionsFor(
-            status: o.status,
-            kind: o.item.kind,
-            perspective: Perspective.seller,
-          );
-          return perms.accept || perms.deliver || o.status == 'disputed';
-        }).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-        final series = _buildSeries(sellerOrders, _period);
-        final periodLabel = _period == 'all' ? 'depuis le début' : 'sur $_period jours';
-
-        // Best seller listings
-        final listingSales = <String, int>{};
-        final listingRevenue = <String, int>{};
-        for (final o in sellerOrders) {
-          if (o.status != 'cancelled') {
-            listingSales[o.listingId] = (listingSales[o.listingId] ?? 0) + 1;
-            listingRevenue[o.listingId] = (listingRevenue[o.listingId] ?? 0) + o.amounts.net;
-          }
-        }
-
-        final topListings = listings.where((l) => (listingSales[l.id] ?? 0) > 0).toList()
-          ..sort((a, b) => (listingRevenue[b.id] ?? 0).compareTo(listingRevenue[a.id] ?? 0));
+        final f = dashboardFigures(orders, _counted?.stats ?? const [], range, listingId: offer, store: _counted?.store ?? const []);
+        final todo = orders.where((o) => needsAction(o, Perspective.seller)).length;
+        final view = DashboardScreen._view.value;
+        final loading = _counted == null && !_failed;
 
         return SPage(
-          title: merchant.storeName.isNotEmpty ? merchant.storeName : 'Tableau de bord',
-          leading: widget.inTab ? null : const BackButton(),
-          actions: [
-            SButton(
-              label: 'Nouvelle offre',
-              variant: SButtonVariant.primary,
-              size: SButtonSize.sm,
-              pill: true,
-              icon: const Icon(LucideIcons.plus, size: 14),
-              onPressed: () => context.push('/dashboard/offres/nouvelle'),
-            ),
-          ],
-          toolbar: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  _NavPill(
-                    label: "Vue d'ensemble",
-                    active: true,
-                    onTap: () {},
-                  ),
-                  _NavPill(
-                    label: 'Ventes',
-                    badge: todoOrders.isNotEmpty ? '${todoOrders.length}' : null,
-                    onTap: () => context.push('/dashboard/ventes'),
-                  ),
-                  _NavPill(
-                    label: 'Offres',
-                    onTap: () => context.push('/dashboard/offres'),
-                  ),
-                  _NavPill(
-                    label: 'Clients',
-                    onTap: () => context.push('/dashboard/clients'),
-                  ),
-                  _NavPill(
-                    label: 'Paiements',
-                    onTap: () => context.push('/dashboard/paiements'),
-                  ),
-                  if (merchant.kycStatus != 'approved')
-                    _NavPill(
-                      label: 'Vérification',
-                      badge: merchant.kycStatus == 'pending' ? null : '!',
-                      onTap: () => context.push('/dashboard/verification'),
-                    ),
-                ],
+          embedded: true,
+          title: merchant.storeName,
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _ToolbarDelegate(
+                child: _Toolbar(
+                  period: period == 'custom' && custom == null ? '30' : period,
+                  presets: {for (final e in presets.entries) e.key: e.value.$1},
+                  customLabel: custom == null ? 'Dates' : '${formatDate('${custom.from}T12:00:00')} – ${formatDate('${custom.to}T12:00:00')}',
+                  onPeriod: (p) => DashboardScreen._period.value = p,
+                  onDates: () => _pickDates(today),
+                  filtered: offer != null,
+                  onFilter: () => _pickOffer(listings),
+                  view: view,
+                  onView: (v) => DashboardScreen._view.value = v,
+                ),
               ),
             ),
-          ),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    VerificationNotice(merchant: merchant),
-                    const SizedBox(height: 16),
-
-                    // Overview panel
-                    SPanel(
-                      titleText: 'Aperçu des ventes',
-                      actions: SSegmented<String>(
-                        value: _period,
-                        options: const [
-                          SSegmentedOption(value: '7', label: '7 j'),
-                          SSegmentedOption(value: '30', label: '30 j'),
-                          SSegmentedOption(value: '90', label: '90 j'),
-                          SSegmentedOption(value: 'all', label: 'Tout'),
-                        ],
-                        onChanged: (p) => setState(() => _period = p),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SStatGrid(
-                            stats: [
-                              SStat(
-                                label: 'COMMANDES',
-                                value: '${series.count}',
-                              ),
-                              SStat(
-                                label: 'VOLUME NET',
-                                value: formatXaf(series.revenue),
-                              ),
-                              SStat(
-                                label: 'BLOQUÉ',
-                                value: formatXaf(balance.escrow + balance.frozen),
-                              ),
-                              SStat(
-                                label: 'VERSÉ SUR LIGHTPAY',
-                                value: formatXaf(balance.released),
-                                emphasis: true,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          BarChart(
-                            title: 'Revenus $periodLabel',
-                            data: series.data,
-                            formatValue: (v) => formatXaf(v),
-                            labelEvery: _period == '7' ? 1 : _period == '30' ? 7 : _period == '90' ? 15 : 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Todo orders lane
-                    SPanel(
-                      titleText: 'À traiter',
-                      count: todoOrders.length,
-                      actions: todoOrders.length > 5
-                          ? InkWell(
-                              onTap: () => context.push('/dashboard/ventes'),
-                              child: Text(
-                                'Tout voir',
-                                style: TextStyle(
-                                  color: colors.accent,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            )
-                          : null,
-                      child: todoOrders.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(LucideIcons.circleCheck, size: 16, color: colors.accent),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Tout est à jour ! Aucune action en attente.',
-                                      style: SalacopeTypography.body.copyWith(
-                                        color: colors.textSecondary,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: todoOrders.take(5).length,
-                              separatorBuilder: (_, _) => Divider(
-                                height: 1,
-                                thickness: 0.8,
-                                color: colors.canvasBorder,
-                              ),
-                              itemBuilder: (context, index) {
-                                final order = todoOrders[index];
-                                final info = statusDisplay(
-                                  status: order.status,
-                                  perspective: Perspective.seller,
-                                  extensionStatus: order.extension?.status,
-                                );
-
-                                final SBadgeTone badgeTone = switch (info.tone) {
-                                  OrderBadgeTone.success => SBadgeTone.success,
-                                  OrderBadgeTone.warning => SBadgeTone.warning,
-                                  OrderBadgeTone.danger => SBadgeTone.danger,
-                                  OrderBadgeTone.brand => SBadgeTone.brand,
-                                  OrderBadgeTone.info => SBadgeTone.info,
-                                  OrderBadgeTone.neutral => SBadgeTone.neutral,
-                                };
-
-                                return InkWell(
-                                  onTap: () => context.push('/orders/${order.id}'),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusSm),
-                                          child: SizedBox(
-                                            width: 40,
-                                            height: 40,
-                                            child: SImage(
-                                              url: order.item.coverImage,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                order.item.title,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: SalacopeTypography.bodyStrong.copyWith(fontSize: 13),
-                                              ),
-                                              Text(
-                                                '${order.buyer.name} · ${order.number}',
-                                                style: SalacopeTypography.caption.copyWith(fontSize: 11),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        SBadge(label: info.label, tone: badgeTone),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          formatXaf(order.amounts.net),
-                                          style: SalacopeTypography.bodyStrong.copyWith(fontSize: 13),
-                                        ),
-                                        Icon(LucideIcons.chevronRight, size: 16, color: colors.textMuted),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Top listings
-                    SPanel(
-                      titleText: 'Meilleures offres',
-                      actions: topListings.isNotEmpty
-                          ? InkWell(
-                              onTap: () => context.push('/dashboard/offres'),
-                              child: Text(
-                                'Tout voir',
-                                style: TextStyle(
-                                  color: colors.accent,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            )
-                          : null,
-                      child: topListings.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Text(
-                                  'Pas encore de ventes sur vos offres.',
-                                  style: SalacopeTypography.body.copyWith(
-                                    color: colors.textMuted,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: topListings.take(4).length,
-                              separatorBuilder: (_, _) => Divider(
-                                height: 1,
-                                thickness: 0.8,
-                                color: colors.canvasBorder,
-                              ),
-                              itemBuilder: (context, index) {
-                                final l = topListings[index];
-                                final sales = listingSales[l.id] ?? 0;
-                                final rev = listingRevenue[l.id] ?? 0;
-
-                                return InkWell(
-                                  onTap: () => context.push('/dashboard/offres/${l.id}'),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusSm),
-                                          child: SizedBox(
-                                            width: 40,
-                                            height: 40,
-                                            child: SImage(url: l.coverImage, fit: BoxFit.cover),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                l.title,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: SalacopeTypography.bodyStrong.copyWith(fontSize: 13),
-                                              ),
-                                              Text(
-                                                plural(sales, 'vente'),
-                                                style: SalacopeTypography.caption.copyWith(fontSize: 11),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          formatXaf(rev),
-                                          style: SalacopeTypography.bodyStrong.copyWith(
-                                            color: colors.accent,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        Icon(LucideIcons.chevronRight, size: 16, color: colors.textMuted),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverList.list(
+                children: [
+                  VerificationNotice(merchant: merchant),
+                  ..._content(context, view, f, todo, offer, listings, loading),
+                ],
               ),
             ),
           ],
@@ -425,143 +181,328 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  _SeriesResult _buildSeries(List<Order> orders, String period) {
-    const dayMs = 86400000;
-    final paidOrders = orders.where((o) => o.status != 'cancelled').toList();
-
-    if (period == 'all') {
-      final now = DateTime.now();
-      final months = List.generate(12, (i) {
-        final d = DateTime(now.year, now.month - 11 + i, 1);
-        final monthNames = [
-          'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-          'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'
-        ];
-        return _MonthBucket(
-          year: d.year,
-          month: d.month,
-          label: monthNames[d.month - 1],
-          value: 0,
+  List<Widget> _content(BuildContext context, String view, DashboardFigures f, int todo, String? offer, List<Listing> listings, bool loading) {
+    final colors = context.colors;
+    String counted(String Function() value) => _failed ? '—' : value();
+    _Tile visitsTile() => _Tile(
+          label: 'Nombre total de visites',
+          value: counted(() => formatNumber(f.views)),
+          loading: loading,
+          help: 'Fiches d’offres ouvertes, une seule fois par visiteur et par jour. Vos propres visites, les robots et les aperçus de liens ne comptent pas.',
         );
-      });
+    _Tile rateTile() => _Tile(
+          label: 'Taux de conversion',
+          value: counted(() => formatShare(f.conversion)),
+          loading: loading,
+          help: 'Les ventes divisées par les visites sur la période.',
+        );
+    final salesTiles = [
+      _Tile(label: 'Revenu total', value: formatXaf(f.revenue), help: 'Ce que vos ventes vous rapportent sur la période, commission déduite. Les commandes annulées sont exclues.'),
+      _Tile(label: 'Panier moyen', value: formatXaf(f.averageBasket), help: 'Le revenu total divisé par le nombre de ventes.'),
+      _Tile(label: 'Produits vendus', value: formatNumber(f.productsSold), help: 'Ventes de produits numériques (fichiers livrés au paiement) sur la période.'),
+      _Tile(label: 'Total des ventes', value: formatNumber(f.sales), help: 'Toutes vos ventes de la période, produits et services, annulations exclues.'),
+    ];
+    final customerTiles = [
+      _Tile(label: 'Nombre total de clients', value: formatNumber(f.customers), help: 'Personnes qui vous ont acheté quelque chose sur la période.'),
+      _Tile(label: 'Nouveaux clients', value: formatNumber(f.newCustomers), help: 'Clients dont le premier achat dans votre boutique tombe dans la période.'),
+    ];
+    List<BarDatum> bars(int Function(SeriesPoint p) value) => [for (final p in f.series) BarDatum(key: p.key, label: p.label, value: value(p))];
+    final every = (f.series.length / 6).ceil().clamp(1, 1000);
+    final where = offer != null ? ' pour cette offre' : '';
+    const gap = SizedBox(height: 16);
 
-      int revenue = 0;
-      for (final o in paidOrders) {
-        final d = DateTime.tryParse(o.createdAt);
-        if (d != null) {
-          final bucket = months.where((b) => b.year == d.year && b.month == d.month).firstOrNull;
-          if (bucket != null) bucket.value += o.amounts.net;
-          revenue += o.amounts.net;
-        }
-      }
-
-      return _SeriesResult(
-        data: months.map((b) => BarDatum(key: '${b.year}-${b.month}', label: b.label, value: b.value)).toList(),
-        revenue: revenue,
-        count: paidOrders.length,
-      );
+    switch (view) {
+      case 'ventes':
+        return [
+          gap,
+          _StatSection(title: 'Ventes', tiles: salesTiles),
+          gap,
+          SPanel(
+            titleText: 'Revenus',
+            help: 'Ce que vos ventes vous rapportent, commission déduite, par jour (par mois sur une longue période).',
+            child: BarChart(data: bars((p) => p.revenue), formatValue: formatXaf, title: 'Revenus$where', labelEvery: every),
+          ),
+        ];
+      case 'visites':
+        return [
+          gap,
+          _StatSection(title: 'Visites', tiles: [
+            visitsTile(),
+            _Tile(
+              label: 'Visites de la boutique',
+              value: offer != null ? '—' : counted(() => formatNumber(f.storeViews)),
+              loading: loading,
+              help: 'Page de votre boutique ouverte, une seule fois par visiteur et par jour. Non disponible quand une offre est filtrée.',
+            ),
+            _Tile(
+              label: 'Clics sur « Acheter »',
+              value: counted(() => formatNumber(f.clicks)),
+              loading: loading,
+              help: 'Visiteurs qui ont touché « Acheter » ou « Commander » sur la période.',
+            ),
+            _Tile(
+              label: 'Taux de clic',
+              value: counted(() => formatShare(f.clickRate)),
+              loading: loading,
+              help: 'Les clics sur « Acheter » divisés par les visites.',
+            ),
+          ]),
+          gap,
+          SPanel(
+            titleText: 'Visites',
+            help: 'Fiches d’offres ouvertes, par jour (par mois sur une longue période).',
+            child: BarChart(data: bars((p) => p.views), formatValue: (v) => plural(v, 'visite'), title: 'Visites$where', labelEvery: every),
+          ),
+        ];
+      case 'clients':
+        return [
+          gap,
+          _StatSection(title: 'Clients', tiles: [
+            ...customerTiles,
+            _Tile(label: 'Clients fidèles', value: formatNumber(f.repeatCustomers), help: 'Clients de la période qui ont acheté au moins deux fois chez vous.'),
+          ]),
+          gap,
+          _ListTitle(title: 'Meilleurs clients', action: 'Tous les clients', onAction: () => openSellerSection(context, 'clients')),
+          if (f.topCustomers.isEmpty)
+            const SEmptyState(title: 'Aucun client sur cette période')
+          else
+            SList(children: [
+              for (final c in f.topCustomers.take(5))
+                SListRow(
+                  title: c.name,
+                  subtitle: plural(c.orders, 'commande'),
+                  trailing: Text(formatXaf(c.spent), style: SalacopeTypography.bodyStrong.copyWith(color: colors.textPrimary)),
+                  onTap: () => openSellerSection(context, 'clients'),
+                ),
+            ]),
+        ];
+      case 'conversion':
+        return [
+          gap,
+          _StatSection(title: 'Taux de conversion', tiles: [
+            rateTile(),
+            _Tile(label: 'Total des ventes', value: formatNumber(f.sales), help: 'Toutes vos ventes de la période, produits et services, annulations exclues.'),
+          ]),
+          gap,
+          _ListTitle(title: 'Par offre', action: 'Mes offres', onAction: () => openSellerSection(context, 'offres')),
+          if (f.byOffer.isEmpty)
+            SEmptyState(
+              title: 'Pas encore de visite ni de vente sur cette période',
+              description: listings.isNotEmpty ? 'Partagez le lien de vos offres.' : 'Publiez votre première offre.',
+            )
+          else
+            SList(children: [
+              for (final o in f.byOffer)
+                Builder(builder: (context) {
+                  final l = listings.where((x) => x.id == o.listingId).firstOrNull;
+                  return SListRow(
+                    leading: l == null ? null : MiniCover(src: l.coverImage, category: l.category, size: 44),
+                    title: l?.title ?? 'Offre supprimée',
+                    subtitle: '${plural(o.views, 'visite')} · ${plural(o.sales, 'vente')} · ${formatXaf(o.revenue)}',
+                    trailing: Text(
+                      formatShare(o.conversion),
+                      style: SalacopeTypography.bodyStrong.copyWith(color: o.conversion == null ? colors.gray400 : colors.textPrimary),
+                    ),
+                    onTap: l == null ? null : () => context.push('/dashboard/offres/${l.id}'),
+                  );
+                }),
+            ]),
+        ];
+      default:
+        return [
+          if (todo > 0) ...[
+            gap,
+            InkWell(
+              onTap: () => openSellerSection(context, 'ventes'),
+              borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
+                  border: Border.all(color: colors.gray200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(children: [
+                          TextSpan(text: plural(todo, 'commande'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                          const TextSpan(text: ' à traiter'),
+                        ]),
+                        style: SalacopeTypography.body.copyWith(color: colors.textPrimary),
+                      ),
+                    ),
+                    Text('Voir', style: SalacopeTypography.body.copyWith(color: colors.gray500)),
+                    Icon(LucideIcons.chevronRight, size: 16, color: colors.gray500),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          gap,
+          _StatSection(title: 'Ventes', tiles: salesTiles),
+          gap,
+          _StatSection(title: 'Visites', tiles: [visitsTile(), rateTile()]),
+          gap,
+          _StatSection(title: 'Clients', tiles: customerTiles),
+        ];
     }
-
-    final days = int.tryParse(period) ?? 30;
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: days - 1));
-    final startTime = start.millisecondsSinceEpoch;
-
-    final data = List.generate(days, (i) {
-      final d = start.add(Duration(days: i));
-      return BarDatum(
-        key: '${d.year}-${d.month}-${d.day}',
-        label: '${d.day}',
-        value: 0,
-      );
-    });
-
-    int revenue = 0;
-    int count = 0;
-    final dataMap = <int, int>{};
-
-    for (final o in paidOrders) {
-      final d = DateTime.tryParse(o.createdAt);
-      if (d != null) {
-        final idx = (d.millisecondsSinceEpoch - startTime) ~/ dayMs;
-        if (idx >= 0 && idx < days) {
-          dataMap[idx] = (dataMap[idx] ?? 0) + o.amounts.net;
-          revenue += o.amounts.net;
-          count++;
-        }
-      }
-    }
-
-    final finalData = List.generate(days, (i) {
-      final base = data[i];
-      return BarDatum(key: base.key, label: base.label, value: dataMap[i] ?? 0);
-    });
-
-    return _SeriesResult(data: finalData, revenue: revenue, count: count);
   }
 }
 
-class _NavPill extends StatelessWidget {
-  final String label;
-  final bool active;
-  final String? badge;
-  final VoidCallback onTap;
+/// The period chips with the offer filter, then the view chips: pinned under the Boutique tabs, never scrolled away.
+class _Toolbar extends StatelessWidget {
+  final String period;
+  final Map<String, String> presets;
+  final String customLabel;
+  final ValueChanged<String> onPeriod;
+  final VoidCallback onDates;
+  final bool filtered;
+  final VoidCallback onFilter;
+  final String view;
+  final ValueChanged<String> onView;
 
-  const _NavPill({
-    required this.label,
-    this.active = false,
-    this.badge,
-    required this.onTap,
+  const _Toolbar({
+    required this.period,
+    required this.presets,
+    required this.customLabel,
+    required this.onPeriod,
+    required this.onDates,
+    required this.filtered,
+    required this.onFilter,
+    required this.view,
+    required this.onView,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(SalacopeTokens.radiusFull),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? colors.accent : colors.surface,
-            borderRadius: BorderRadius.circular(SalacopeTokens.radiusFull),
-            border: Border.all(
-              color: active ? colors.accent : colors.canvasBorder,
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? colors.onAccent : colors.textPrimary,
-                ),
-              ),
-              if (badge != null) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: active ? colors.onAccent.withValues(alpha: 0.2) : colors.accent,
-                    borderRadius: BorderRadius.circular(SalacopeTokens.radiusFull),
+    const views = {
+      'resume': ('Résumé', LucideIcons.chartColumn),
+      'ventes': ('Ventes', LucideIcons.shoppingBag),
+      'visites': ('Visites', LucideIcons.eye),
+      'clients': ('Clients', LucideIcons.users),
+      'conversion': ('Taux de conversion', LucideIcons.arrowUpDown),
+    };
+    return Container(
+      color: colors.canvas,
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 36,
+            child: Row(
+              children: [
+                Expanded(
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(left: 16, right: 8),
+                    children: [
+                      for (final e in presets.entries)
+                        _Chip(label: e.value, selected: period == e.key, onTap: () => onPeriod(e.key)),
+                      _Chip(label: customLabel, icon: LucideIcons.calendar, selected: period == 'custom', onTap: onDates),
+                    ],
                   ),
-                  child: Text(
-                    badge!,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: active ? colors.onAccent : colors.onAccent,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: InkWell(
+                    onTap: onFilter,
+                    borderRadius: SalacopeTokens.borderLg,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: colors.gray50,
+                            borderRadius: SalacopeTokens.borderLg,
+                            border: Border.all(color: colors.gray200),
+                          ),
+                          child: Icon(LucideIcons.listFilter, size: 16, color: colors.gray700),
+                        ),
+                        if (filtered)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(color: colors.amber500, shape: BoxShape.circle, border: Border.all(color: colors.canvas, width: 2)),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                for (final e in views.entries) _Chip(label: e.value.$1, icon: e.value.$2, selected: view == e.key, onTap: () => onView(e.key)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolbarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _ToolbarDelegate({required this.child});
+
+  static const double _height = 102;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => SizedBox.expand(child: child);
+
+  @override
+  bool shouldRebuild(_ToolbarDelegate old) => true;
+}
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _Chip({required this.label, this.icon, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final fg = selected ? colors.onAccent : colors.gray600;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: SalacopeTokens.borderFull,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: selected ? colors.accent : colors.surface,
+            borderRadius: SalacopeTokens.borderFull,
+            border: Border.all(color: selected ? colors.accent : colors.gray200),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[Icon(icon, size: 14, color: fg), const SizedBox(width: 6)],
+              Text(label, style: SalacopeTypography.label.copyWith(color: fg, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -570,19 +511,102 @@ class _NavPill extends StatelessWidget {
   }
 }
 
-class _SeriesResult {
-  final List<BarDatum> data;
-  final int revenue;
-  final int count;
+/// A grey block of white figure cards (big number, name, ⓘ).
+class _StatSection extends StatelessWidget {
+  final String title;
+  final List<_Tile> tiles;
+  const _StatSection({required this.title, required this.tiles});
 
-  _SeriesResult({required this.data, required this.revenue, required this.count});
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: colors.gray100, borderRadius: BorderRadius.circular(SalacopeTokens.radius2xl)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 2, 4, 10),
+            child: Text(title, style: SalacopeTypography.bodyStrong.copyWith(color: colors.gray900)),
+          ),
+          LayoutBuilder(
+            builder: (context, box) {
+              final w = (box.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [for (final t in tiles) SizedBox(width: w, child: t)],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _MonthBucket {
-  final int year;
-  final int month;
+class _Tile extends StatelessWidget {
   final String label;
-  int value;
+  final String value;
+  final String help;
+  final bool loading;
+  const _Tile({required this.label, required this.value, required this.help, this.loading = false});
 
-  _MonthBucket({required this.year, required this.month, required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 96),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 32,
+            child: loading
+                ? const Align(alignment: Alignment.centerLeft, child: SShimmer(child: SShimmerBox(width: 64, height: 24, radius: 6)))
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: SalacopeTypography.title.copyWith(color: colors.gray900, fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(label, style: SalacopeTypography.caption.copyWith(color: colors.gray500))),
+              HelpTip(text: help),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ListTitle extends StatelessWidget {
+  final String title;
+  final String action;
+  final VoidCallback onAction;
+  const _ListTitle({required this.title, required this.action, required this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 0, 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: SalacopeTypography.bodyStrong.copyWith(color: colors.gray900))),
+          TextButton(onPressed: onAction, child: Text(action, style: SalacopeTypography.body.copyWith(color: colors.gray500))),
+        ],
+      ),
+    );
+  }
 }

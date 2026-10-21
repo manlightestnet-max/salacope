@@ -28,8 +28,21 @@ abstract final class PlatformConfig {
 
   static const int minWithdrawalXaf = 1000;
 
-  /// Same as the mobile-money minimum: below it an offer could not be paid.
-  static const int minPriceXaf = 1000;
+  /// Smallest price of an offer (at or above LightPay's own minimum deposit). Set by the administration.
+  static int minPriceXaf = 1000;
+
+  /// Own minimum for digital products / services; null = the general one.
+  static int? minPriceDigitalXaf;
+  static int? minPriceServiceXaf;
+
+  /// Longest promotion with a countdown, in days: its price goes back to the former one at the end.
+  static int promoMaxDays = 30;
+
+  /// Sellers may set a price of 0 (a free offer, or free during a promotion).
+  static bool freeOffers = true;
+
+  /// Most files one digital product can deliver.
+  static int maxProductFiles = 5;
 
   static const String country = 'République du Congo';
 
@@ -51,7 +64,24 @@ void applyPlatform(Object? raw) {
   PlatformConfig.feeRateService = raw['feeRateService'] == null ? null : (rate(raw['feeRateService']) ?? PlatformConfig.feeRateService);
   PlatformConfig.digitalHoldDays = days(raw['digitalHoldDays']) ?? PlatformConfig.digitalHoldDays;
   PlatformConfig.serviceValidationDays = days(raw['serviceValidationDays']) ?? PlatformConfig.serviceValidationDays;
+  int? minPrice(Object? v) => v is num && v == v.roundToDouble() && v >= 100 && v <= 1000000 ? v.toInt() : null;
+  PlatformConfig.minPriceXaf = minPrice(raw['minPriceXaf']) ?? PlatformConfig.minPriceXaf;
+  if (raw.containsKey('minPriceDigitalXaf')) {
+    PlatformConfig.minPriceDigitalXaf = raw['minPriceDigitalXaf'] == null ? null : (minPrice(raw['minPriceDigitalXaf']) ?? PlatformConfig.minPriceDigitalXaf);
+  }
+  if (raw.containsKey('minPriceServiceXaf')) {
+    PlatformConfig.minPriceServiceXaf = raw['minPriceServiceXaf'] == null ? null : (minPrice(raw['minPriceServiceXaf']) ?? PlatformConfig.minPriceServiceXaf);
+  }
+  final promo = raw['promoMaxDays'];
+  if (promo is num && promo == promo.roundToDouble() && promo >= 1 && promo <= 365) PlatformConfig.promoMaxDays = promo.toInt();
+  if (raw['freeOffers'] is bool) PlatformConfig.freeOffers = raw['freeOffers'] as bool;
+  final files = raw['maxProductFiles'];
+  if (files is num && files == files.roundToDouble() && files >= 1 && files <= 20) PlatformConfig.maxProductFiles = files.toInt();
 }
+
+/// The smallest price an offer of this kind may have.
+int minPriceFor(String? kind) =>
+    (kind == 'digital' ? PlatformConfig.minPriceDigitalXaf : kind == 'service' ? PlatformConfig.minPriceServiceXaf : null) ?? PlatformConfig.minPriceXaf;
 
 /// The commission rate that applies to an offer of this kind.
 double feeRateFor(String? kind) =>

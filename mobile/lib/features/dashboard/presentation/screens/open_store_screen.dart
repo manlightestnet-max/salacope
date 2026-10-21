@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:salacope/features/dashboard/presentation/seller_hub.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/db/store.dart';
 import 'package:salacope/core/design/colors.dart';
@@ -105,7 +105,7 @@ class _OpenStoreScreenState extends State<OpenStoreScreen> {
           message: isUpdate ? 'Boutique mise à jour' : 'Boutique créée avec succès !',
           variant: SToastVariant.success,
         );
-        context.go('/dashboard');
+        openSellerSection(context, 'apercu');
       }
     } catch (e) {
       if (mounted) {

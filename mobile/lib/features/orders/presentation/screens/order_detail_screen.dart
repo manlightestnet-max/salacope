@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/lib/format.dart';
+import 'package:salacope/core/lib/remembered.dart';
+import '../../../../core/db/models/order.dart';
+import '../../../../core/db/models/user.dart';
 import '../../../../core/db/store.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/tokens.dart';
@@ -13,222 +16,32 @@ import '../../../../core/ui/s_dialog.dart';
 import '../../../../core/ui/s_empty_state.dart';
 import '../../../../core/ui/s_field.dart';
 import '../../../../core/ui/s_page.dart';
-import '../../../../core/ui/s_panel.dart';
+import '../../../../core/ui/s_tabs.dart';
 import '../../../../core/ui/s_toast.dart';
+import '../../../catalog/presentation/widgets/mini_cover.dart';
+import '../../../checkout/presentation/widgets/refund_notice.dart';
 import '../../data/orders_api.dart';
-import 'package:salacope/core/lib/files.dart';
-import '../../../../core/db/models/order.dart';
+import '../widgets/order_cards.dart';
+import '../widgets/order_dialogs.dart';
+import '../widgets/order_row.dart';
 
-class OrderDetailScreen extends StatefulWidget {
+/// Details of an order: what it is, what it cost, the clock, brief and delivery, and its steps. It only shows: every action
+/// (accept, refuse, deliver, ask for time, validate, revise, report) is taken in the order's discussion, which opens from here.
+class OrderDetailScreen extends StatelessWidget {
   final String orderId;
 
-  const OrderDetailScreen({
-    super.key,
-    required this.orderId,
-  });
+  const OrderDetailScreen({super.key, required this.orderId});
 
-  @override
-  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
-}
-
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  void _showReportDialog(BuildContext context) {
-    final order = db.state.orders.where((o) => o.id == widget.orderId).firstOrNull;
-    // Same reasons as the web (OrderDialogs.tsx), by kind of offer.
-    final reasons = order?.item.kind == 'digital'
-        ? const ['Le fichier ne s’ouvre pas', 'Contenu différent de l’annonce', 'Fichier incomplet', 'Autre']
-        : const ['Livraison non conforme', 'Travail incomplet', 'Pas de nouvelles du vendeur', 'Autre'];
-    String reason = reasons.first;
-    final detailCtrl = TextEditingController();
-
-    showSSheet(
-      context: context,
-      title: 'Signaler un problème',
-      description: 'Tant que l’argent est bloqué, un litige est ouvert : il reste gelé jusqu’à la décision de Salacope.',
-      child: StatefulBuilder(
-        builder: (context, setSheetState) {
-          final colors = context.colors;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: reason,
-                  decoration: const InputDecoration(labelText: 'Ce qui ne va pas'),
-                  dropdownColor: colors.surface,
-                  items: [for (final r in reasons) DropdownMenuItem(value: r, child: Text(r))],
-                  onChanged: (v) {
-                    if (v != null) setSheetState(() => reason = v);
-                  },
-                ),
-                const SizedBox(height: 12),
-                SField(
-                  label: 'Détails supplémentaires',
-                  controller: detailCtrl,
-                  placeholder: 'Décrivez précisément la situation...',
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 18),
-                SButton(
-                  label: 'Envoyer le signalement',
-                  variant: SButtonVariant.danger,
-                  size: SButtonSize.lg,
-                  pill: true,
-                  onPressed: () async {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    try {
-                      await ordersApi.reportProblem(
-                        orderId: widget.orderId,
-                        reason: reason,
-                        detail: detailCtrl.text,
-                      );
-                      if (context.mounted) {
-                        SToast.success(context, 'Signalement enregistré');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        SToast.error(context, e.toString());
-                      }
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showRevisionDialog(BuildContext context) {
-    final noteCtrl = TextEditingController();
-
-    showSSheet(
-      context: context,
-      title: 'Demander une retouche',
-      description: 'Expliquez au vendeur ce qui doit être modifié ou amélioré.',
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SField(
-              label: 'Ce qui doit être modifié',
-              controller: noteCtrl,
-              placeholder: 'Ex. Corriger les couleurs du logo...',
-              maxLines: 3,
-            ),
-            const SizedBox(height: 18),
-            SButton(
-              label: 'Envoyer la demande',
-              variant: SButtonVariant.primary,
-              size: SButtonSize.lg,
-              pill: true,
-              onPressed: () async {
-                Navigator.of(context, rootNavigator: true).pop();
-                try {
-                  await ordersApi.requestRevision(widget.orderId, noteCtrl.text);
-                  if (context.mounted) {
-                    SToast.success(context, 'Demande de retouche envoyée');
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    SToast.error(context, e.toString());
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showReviewDialog(BuildContext context) {
-    int rating = 5;
-    final commentCtrl = TextEditingController();
-
-    showSSheet(
-      context: context,
-      title: 'Laisser un avis',
-      description: 'Votre retour aide les autres acheteurs et valorise le créateur.',
-      child: StatefulBuilder(
-        builder: (context, setSheetState) {
-          final colors = context.colors;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(5, (index) {
-                      final star = index + 1;
-                      return IconButton(
-                        icon: Icon(
-                          LucideIcons.star,
-                          size: 28,
-                          color: star <= rating ? colors.accent : colors.textMuted,
-                        ),
-                        onPressed: () => setSheetState(() => rating = star),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SField(
-                  label: 'Commentaire (facultatif)',
-                  controller: commentCtrl,
-                  placeholder: 'Partagez votre expérience...',
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 18),
-                SButton(
-                  label: 'Publier mon avis',
-                  variant: SButtonVariant.primary,
-                  size: SButtonSize.lg,
-                  pill: true,
-                  onPressed: () async {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    try {
-                      await ordersApi.leaveReview(
-                        orderId: widget.orderId,
-                        rating: rating,
-                        comment: commentCtrl.text,
-                      );
-                      if (context.mounted) {
-                        SToast.success(context, 'Avis publié avec succès');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        SToast.error(context, e.toString());
-                      }
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  static final Remembered _tab = Remembered('order.tab', const ['suivi', 'brief', 'historique'], 'suivi');
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-
     return ListenableBuilder(
-      listenable: db,
+      listenable: Listenable.merge([db, _tab]),
       builder: (context, _) {
         final state = db.state;
-        final order = state.orders.where((o) => o.id == widget.orderId).firstOrNull;
-        final currentUserId = state.sessionUserId ?? '';
+        final order = state.orders.where((o) => o.id == orderId).firstOrNull;
+        final userId = state.sessionUserId ?? '';
 
         if (order == null) {
           return SPage(
@@ -241,542 +54,75 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   icon: LucideIcons.circleAlert,
                   title: 'Commande introuvable',
                   description: 'Cette commande n’existe pas ou vous n’y avez pas accès.',
-                  action: SButton(
-                    label: 'Mes achats',
-                    variant: SButtonVariant.primary,
-                    size: SButtonSize.md,
-                    pill: true,
-                    onPressed: () => context.go('/orders'),
-                  ),
+                  action: SButton(label: 'Mes achats', size: SButtonSize.md, pill: true, onPressed: () => context.go('/orders')),
                 ),
               ),
             ],
           );
         }
 
-        final perspective = perspectiveOf(
-              buyerId: order.buyerId,
-              sellerId: order.sellerId,
-              userId: currentUserId,
-            ) ??
-            Perspective.buyer;
-
-        final isBuyer = perspective == Perspective.buyer;
-        final perms = permissionsFor(
-          status: order.status,
-          kind: order.item.kind,
-          perspective: perspective,
-          revisions: order.item.revisions ?? 0,
-          revisionsUsed: order.revisionsUsed ?? 0,
-          extensionStatus: order.extension?.status,
-        );
-
-        final statusInfo = statusDisplay(
-          status: order.status,
-          perspective: perspective,
-          extensionStatus: order.extension?.status,
-        );
-
-        final badgeTone = switch (statusInfo.tone) {
-          OrderBadgeTone.success => SBadgeTone.success,
-          OrderBadgeTone.warning => SBadgeTone.warning,
-          OrderBadgeTone.danger => SBadgeTone.danger,
-          OrderBadgeTone.brand => SBadgeTone.brand,
-          OrderBadgeTone.info => SBadgeTone.info,
-          OrderBadgeTone.neutral => SBadgeTone.neutral,
-        };
-
+        final perspective = perspectiveOf(buyerId: order.buyerId, sellerId: order.sellerId, userId: userId) ?? Perspective.buyer;
+        final isSeller = perspective == Perspective.seller;
+        final service = order.item.kind == 'service';
+        final info = order.statusFor(perspective);
         final seller = state.users.where((u) => u.id == order.sellerId).firstOrNull;
-        final sellerName = seller?.merchant?.storeName.isNotEmpty == true
-            ? seller!.merchant!.storeName
-            : (seller?.name ?? 'Créateur Salacope');
+        final sellerName = _storeName(seller);
+        final counterpart = isSeller ? order.buyer.name : sellerName;
+
+        final tabs = [
+          const STab(value: 'suivi', label: 'Suivi'),
+          if (service) const STab(value: 'brief', label: 'Brief et livraison'),
+          const STab(value: 'historique', label: 'Historique'),
+        ];
+        final tab = tabs.any((t) => t.value == _tab.value) ? _tab.value : 'suivi';
+
+        final List<Widget> content = switch (tab) {
+          'brief' => [
+              if (order.brief?.isNotEmpty ?? false) BriefCard(order: order, perspective: perspective),
+              DeliveryCard(order: order, perspective: perspective),
+              if ((order.brief?.isEmpty ?? true) && order.delivery == null)
+                const SEmptyState(
+                  icon: LucideIcons.clipboardList,
+                  title: 'Rien pour l’instant',
+                  description: 'Le brief du client et la livraison du vendeur apparaissent ici.',
+                ),
+            ],
+          'historique' => [
+              _Timeline(order: order, users: state.users),
+              _Links(order: order, isSeller: isSeller),
+            ],
+          _ => [
+              // Everything that is done on an order (accept, deliver, validate, revise…) is done in its discussion.
+              ChatPreviewCard(order: order, userId: userId, counterpartName: counterpart),
+              _Summary(order: order, perspective: perspective, sellerName: sellerName),
+              if (!service) _DigitalFiles(order: order, perspective: perspective),
+              if (service) DeadlineCard(order: order, perspective: perspective),
+              if (!isSeller && order.status == 'completed') _ReviewPrompt(orderId: order.id),
+            ],
+        };
 
         return SPage(
           title: order.number,
           leading: const BackButton(),
-          meta: SBadge(
-            label: statusInfo.label,
-            tone: badgeTone,
-            dot: true,
-          ),
+          meta: SBadge(label: info.label, tone: badgeToneOf(info.tone), dot: true),
           actions: [
             IconButton(
-              icon: Icon(LucideIcons.messagesSquare, size: 20, color: colors.textPrimary),
+              icon: Icon(LucideIcons.messagesSquare, size: 20, color: context.colors.textPrimary),
               tooltip: 'Discussion',
               onPressed: () => context.push('/compte/messages/${order.id}'),
             ),
-            if (isBuyer && order.status != 'cancelled')
-              IconButton(
-                icon: Icon(LucideIcons.flag, size: 18, color: colors.textMuted),
-                tooltip: 'Signaler un problème',
-                onPressed: () => _showReportDialog(context),
-              ),
           ],
+          toolbar: PreferredSize(
+            preferredSize: const Size.fromHeight(46),
+            child: STabs<String>(value: tab, tabs: tabs, onChanged: (v) => _tab.value = v),
+          ),
           slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Item summary header
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                        border: Border.all(color: colors.canvasBorder, width: 0.8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      order.item.title,
-                                      style: SalacopeTypography.title.copyWith(
-                                        color: colors.textPrimary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Vendu par $sellerName',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        color: colors.textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                formatXaf(order.amounts.total),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: colors.accent,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Text(
-                                'Commandé le ${formatDate(order.createdAt)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: colors.textMuted,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                order.payment.channel ?? 'Mobile Money',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: colors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // A digital product: the file the buyer paid for. Never confirmed: the money stays held for
-                    // Salacope's delay, then goes to the seller unless a problem is reported.
-                    if (order.item.kind == 'digital' && ['delivered', 'completed', 'disputed'].contains(order.status)) ...[
-                      _DigitalFilePanel(order: order, isBuyer: isBuyer, canReport: isBuyer && perms.dispute, onReport: () => _showReportDialog(context)),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Next Step Card for Service / Validation
-                    if (isBuyer && perms.confirm) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.accent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                          border: Border.all(color: colors.accent.withValues(alpha: 0.4)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(LucideIcons.packageCheck, color: colors.accent, size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Livraison reçue : À valider',
-                                  style: SalacopeTypography.bodyStrong.copyWith(
-                                    color: colors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Consultez les fichiers livrés ci-dessous. Si tout est conforme, validez pour libérer les fonds au vendeur.',
-                              style: TextStyle(fontSize: 12.5, color: colors.textMuted),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SButton(
-                                    label: 'Confirmer la réception',
-                                    variant: SButtonVariant.primary,
-                                    size: SButtonSize.md,
-                                    pill: true,
-                                    onPressed: () async {
-                                      final ok = await showSConfirm(
-                                        context: context,
-                                        title: 'Valider la commande',
-                                        description:
-                                            'En confirmant, vous attestez avoir bien reçu la livraison et les fonds seront transférés au créateur.',
-                                        confirmLabel: 'Confirmer',
-                                        onConfirm: () async {
-                                          await ordersApi.confirmOrder(order.id);
-                                          return true;
-                                        },
-                                      );
-                                      if (ok == true && context.mounted) {
-                                        SToast.success(context, 'Commande confirmée !');
-                                      }
-                                    },
-                                  ),
-                                ),
-                                if (perms.revise) ...[
-                                  const SizedBox(width: 10),
-                                  SButton(
-                                    label: 'Retouche',
-                                    variant: SButtonVariant.secondary,
-                                    size: SButtonSize.md,
-                                    pill: true,
-                                    onPressed: () => _showRevisionDialog(context),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Extension request card if pending
-                    if (isBuyer && perms.answerExtension && order.extension != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.amber500.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                          border: Border.all(color: colors.amber500.withValues(alpha: 0.4)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(LucideIcons.clock, color: colors.amber500, size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Demande de délai supplémentaire',
-                                  style: SalacopeTypography.bodyStrong.copyWith(
-                                    color: colors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Le vendeur demande +${order.extension!.days} jours : « ${order.extension!.reason} »',
-                              style: TextStyle(fontSize: 13, color: colors.textMuted),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                SButton(
-                                  label: 'Accepter le délai',
-                                  variant: SButtonVariant.primary,
-                                  size: SButtonSize.sm,
-                                  pill: true,
-                                  onPressed: () async {
-                                    await ordersApi.answerExtension(order.id, true);
-                                    if (context.mounted) {
-                                      SToast.success(context, 'Délai accepté');
-                                    }
-                                  },
-                                ),
-                                const SizedBox(width: 10),
-                                SButton(
-                                  label: 'Refuser',
-                                  variant: SButtonVariant.secondary,
-                                  size: SButtonSize.sm,
-                                  pill: true,
-                                  onPressed: () async {
-                                    await ordersApi.answerExtension(order.id, false);
-                                    if (context.mounted) {
-                                      SToast.info(context, 'Délai refusé');
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Digital Downloads / Delivered files
-                    if (order.delivery != null && order.delivery!.files.isNotEmpty) ...[
-                      SPanel(
-                        titleText: 'Fichiers livrés',
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (order.delivery!.note.isNotEmpty) ...[
-                                Text(
-                                  'Message du vendeur :',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.textMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  order.delivery!.note,
-                                  style: TextStyle(fontSize: 13.5, color: colors.textPrimary),
-                                ),
-                                const SizedBox(height: 14),
-                              ],
-                              for (final f in order.delivery!.files)
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: colors.canvas,
-                                    borderRadius: BorderRadius.circular(SalacopeTokens.radiusLg),
-                                    border: Border.all(color: colors.canvasBorder),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(LucideIcons.fileDown, size: 20, color: colors.accent),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              f.name,
-                                              style: SalacopeTypography.bodyStrong.copyWith(
-                                                color: colors.textPrimary,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              f.size,
-                                              style: TextStyle(fontSize: 11.5, color: colors.textMuted),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      SButton(
-                                        label: 'Télécharger',
-                                        variant: SButtonVariant.primary,
-                                        size: SButtonSize.sm,
-                                        pill: true,
-                                        onPressed: () async {
-                                          try {
-                                            await openRemoteFile(f.dataUrl, f.name);
-                                          } catch (e) {
-                                            if (context.mounted) SToast.error(context, e.toString());
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Brief details
-                    if (order.brief != null && order.brief!.isNotEmpty) ...[
-                      SPanel(
-                        titleText: 'Brief transmis',
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final b in order.brief!) ...[
-                                Text(
-                                  b.question,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.textMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  b.answer,
-                                  style: TextStyle(fontSize: 13.5, color: colors.textPrimary),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Review section if completed
-                    if (isBuyer && order.status == 'completed') ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                          border: Border.all(color: colors.canvasBorder, width: 0.8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(LucideIcons.star, color: colors.accent, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Votre avis sur cette commande',
-                                    style: SalacopeTypography.bodyStrong.copyWith(
-                                      color: colors.textPrimary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Notez le travail de ce créateur.',
-                                    style: TextStyle(fontSize: 12, color: colors.textMuted),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SButton(
-                              label: 'Donner mon avis',
-                              variant: SButtonVariant.secondary,
-                              size: SButtonSize.sm,
-                              pill: true,
-                              onPressed: () => _showReviewDialog(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Timeline & Events
-                    if (order.events.isNotEmpty) ...[
-                      SPanel(
-                        titleText: 'Historique de la commande',
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final evt in order.events) ...[
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 4),
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: colors.accent,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            evt.type == 'paid'
-                                                ? 'Paiement reçu'
-                                                : evt.type == 'accepted'
-                                                    ? 'Commande acceptée'
-                                                    : evt.type == 'delivered'
-                                                        ? 'Livraison effectuée'
-                                                        : evt.type == 'completed'
-                                                            ? 'Commande confirmée'
-                                                            : evt.type == 'revision_requested'
-                                                                ? 'Retouche demandée'
-                                                                : evt.type,
-                                            style: SalacopeTypography.body.copyWith(
-                                              color: colors.textPrimary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          if (evt.note != null && evt.note!.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              evt.note!,
-                                              style: TextStyle(
-                                                fontSize: 12.5,
-                                                color: colors.textMuted,
-                                              ),
-                                            ),
-                                          ],
-                                          Text(
-                                            formatDateTime(evt.at),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: colors.textMuted.withValues(alpha: 0.7),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Support shortcut
-                    SButton(
-                      label: 'Besoin d’aide sur cette commande ?',
-                      variant: SButtonVariant.ghost,
-                      size: SButtonSize.md,
-                      onPressed: () => context.push('/compte/support'),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverList.separated(
+                itemCount: content.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                itemBuilder: (_, i) => content[i],
               ),
             ),
           ],
@@ -786,82 +132,379 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 }
 
+String _storeName(User? u) => u?.merchant?.storeName.isNotEmpty == true ? u!.merchant!.storeName : (u?.name ?? 'Vendeur');
 
-/// The file of a digital product: one button that really downloads it (a short-lived address from the server).
-class _DigitalFilePanel extends StatefulWidget {
+/// What the order is, who it is with, and its money on one line.
+class _Summary extends StatelessWidget {
   final Order order;
-  final bool isBuyer;
-  final bool canReport;
-  final VoidCallback onReport;
-  const _DigitalFilePanel({required this.order, required this.isBuyer, required this.canReport, required this.onReport});
+  final Perspective perspective;
+  final String sellerName;
+  const _Summary({required this.order, required this.perspective, required this.sellerName});
 
   @override
-  State<_DigitalFilePanel> createState() => _DigitalFilePanelState();
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isSeller = perspective == Perspective.seller;
+    return OrderCardFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MiniCover(src: order.item.coverImage, category: order.item.category, size: 56, muted: order.status == 'cancelled'),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${isSeller ? 'Pour ${order.buyer.name}' : 'Par $sellerName'} · commandé ${formatRelative(order.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SalacopeTypography.caption.copyWith(color: colors.gray500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(order.item.title,
+                        maxLines: 2, overflow: TextOverflow.ellipsis, style: SalacopeTypography.panelTitle.copyWith(color: colors.gray900)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: colors.gray100),
+          const SizedBox(height: 14),
+          _PaymentLine(order: order, perspective: perspective),
+        ],
+      ),
+    );
+  }
 }
 
-class _DigitalFilePanelState extends State<_DigitalFilePanel> {
-  bool _busy = false;
+/// The money of an order: amount, where the funds sit (a tappable indicator), how it was paid, reference, code; for the buyer,
+/// what a cancellation gives back.
+class _PaymentLine extends StatefulWidget {
+  final Order order;
+  final Perspective perspective;
+  const _PaymentLine({required this.order, required this.perspective});
 
-  Future<void> _download() async {
-    setState(() => _busy = true);
-    try {
-      await ordersApi.downloadFile(widget.order.id);
-    } catch (e) {
-      if (mounted) SToast.error(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _busy = false);
+  @override
+  State<_PaymentLine> createState() => _PaymentLineState();
+}
+
+class _PaymentLineState extends State<_PaymentLine> {
+  bool _open = false;
+
+  String _explain(Order order, FundsState state) => switch (state) {
+        FundsState.escrow =>
+          'L’argent est gardé en sécurité jusqu’à la validation du client${order.releaseAt != null ? ', ou versé automatiquement ${formatRelative(order.releaseAt)} (${formatDateTime(order.releaseAt)})' : ''}.',
+        FundsState.released => 'L’argent a été versé au vendeur · ${formatDateTime(order.updatedAt)}.',
+        FundsState.refunded => 'Le client a été remboursé · ${formatDateTime(order.updatedAt)}.',
+        FundsState.frozen => 'Un litige est ouvert : l’argent est bloqué jusqu’à la décision de Salacope.',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final order = widget.order;
+    final seller = widget.perspective == Perspective.seller;
+    final caption = SalacopeTypography.caption.copyWith(color: colors.gray500);
+
+    // Nothing was paid: no funds to follow, no operator, no reference.
+    if (order.amounts.total == 0) {
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        children: [
+          Text('Gratuit', style: SalacopeTypography.panelTitle.copyWith(color: colors.gray900)),
+          Text('Offre gratuite · aucun paiement', style: caption),
+        ],
+      );
     }
+
+    final state = fundsState(order.status);
+    final (label, icon, bg, fg) = switch (state) {
+      FundsState.escrow => ('Retenus par Salacope', LucideIcons.lock, colors.amber50, colors.amber800),
+      FundsState.released => ('Versés au vendeur', LucideIcons.circleCheck, colors.emerald50, colors.emerald700),
+      FundsState.refunded => ('Remboursés au client', LucideIcons.undo2, colors.gray100, colors.gray600),
+      FundsState.frozen => ('Bloqués (litige)', LucideIcons.triangleAlert, colors.red50, colors.red600),
+    };
+    final refund = order.refund;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            Text(formatXaf(seller ? order.amounts.net : order.amounts.total), style: SalacopeTypography.panelTitle.copyWith(color: colors.gray900)),
+            if (seller && order.amounts.net != order.amounts.total) Text('sur ${formatXaf(order.amounts.total)} payés', style: caption),
+            if (order.amounts.discount > 0) Text('remise ${order.couponCode ?? ''} −${formatXaf(order.amounts.discount)}', style: caption),
+            InkWell(
+              onTap: () => setState(() => _open = !_open),
+              borderRadius: SalacopeTokens.borderFull,
+              child: Container(
+                height: 28,
+                padding: const EdgeInsets.fromLTRB(4, 0, 8, 0),
+                decoration: BoxDecoration(borderRadius: SalacopeTokens.borderFull, border: Border.all(color: colors.gray200)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+                      child: Icon(icon, size: 12, color: fg),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(label, style: SalacopeTypography.caption.copyWith(color: colors.gray800, fontWeight: FontWeight.w500)),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _open ? 0.5 : 0,
+                      duration: MediaQuery.of(context).disableAnimations ? Duration.zero : const Duration(milliseconds: 200),
+                      child: Icon(LucideIcons.chevronDown, size: 12, color: colors.gray400),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Text('${paymentMethodLabel(order.payment)} · ${order.payment.reference}', style: caption),
+            if (order.payment.code != null) Text(order.payment.code!, style: caption.copyWith(fontFamily: 'monospace')),
+          ],
+        ),
+        if (_open) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.gray50,
+              borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
+              border: Border.all(color: colors.gray200),
+            ),
+            child: Text(_explain(order, state), style: SalacopeTypography.caption.copyWith(color: colors.gray600)),
+          ),
+          if (!seller && refund == null && state == FundsState.escrow) ...[const SizedBox(height: 10), RefundPreview(total: order.amounts.total)],
+        ],
+        // A cancelled order: what the buyer really got back, always in sight.
+        if (!seller && refund != null) ...[const SizedBox(height: 12), RefundReceipt(refund: refund)],
+      ],
+    );
+  }
+}
+
+/// A digital product: its files, and for the buyer the way to report a problem before the seller is paid.
+class _DigitalFiles extends StatelessWidget {
+  final Order order;
+  final Perspective perspective;
+  const _DigitalFiles({required this.order, required this.perspective});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final available = ['delivered', 'completed', 'disputed'].contains(order.status);
+    final buyer = perspective == Perspective.buyer;
+    final canReport = buyer && order.status == 'delivered' && orderPermissions(order, perspective).dispute && order.amounts.total > 0;
+    final text = SalacopeTypography.caption.copyWith(color: colors.gray500);
+    return OrderCardFrame(
+      title: buyer ? 'Vos fichiers' : 'Fichiers livrés',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OrderFiles(order: order, available: available),
+          if (canReport) ...[
+            const SizedBox(height: 12),
+            Text.rich(
+              TextSpan(children: [
+                const TextSpan(text: 'Un problème avec le fichier ? '),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: GestureDetector(
+                    onTap: () => showReportSheet(context, order.id, 'digital'),
+                    child: Text('Signalez-le', style: text.copyWith(color: colors.primary700, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                TextSpan(
+                  text:
+                      ' avant le ${formatDate(order.releaseAt)} : l’argent reste alors bloqué jusqu’à la décision de Salacope. Sans signalement, le vendeur est payé automatiquement à cette date.',
+                ),
+              ]),
+              style: text,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// What happened to the order, step by step (the conversation lives in Messages).
+class _Timeline extends StatelessWidget {
+  final Order order;
+  final List<User> users;
+  const _Timeline({required this.order, required this.users});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final events = order.events.reversed.toList();
+    return OrderCardFrame(
+      title: 'Suivi de la commande',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, e) in events.indexed)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == events.length - 1 ? 0 : 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 5),
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: i == 0 ? colors.accent : colors.gray300),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(children: [
+                            TextSpan(text: orderEventLabel(e.type)),
+                            if (e.actorId != null)
+                              TextSpan(
+                                text: ' · ${_actorName(users.where((u) => u.id == e.actorId).firstOrNull)}',
+                                style: TextStyle(color: colors.gray500),
+                              ),
+                          ]),
+                          style: SalacopeTypography.caption.copyWith(color: colors.gray900),
+                        ),
+                        Text(formatDateTime(e.at), style: SalacopeTypography.small.copyWith(color: colors.gray400)),
+                        if ((e.note ?? '').isNotEmpty && e.type != 'delivered')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text('« ${e.note} »', style: SalacopeTypography.caption.copyWith(color: colors.gray500)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _actorName(User? u) => u?.merchant?.storeName.isNotEmpty == true ? u!.merchant!.storeName : (u?.name ?? 'Salacope');
+
+class _Links extends StatelessWidget {
+  final Order order;
+  final bool isSeller;
+  const _Links({required this.order, required this.isSeller});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final style = SalacopeTypography.body.copyWith(color: colors.gray500);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isSeller)
+          TextButton(
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: const Size(0, 36)),
+            onPressed: () => context.push('/l/${order.listingId}'),
+            child: Text('Voir l\'offre →', style: style),
+          ),
+        TextButton(
+          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: const Size(0, 36)),
+          onPressed: () => context.push('/compte/support/nouveau?ref=${Uri.encodeComponent(order.number)}&sujet=order'),
+          child: Text('Un problème ? Contacter le support →', style: style),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReviewPrompt extends StatelessWidget {
+  final String orderId;
+  const _ReviewPrompt({required this.orderId});
+
+  void _open(BuildContext context) {
+    int rating = 5;
+    final commentCtrl = TextEditingController();
+    showSSheet(
+      context: context,
+      title: 'Laisser un avis',
+      description: 'Votre retour aide les autres acheteurs et valorise le créateur.',
+      child: StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colors = context.colors;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (index) {
+                    final star = index + 1;
+                    return IconButton(
+                      icon: Icon(LucideIcons.star, size: 28, color: star <= rating ? colors.accent : colors.textMuted),
+                      onPressed: () => setSheetState(() => rating = star),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SField(label: 'Commentaire (facultatif)', controller: commentCtrl, placeholder: 'Partagez votre expérience...', maxLines: 3),
+              const SizedBox(height: 18),
+              SButton(
+                label: 'Publier mon avis',
+                size: SButtonSize.lg,
+                pill: true,
+                onPressed: () async {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  try {
+                    await ordersApi.leaveReview(orderId: orderId, rating: rating, comment: commentCtrl.text);
+                    if (context.mounted) SToast.success(context, 'Avis publié avec succès');
+                  } catch (e) {
+                    if (context.mounted) SToast.error(context, e.toString());
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final file = widget.order.item.file;
-    final releaseAt = widget.order.releaseAt;
-    return SPanel(
-      titleText: widget.isBuyer ? 'Votre fichier' : 'Fichier livré',
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return OrderCardFrame(
+      child: Row(
+        children: [
+          Icon(LucideIcons.star, color: colors.accent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(LucideIcons.fileText, size: 18, color: colors.textMuted),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(file?.name.isNotEmpty == true ? file!.name : widget.order.item.title,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: SalacopeTypography.bodyStrong.copyWith(color: colors.textPrimary)),
-                ),
-                Text(file?.format ?? 'Fichier', style: TextStyle(fontSize: 12, color: colors.textMuted)),
+                Text('Votre avis sur cette commande', style: SalacopeTypography.bodyStrong.copyWith(color: colors.textPrimary)),
+                Text('Notez le travail de ce créateur.', style: SalacopeTypography.caption.copyWith(color: colors.textMuted)),
               ],
             ),
-            const SizedBox(height: 14),
-            SButton(
-              label: 'Télécharger',
-              variant: SButtonVariant.primary,
-              size: SButtonSize.lg,
-              pill: true,
-              isLoading: _busy,
-              icon: const Icon(LucideIcons.download, size: 16),
-              onPressed: _busy ? null : _download,
-            ),
-            if (widget.canReport && releaseAt != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                children: [
-                  Text('Un problème avec le fichier ? ', style: TextStyle(fontSize: 12.5, color: colors.textMuted)),
-                  GestureDetector(
-                    onTap: widget.onReport,
-                    child: Text('Signalez-le', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: colors.accent)),
-                  ),
-                  Text(' avant le ${formatDate(releaseAt)} : l’argent reste bloqué jusqu’à la décision de Salacope.',
-                      style: TextStyle(fontSize: 12.5, color: colors.textMuted)),
-                ],
-              ),
-            ],
-          ],
-        ),
+          ),
+          SButton(label: 'Donner mon avis', variant: SButtonVariant.secondary, size: SButtonSize.sm, pill: true, onPressed: () => _open(context)),
+        ],
       ),
     );
   }

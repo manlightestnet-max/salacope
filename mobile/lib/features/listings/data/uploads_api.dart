@@ -45,6 +45,29 @@ const _mimes = {
   'jpeg': 'image/jpeg',
 };
 
+const _formats = {
+  'pdf': 'PDF',
+  'epub': 'EPUB',
+  'zip': 'ZIP',
+  'rar': 'RAR',
+  'docx': 'DOCX',
+  'doc': 'DOC',
+  'xlsx': 'XLSX',
+  'csv': 'CSV',
+  'pptx': 'PPTX',
+  'mp4': 'Vidéo',
+  'mov': 'Vidéo',
+  'mkv': 'Vidéo',
+  'mp3': 'Audio',
+  'wav': 'Audio',
+};
+
+/// "livre.pdf" → "PDF", as the web's `fileFormat`.
+String fileFormatOf(String name) {
+  final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  return _formats[ext] ?? (ext.isNotEmpty && ext.length <= 5 ? ext.toUpperCase() : 'Fichier');
+}
+
 String mimeOf(String name) => _mimes[name.split('.').last.toLowerCase()] ?? 'application/octet-stream';
 
 final uploadsApi = UploadsApi._();
@@ -78,11 +101,19 @@ class UploadsApi {
         onSendProgress: (sent, total) => onProgress(total > 0 ? sent / total : 0),
       );
     } on DioException catch (e) {
+      // Nothing arrived: the reservation made for it is given back at once.
+      discard(id);
       if (e.response == null) throw const DomainError('Envoi interrompu : vérifiez votre connexion et réessayez.');
       throw const DomainError('L’envoi a été refusé par le stockage. Réessayez.');
     }
     await api.request('POST', '/files/${Uri.encodeComponent(id)}/complete');
     _usage = null;
     return UploadedFile(id: id, name: file.name, size: size);
+  }
+
+  /// The seller takes back a file they sent and did not keep (best effort: the server refuses one an offer still lists).
+  Future<void> discard(String fileId) async {
+    await api.request('DELETE', '/files/${Uri.encodeComponent(fileId)}').catchError((_) => null);
+    _usage = null;
   }
 }

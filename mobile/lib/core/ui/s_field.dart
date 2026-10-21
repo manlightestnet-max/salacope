@@ -51,25 +51,7 @@ class SField extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (label != null) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  label!,
-                  style: SalacopeTypography.label.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colors.gray800,
-                  ),
-                ),
-                if (optional)
-                  Text(
-                    'Facultatif',
-                    style: SalacopeTypography.caption.copyWith(color: colors.gray400),
-                  )
-                else
-                  ?action,
-              ],
-            ),
+            _LabelRow(label: label!, optional: optional, action: action),
             const SizedBox(height: 6),
           ],
           child!,
@@ -95,25 +77,7 @@ class SField extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (label != null) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label!,
-                style: SalacopeTypography.label.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colors.gray800,
-                ),
-              ),
-              if (optional)
-                Text(
-                  'Facultatif',
-                  style: SalacopeTypography.caption.copyWith(color: colors.gray400),
-                )
-              else
-                ?action,
-            ],
-          ),
+          _LabelRow(label: label!, optional: optional, action: action),
           const SizedBox(height: 6),
         ],
         Container(
@@ -142,6 +106,7 @@ class SField extends StatelessWidget {
                   keyboardType: keyboardType,
                   obscureText: obscureText,
                   maxLines: maxLines,
+                  minLines: 1,
                   enabled: enabled,
                   style: TextStyle(
                     fontFamily: SalacopeTypography.fontSans,
@@ -156,8 +121,8 @@ class SField extends StatelessWidget {
                       color: colors.gray400,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+                      horizontal: 14,
+                      vertical: 13,
                     ),
                     border: InputBorder.none,
                     isDense: true,
@@ -185,6 +150,38 @@ class SField extends StatelessWidget {
             hint!,
             style: SalacopeTypography.caption.copyWith(color: colors.gray500),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The label over a field, with "Facultatif" or an action on the right. A long label (a brief question) wraps on
+/// several lines instead of running under the right-hand text.
+class _LabelRow extends StatelessWidget {
+  final String label;
+  final bool optional;
+  final Widget? action;
+  const _LabelRow({required this.label, required this.optional, this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: SalacopeTypography.label.copyWith(fontWeight: FontWeight.w600, color: colors.gray800, height: 1.35),
+          ),
+        ),
+        if (optional) ...[
+          const SizedBox(width: 12),
+          Text('Facultatif', style: SalacopeTypography.caption.copyWith(color: colors.gray400)),
+        ] else if (action != null) ...[
+          const SizedBox(width: 12),
+          action!,
         ],
       ],
     );

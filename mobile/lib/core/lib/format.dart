@@ -101,6 +101,9 @@ abstract final class SalacopeFormat {
 }
 
 String formatXaf(int amount) => SalacopeFormat.formatXaf(amount);
+
+/// A price on an offer: « Gratuit » for 0 (the web's `formatPrice`).
+String formatPrice(int amount) => amount == 0 ? 'Gratuit' : formatXaf(amount);
 String formatNumber(num value) => SalacopeFormat.formatNumber(value);
 String formatDate(String? isoString) => SalacopeFormat.formatDate(isoString);
 String formatDateTime(String? isoString) => SalacopeFormat.formatDateTime(isoString);

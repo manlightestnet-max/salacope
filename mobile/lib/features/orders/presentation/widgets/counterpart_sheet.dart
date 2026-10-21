@@ -200,11 +200,7 @@ class CounterpartSheet extends StatelessWidget {
               ),
               itemBuilder: (ctx, index) {
                 final o = history[index];
-                final info = statusDisplay(
-                  status: o.status,
-                  perspective: perspective,
-                  extensionStatus: o.extension?.status,
-                );
+                final info = o.statusFor(perspective);
 
                 final SBadgeTone badgeTone = switch (info.tone) {
                   OrderBadgeTone.success => SBadgeTone.success,

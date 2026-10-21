@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/db/models/order.dart';
 import 'package:salacope/core/db/store.dart';
@@ -11,6 +10,7 @@ import 'package:salacope/core/domain/orders.dart';
 import 'package:salacope/core/lib/format.dart';
 import 'package:salacope/core/ui/s_button.dart';
 import 'package:salacope/core/ui/s_image.dart';
+import '../../../checkout/presentation/checkout_sheet.dart';
 import '../../data/orders_api.dart';
 import '../../domain/chat.dart';
 
@@ -213,7 +213,7 @@ class _PaymentRequestCardState extends State<PaymentRequestCard> {
               variant: SButtonVariant.primary,
               size: SButtonSize.sm,
               pill: true,
-              onPressed: () => context.push('/checkout/${request.listingId}'),
+              onPressed: () => openCheckout(context, request.listingId),
             ),
           ],
         ],

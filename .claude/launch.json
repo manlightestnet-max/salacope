@@ -4,8 +4,58 @@
     {
       "name": "salacope-dev",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\npx.cmd",
-      "runtimeArgs": ["vite", "--port", "3011", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "3011",
+        "--strictPort"
+      ],
       "port": 3011
+    },
+    {
+      "name": "salacope-local-lightpay",
+      "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "set LIGHTWALLET_API_URL=http://localhost:8088&& npx vite --port 3011 --strictPort"
+      ],
+      "port": 3011
+    },
+    {
+      "name": "lightpay-landing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3013",
+        "--directory",
+        "C:\\Light\\LightPayLanding"
+      ],
+      "port": 3013
+    },
+    {
+      "name": "lightpay-dashboard",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Light\\LightPayDashboard",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3012",
+        "--strictPort"
+      ],
+      "port": 3012
+    },
+    {
+      "name": "salacv-dev",
+      "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Light\\SalaCv\\smlab && npx vite --port 3021 --strictPort"
+      ],
+      "port": 3021
     }
   ]
 }

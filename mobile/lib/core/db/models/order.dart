@@ -399,6 +399,49 @@ class DeadlineExtension {
       };
 }
 
+/// A cancelled order: what the buyer really got back (a refund to a phone loses the payout fees).
+class OrderRefund {
+  final int paid;
+  final int sent;
+  final int operatorFee;
+  final int lightpayFee;
+  final String via; // 'wallet' | 'mobile_money'
+  final String at;
+
+  /// LightPay waits a few minutes before sending a refund to a phone: when it leaves.
+  final String? releaseAt;
+
+  const OrderRefund({
+    required this.paid,
+    required this.sent,
+    required this.operatorFee,
+    required this.lightpayFee,
+    required this.via,
+    required this.at,
+    this.releaseAt,
+  });
+
+  factory OrderRefund.fromJson(Map<String, dynamic> json) => OrderRefund(
+        paid: (json['paid'] as num?)?.toInt() ?? 0,
+        sent: (json['sent'] as num?)?.toInt() ?? 0,
+        operatorFee: (json['operatorFee'] as num?)?.toInt() ?? 0,
+        lightpayFee: (json['lightpayFee'] as num?)?.toInt() ?? 0,
+        via: json['via']?.toString() ?? 'mobile_money',
+        at: json['at']?.toString() ?? '',
+        releaseAt: json['releaseAt']?.toString(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'paid': paid,
+        'sent': sent,
+        'operatorFee': operatorFee,
+        'lightpayFee': lightpayFee,
+        'via': via,
+        'at': at,
+        if (releaseAt != null) 'releaseAt': releaseAt,
+      };
+}
+
 class SellerMeta {
   final List<String> tags;
   final String? pinnedAt;
@@ -435,6 +478,7 @@ class Order {
   final String? dueAt;
   final String? releaseAt;
   final OrderDelivery? delivery;
+  final OrderRefund? refund;
   final int? revisionsUsed;
   final DeadlineExtension? extension;
   final List<OrderEvent> events;
@@ -461,6 +505,7 @@ class Order {
     this.dueAt,
     this.releaseAt,
     this.delivery,
+    this.refund,
     this.revisionsUsed,
     this.extension,
     required this.events,
@@ -494,6 +539,9 @@ class Order {
         releaseAt: json['releaseAt']?.toString(),
         delivery: json['delivery'] is Map<String, dynamic>
             ? OrderDelivery.fromJson(json['delivery'] as Map<String, dynamic>)
+            : null,
+        refund: json['refund'] is Map<String, dynamic>
+            ? OrderRefund.fromJson(json['refund'] as Map<String, dynamic>)
             : null,
         revisionsUsed: (json['revisionsUsed'] as num?)?.toInt(),
         extension: json['extension'] is Map<String, dynamic>
@@ -534,6 +582,7 @@ class Order {
         if (dueAt != null) 'dueAt': dueAt,
         if (releaseAt != null) 'releaseAt': releaseAt,
         if (delivery != null) 'delivery': delivery!.toJson(),
+        if (refund != null) 'refund': refund!.toJson(),
         if (revisionsUsed != null) 'revisionsUsed': revisionsUsed,
         if (extension != null) 'extension': extension!.toJson(),
         'events': events.map((e) => e.toJson()).toList(),

@@ -72,9 +72,15 @@ class _StoreScreenState extends State<StoreScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
-    if (_resolve(db.state) == null) {
+    // One visit per opening of the page (the server keeps one per visitor and per day).
+    final known = _resolve(db.state);
+    if (known != null) {
+      trackStore(known.id);
+    } else {
       _asking = true;
       sync.openStoreLink(widget.sellerId).whenComplete(() {
+        final found = _resolve(db.state);
+        if (found != null) trackStore(found.id);
         if (mounted) setState(() => _asking = false);
       });
     }
@@ -289,7 +295,7 @@ class _StoreScreenState extends State<StoreScreen> {
                               followLoading: _isFollowingLoading,
                               followKey: _followKey,
                               onFollow: _toggleFollow,
-                              onManage: () => context.push('/dashboard'),
+                              onManage: () => context.go('/boutique'),
                               onShare: share,
                               onLogo: () => SImageViewer.show(context, images: [merchant!.logo!]),
                               onReviews: () => setState(() => _tab = 'reviews'),

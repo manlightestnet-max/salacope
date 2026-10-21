@@ -52,7 +52,8 @@ class ListingPrice extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          formatXaf(listing.priceXaf),
+          // A free offer reads « Gratuit » everywhere (the web's `formatPrice`).
+          listing.priceXaf == 0 ? 'Gratuit' : formatXaf(listing.priceXaf),
           style: effectiveStyle,
         ),
         if (hasCompare) ...[

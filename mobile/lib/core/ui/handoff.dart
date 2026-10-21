@@ -68,12 +68,16 @@ class Handoff extends StatefulWidget {
   final String title;
   final String? description;
 
+  /// Without its own card (inside a sheet that already is one).
+  final bool bare;
+
   const Handoff({
     super.key,
     required this.from,
     required this.to,
     required this.title,
     this.description,
+    this.bare = false,
   });
 
   @override
@@ -108,12 +112,14 @@ class _HandoffState extends State<Handoff> with SingleTickerProviderStateMixin {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 360),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: const BorderRadius.all(Radius.circular(24)),
-          border: Border.all(color: colors.gray200.withValues(alpha: 0.7), width: 1),
-          boxShadow: SalacopeTokens.shadowLg,
-        ),
+        decoration: widget.bare
+            ? null
+            : BoxDecoration(
+                color: colors.surface,
+                borderRadius: const BorderRadius.all(Radius.circular(24)),
+                border: Border.all(color: colors.gray200.withValues(alpha: 0.7), width: 1),
+                boxShadow: SalacopeTokens.shadowLg,
+              ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,

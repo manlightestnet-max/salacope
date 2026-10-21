@@ -6,6 +6,10 @@ import 'package:salacope/core/domain/kyc.dart';
 import 'package:salacope/core/domain/listings.dart';
 import 'package:salacope/core/domain/orders.dart';
 import 'package:salacope/core/domain/pricing.dart';
+import 'package:salacope/core/domain/refund.dart';
+import 'package:salacope/core/db/models/listing.dart';
+import 'package:salacope/core/db/models/order.dart';
+import 'package:salacope/core/lib/format.dart';
 
 void main() {
   group('Contact Rules (contact.dart)', () {
@@ -79,8 +83,18 @@ void main() {
         perspective: Perspective.seller,
       );
       expect(pSellerPaid.accept, isTrue);
-      expect(pSellerPaid.deliver, isTrue);
+      // Delivering comes after accepting, and nobody writes before.
+      expect(pSellerPaid.deliver, isFalse);
+      expect(pSellerPaid.message, isFalse);
       expect(pSellerPaid.confirm, isFalse);
+
+      final pSellerWorking = permissionsFor(status: 'in_progress', kind: 'service', perspective: Perspective.seller);
+      expect(pSellerWorking.deliver, isTrue);
+      expect(pSellerWorking.message, isTrue);
+      expect(pSellerWorking.extend, isTrue);
+
+      // A digital order can be talked about at once.
+      expect(permissionsFor(status: 'paid', kind: 'digital', perspective: Perspective.buyer).message, isTrue);
 
       // Buyer permissions when order is delivered
       final pBuyerDelivered = permissionsFor(
@@ -93,6 +107,87 @@ void main() {
       expect(pBuyerDelivered.confirm, isTrue);
       expect(pBuyerDelivered.dispute, isTrue);
       expect(pBuyerDelivered.revise, isTrue);
+    });
+
+    test('a digital product is never "à valider"', () {
+      expect(statusDisplay(status: 'delivered', perspective: Perspective.buyer, kind: 'digital').label, 'Fichier disponible');
+      expect(statusDisplay(status: 'delivered', perspective: Perspective.seller, kind: 'digital').label, 'Livré');
+      expect(statusDisplay(status: 'delivered', perspective: Perspective.buyer, kind: 'service').label, 'À valider');
+      expect(orderNeedsAction(status: 'delivered', perspective: Perspective.buyer, kind: 'digital'), isFalse);
+      expect(orderNeedsAction(status: 'delivered', perspective: Perspective.buyer, kind: 'service'), isTrue);
+    });
+  });
+
+  group('Refunds (refund.dart)', () {
+    OrderRefund refund(int paid, int sent, {String? releaseAt}) =>
+        OrderRefund(paid: paid, sent: sent, operatorFee: paid - sent, lightpayFee: 0, via: 'mobile_money', at: '2026-10-20T10:00:00Z', releaseAt: releaseAt);
+
+    test('free order', () {
+      expect(refundSentence(refund(0, 0), formatXaf), 'Commande annulée : elle était gratuite, rien n’est à rembourser.');
+    });
+
+    test('full and partial refunds', () {
+      expect(refundSentence(refund(5000, 5000), formatXaf), startsWith('Vous êtes remboursé de 5'));
+      expect(refundSentence(refund(5000, 4800), formatXaf), contains('moins'));
+    });
+
+    test('departure time in Congo time', () {
+      final r = refund(5000, 4800, releaseAt: '2026-10-20T13:32:00Z');
+      expect(refundDepartureTime(r, DateTime.utc(2026, 10, 20, 13, 0)), '14:32');
+      expect(refundDepartureTime(r, DateTime.utc(2026, 10, 20, 14, 0)), isNull);
+    });
+  });
+
+  group('Offers: free, promotion, files', () {
+    test('a free offer is allowed only when the administration allows it', () {
+      PlatformConfig.freeOffers = true;
+      expect(priceError('digital', 0, null), isNull);
+      PlatformConfig.freeOffers = false;
+      expect(priceError('digital', 0, null), isNotNull);
+      PlatformConfig.freeOffers = true;
+    });
+
+    test('free during a promotion goes back to a real price', () {
+      expect(priceError('digital', 0, 500), isNotNull);
+      expect(priceError('digital', 0, 2000), isNull);
+    });
+
+    test('minimum per kind', () {
+      PlatformConfig.minPriceServiceXaf = 5000;
+      expect(minPriceFor('service'), 5000);
+      expect(minPriceFor('digital'), PlatformConfig.minPriceXaf);
+      PlatformConfig.minPriceServiceXaf = null;
+    });
+
+    test('promotion end', () {
+      final now = DateTime.utc(2026, 10, 21);
+      expect(promoError(null, 5000, now), isNull);
+      expect(promoError('2026-10-24T00:00:00Z', null, now), isNotNull);
+      expect(promoError('2026-10-20T00:00:00Z', 5000, now), isNotNull);
+      expect(promoError('2026-10-24T00:00:00Z', 5000, now), isNull);
+      expect(promoError('2027-10-24T00:00:00Z', 5000, now), isNotNull);
+    });
+
+    test('files of a product', () {
+      expect(filesError(const []), isNotNull);
+      expect(filesError(const [ListingFileItem(name: 'a.pdf', format: 'PDF', fileId: 'f1', preview: true)]), isNotNull);
+      expect(filesError(const [ListingFileItem(name: 'a.pdf', format: 'PDF', fileId: 'f1'), ListingFileItem(name: 'b.pdf', format: 'PDF', fileId: 'f1')]), isNotNull);
+      expect(filesError(const [ListingFileItem(name: 'a.pdf', format: 'PDF', fileId: 'f1'), ListingFileItem(name: 'b.pdf', format: 'PDF', fileId: 'f2', preview: true)]), isNull);
+    });
+
+    test('filesOf reads the old single file', () {
+      const old = ListingFile(name: 'livre.pdf', format: 'PDF', fileId: 'f1');
+      expect(filesOf(old).single.name, 'livre.pdf');
+      final many = ListingFile.fromJson({
+        'name': 'a.pdf',
+        'format': 'PDF',
+        'files': [
+          {'name': 'a.pdf', 'format': 'PDF'},
+          {'name': 'b.pdf', 'format': 'PDF', 'preview': true},
+        ],
+      });
+      expect(filesOf(many).length, 2);
+      expect(filesOf(many).last.preview, isTrue);
     });
   });
 
@@ -108,7 +203,7 @@ void main() {
           features: ['Code source inclus', 'Mises à jour à vie'],
           priceXaf: 15000,
           coverImage: 'data:image/jpeg;base64,...',
-          fileName: 'guide_flutter.pdf',
+          files: [ListingFileItem(name: 'guide_flutter.pdf', format: 'PDF', fileId: 'f_1')],
         )),
         returnsNormally,
       );
@@ -125,7 +220,7 @@ void main() {
           features: ['Feature 1'],
           priceXaf: 500, // min is 1000
           coverImage: 'image',
-          fileName: 'book.pdf',
+          files: [ListingFileItem(name: 'book.pdf', format: 'PDF', fileId: 'f_1')],
         )),
         throwsA(isA<DomainError>()),
       );
@@ -143,7 +238,7 @@ void main() {
           priceXaf: 10000,
           compareAtXaf: 8000, // compareAt must be higher
           coverImage: 'image',
-          fileName: 'book.pdf',
+          files: [ListingFileItem(name: 'book.pdf', format: 'PDF', fileId: 'f_1')],
         )),
         throwsA(isA<DomainError>()),
       );

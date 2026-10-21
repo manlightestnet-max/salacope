@@ -5,6 +5,14 @@ import 'package:salacope/core/lib/files.dart';
 
 final ordersApi = OrdersApi.instance;
 
+/// What a report became: `dispute` (funds frozen on the order) or `ticket` (order already closed, support takes over), with the
+/// reference shown to the buyer.
+class ReportResult {
+  final String kind;
+  final String reference;
+  const ReportResult({required this.kind, required this.reference});
+}
+
 class OrdersApi {
   static final OrdersApi instance = OrdersApi._();
   OrdersApi._();
@@ -15,11 +23,20 @@ class OrdersApi {
     }
   }
 
-  /// The file of a digital product the buyer paid for (or the seller's own copy): the server hands out an address that
-  /// works for two minutes, and the phone's browser downloads it.
-  Future<void> downloadFile(String orderId) async {
-    final res = await api.request('GET', '/orders/${Uri.encodeComponent(orderId)}/file') as Map<String, dynamic>;
+  /// A file of a digital product the buyer paid for (or the seller's own copy): the server hands out an address that
+  /// works for two minutes, and the phone downloads it. Without [fileId], the main file.
+  Future<void> downloadFile(String orderId, [String? fileId]) async {
+    final query = fileId != null ? '?f=${Uri.encodeComponent(fileId)}' : '';
+    final res = await api.request('GET', '/orders/${Uri.encodeComponent(orderId)}/file$query') as Map<String, dynamic>;
     await openRemoteFile(res['url'] as String?, res['name'] as String? ?? 'fichier');
+  }
+
+  /// Every file of an order, one after the other.
+  Future<void> downloadFiles(String orderId, List<String> fileIds) async {
+    for (var i = 0; i < fileIds.length; i++) {
+      if (i > 0) await Future<void>.delayed(const Duration(milliseconds: 900));
+      await downloadFile(orderId, fileIds[i]);
+    }
   }
 
   Future<void> acceptOrder(String orderId) async {
@@ -127,7 +144,7 @@ class OrdersApi {
     );
   }
 
-  Future<void> reportProblem({
+  Future<ReportResult> reportProblem({
     required String orderId,
     required String reason,
     String detail = '',
@@ -135,11 +152,13 @@ class OrdersApi {
     if (reason.trim().isEmpty) {
       throw DomainError('Choisissez ce qui ne va pas.');
     }
-    await api.mutate(
+    final res = await api.mutate(
       'POST',
       '/orders/${Uri.encodeComponent(orderId)}/report',
       body: {'reason': reason.trim(), 'detail': detail.trim()},
     );
+    final result = res is Map && res['result'] is Map ? res['result'] as Map : const {};
+    return ReportResult(kind: result['kind']?.toString() ?? 'dispute', reference: result['reference']?.toString() ?? '');
   }
 
   Future<void> leaveReview({

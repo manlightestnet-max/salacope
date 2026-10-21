@@ -1,187 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/db/store.dart';
 import '../../../../core/design/colors.dart';
-import '../../../../core/design/tokens.dart';
-import '../../../../core/design/typography.dart';
 import '../../../../core/domain/orders.dart';
-import '../../../../core/ui/s_badge.dart';
+import 'package:salacope/core/lib/format.dart';
+import 'package:salacope/core/lib/remembered.dart';
 import '../../../../core/ui/s_button.dart';
 import '../../../../core/ui/s_empty_state.dart';
-import '../../../../core/ui/s_image.dart';
-import 'package:salacope/features/catalog/presentation/widgets/listing_price.dart';
+import '../../../../core/ui/s_page.dart';
+import '../../../../core/ui/s_segmented.dart';
+import '../widgets/order_row.dart';
 
+/// Achats: what the person bought (never their sales), the newest first. Filter Tout / Produits / Services, kept for
+/// the next visit. Cancelled orders stay listed, struck through and in grey.
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
+
+  static final Remembered _filter = Remembered('purchases.kind', const ['all', 'digital', 'service'], 'all');
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
 
     return ListenableBuilder(
-      listenable: db,
+      listenable: Listenable.merge([db, _filter]),
       builder: (context, _) {
         final state = db.state;
-        final orders = state.orders;
+        final me = state.sessionUserId ?? '';
+        final mine = state.orders.where((o) => o.buyerId == me).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final kind = _filter.value;
+        final shown = kind == 'all' ? mine : mine.where((o) => o.item.kind == kind).toList();
+        final products = mine.where((o) => o.item.kind == 'digital').length;
+        final services = mine.where((o) => o.item.kind == 'service').length;
 
-        return Scaffold(
-          backgroundColor: colors.canvas,
-          appBar: AppBar(
-            backgroundColor: colors.surface,
-            elevation: 0,
-            title: Text(
-              'Mes achats',
-              style: SalacopeTypography.title.copyWith(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          body: orders.isEmpty
-              ? SEmptyState(
-                  icon: LucideIcons.shoppingBag,
-                  title: 'Aucun achat pour le moment',
-                  description:
-                      'Vos commandes, formations et e-books téléchargés apparaîtront ici une fois payés.',
-                  action: SButton(
-                    label: 'Explorer le catalogue',
-                    variant: SButtonVariant.secondary,
-                    size: SButtonSize.sm,
-                    pill: true,
-                    onPressed: () => context.go('/'),
+        return SPage(
+          title: 'Mes achats',
+          toolbar: mine.isEmpty
+              ? null
+              : PreferredSize(
+                  preferredSize: const Size.fromHeight(56),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                    child: SSegmented<String>(
+                      expand: true,
+                      value: kind,
+                      onChanged: (v) => _filter.value = v,
+                      options: [
+                        SSegmentedOption(value: 'all', label: 'Tout', count: mine.length),
+                        SSegmentedOption(value: 'digital', label: 'Produits', count: products),
+                        SSegmentedOption(value: 'service', label: 'Services', count: services),
+                      ],
+                    ),
                   ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: orders.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    final perspective = perspectiveOf(
-                          buyerId: order.buyerId,
-                          sellerId: order.sellerId,
-                          userId: state.sessionUserId ?? '',
-                        ) ??
-                        Perspective.buyer;
-
-                    final info = statusDisplay(
-                      status: order.status,
-                      perspective: perspective,
-                      extensionStatus: order.extension?.status,
-                    );
-
-                    final SBadgeTone badgeTone = switch (info.tone) {
-                      OrderBadgeTone.success => SBadgeTone.success,
-                      OrderBadgeTone.warning => SBadgeTone.warning,
-                      OrderBadgeTone.danger => SBadgeTone.danger,
-                      OrderBadgeTone.brand => SBadgeTone.brand,
-                      OrderBadgeTone.info => SBadgeTone.info,
-                      OrderBadgeTone.neutral => SBadgeTone.neutral,
-                    };
-
-                    return InkWell(
-                      onTap: () => context.push('/orders/${order.id}'),
-                      borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(SalacopeTokens.radiusXl),
-                          border: Border.all(color: colors.canvasBorder, width: 0.8),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Thumbnail
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(SalacopeTokens.radiusLg),
-                                color: colors.canvasSubtle,
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: SImage(
-                                url: order.item.coverImage,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        order.number,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: colors.textMuted,
-                                        ),
-                                      ),
-                                      SBadge(
-                                        label: info.label,
-                                        tone: badgeTone,
-                                        dot: true,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    order.item.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: SalacopeTypography.bodyStrong.copyWith(
-                                      color: colors.textPrimary,
-                                      height: 1.25,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        ListingPrice.formatXaf(order.amounts.total),
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: colors.accent,
-                                        ),
-                                      ),
-                                      Text(
-                                        _formatDate(order.createdAt),
-                                        style: TextStyle(
-                                          fontSize: 11.5,
-                                          color: colors.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
                 ),
+          slivers: [
+            if (shown.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: SEmptyState(
+                  icon: LucideIcons.shoppingBag,
+                  title: mine.isEmpty ? 'Aucun achat pour le moment' : (kind == 'service' ? 'Aucun service commandé' : 'Aucun produit acheté'),
+                  description: mine.isEmpty ? 'Vos e-books, formations et services commandés apparaissent ici.' : null,
+                  action: mine.isEmpty
+                      ? SButton(label: 'Explorer les copes', variant: SButtonVariant.secondary, size: SButtonSize.md, pill: true, onPressed: () => context.go('/'))
+                      : null,
+                ),
+              )
+            else
+              SliverList.separated(
+                itemCount: shown.length,
+                separatorBuilder: (_, _) => Divider(height: 1, thickness: 0.8, indent: 86, color: colors.canvasBorder),
+                itemBuilder: (context, i) {
+                  final o = shown[i];
+                  final seller = state.users.where((u) => u.id == o.sellerId).firstOrNull;
+                  return OrderRow(
+                    order: o,
+                    perspective: Perspective.buyer,
+                    subtitle: seller?.merchant?.storeName ?? seller?.name ?? o.number,
+                    corner: formatDate(o.createdAt),
+                    showAmount: true,
+                    onTap: () => context.push('/orders/${o.id}'),
+                  );
+                },
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
         );
       },
     );
-  }
-
-  String _formatDate(String iso) {
-    try {
-      final dt = DateTime.parse(iso).toLocal();
-      return DateFormat('d MMM y', 'fr_FR').format(dt);
-    } catch (_) {
-      return '';
-    }
   }
 }

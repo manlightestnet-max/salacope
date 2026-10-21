@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:salacope/core/config/platform.dart';
+import '../widgets/listing_files_section.dart';
+import '../widgets/promo_countdown.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/config/env.dart';
 import '../../../../core/db/models/listing.dart';
 import '../../../../core/db/store.dart';
 import '../../../../core/design/colors.dart';
@@ -22,6 +26,7 @@ import '../../domain/catalog_model.dart';
 import '../widgets/listing_gallery.dart';
 import '../widgets/listing_price.dart';
 import '../widgets/listing_reviews.dart';
+import '../../../checkout/presentation/checkout_sheet.dart';
 
 /// Fiche d'une offre, pensée pour le téléphone : la galerie, l'essentiel, puis la suite en défilant.
 /// Une fois la galerie passée, la barre du haut garde la couverture et le titre (un appui remonte).
@@ -30,10 +35,14 @@ class ListingDetailScreen extends StatefulWidget {
   final String listingId;
   final String? heroTag;
 
+  /// Opened by a buy address (`/checkout/:id`): the payment sheet opens over the offer at once.
+  final bool buyNow;
+
   const ListingDetailScreen({
     super.key,
     required this.listingId,
     this.heroTag,
+    this.buyNow = false,
   });
 
   @override
@@ -69,6 +78,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     });
     _scroll.addListener(() => _compact.value = _scroll.offset > _trigger);
     final known = db.state.listings.where((l) => l.id == widget.listingId).firstOrNull;
+    if (widget.buyNow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) openCheckout(context, widget.listingId);
+      });
+    }
     if (known != null) {
       trackListing(known, 'view');
     } else {
@@ -123,13 +137,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   void _buy(Listing listing, bool isOwn) {
     if (isOwn) {
-      context.push('/profile');
+      context.push('/dashboard/offres/${listing.id}');
       return;
     }
-    final box = _buyKey.currentContext?.findRenderObject() as RenderBox?;
-    final from = box != null && box.hasSize ? box.localToGlobal(Offset.zero) & box.size : null;
     trackListing(listing, 'click');
-    context.push('/checkout/${listing.id}', extra: from);
+    openCheckout(context, listing.id);
   }
 
   Future<void> _toggleFavorite(Listing listing) async {
@@ -265,7 +277,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                         onTap: () {
                                           // ignore: deprecated_member_use
                                           Share.share(
-                                            '${listing.title} sur Salacope: https://salacope.online/l/${listing.id}',
+                                            '${listing.title} sur Salacope : ${Env.publicUrl}/p/${listing.id}',
                                           );
                                         },
                                       ),
@@ -298,6 +310,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                if (listing.promo != null) ...[
+                                  PromoCountdown(listing: listing),
+                                  const SizedBox(height: 14),
+                                ],
                                 Text(
                                   '${categoryLabel(listing.category)} · ${deliveryLabel(listing)}',
                                   style: SalacopeTypography.caption.copyWith(color: colors.textMuted),
@@ -373,6 +389,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                       ),
                                     ),
                                 ],
+                                if (ListingFilesSection.shows(listing)) ...[
+                                  const _Gap(),
+                                  ListingFilesSection(listing: listing),
+                                ],
                                 const _Gap(),
                                 _SellerRow(
                                   name: sellerName,
@@ -431,20 +451,16 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
               ],
             ),
-            // The bar follows the page: it fades as the page is pulled away, instead of staying put and vanishing.
-            bottomNavigationBar: ValueListenableBuilder<double>(
-              valueListenable: _pull,
-              builder: (context, pull, child) {
-                final t = (pull / _leaveAt).clamp(0.0, 1.0);
-                return IgnorePointer(
-                  ignoring: t > 0.3,
-                  child: Opacity(opacity: 1 - t, child: child),
-                );
-              },
+            // The buy bar never leaves the screen, whatever the page does.
+            bottomNavigationBar: RepaintBoundary(
               child: _BuyBar(
                 buyKey: _buyKey,
                 listing: listing,
-                label: isOwn ? 'Mon offre' : (isService ? 'Commander' : 'Acheter'),
+                label: isOwn
+                    ? 'Mon offre'
+                    : listing.priceXaf == 0
+                        ? 'Obtenir gratuitement'
+                        : (isService ? 'Commander' : 'Acheter'),
                 onPressed: () => _buy(listing, isOwn),
               ),
             ),
@@ -558,12 +574,20 @@ class _Facts extends StatelessWidget {
       fontWeight: FontWeight.w500,
     );
 
-    if (rating == null && parts.isEmpty) return const SizedBox.shrink();
+    final online = stats?.sellerOnline == true;
+    if (rating == null && parts.isEmpty && !online) return const SizedBox.shrink();
 
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 6,
+      runSpacing: 6,
       children: [
+        // The seller has the app open right now (seen in the last minutes), as on the web.
+        if (online) ...[
+          const _OnlineDot(),
+          Text('Vendeur en ligne', style: style.copyWith(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+          if (rating != null || parts.isNotEmpty) Text('·', style: style),
+        ],
         if (rating != null) ...[
           Icon(Icons.star_rounded, size: 15, color: colors.textPrimary),
           Text(
@@ -574,6 +598,57 @@ class _Facts extends StatelessWidget {
         ],
         if (parts.isNotEmpty) Text(parts.join(' · '), style: style),
       ],
+    );
+  }
+}
+
+/// A green dot that breathes slowly (still when animations are reduced).
+class _OnlineDot extends StatefulWidget {
+  const _OnlineDot();
+
+  @override
+  State<_OnlineDot> createState() => _OnlineDotState();
+}
+
+class _OnlineDotState extends State<_OnlineDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final green = context.colors.emerald500;
+    return SizedBox(
+      width: 14,
+      height: 14,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) => Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 8 + 6 * _c.value,
+              height: 8 + 6 * _c.value,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: green.withValues(alpha: 0.35 * (1 - _c.value))),
+            ),
+            Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: green)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -738,9 +813,13 @@ class _Guarantee extends StatelessWidget {
         ),
         line(
           LucideIcons.shieldCheck,
-          isService
-              ? 'Paiement protégé Mobile Money : le vendeur est payé après votre validation ou 3 jours après livraison.'
-              : 'Paiement MTN MoMo ou Airtel Money. Fichiers accessibles immédiatement dans « Mes achats ».',
+          listing.priceXaf == 0
+              ? (isService
+                  ? 'Offre gratuite : aucun paiement, le vendeur accepte votre commande.'
+                  : 'Offre gratuite : aucun paiement, accès immédiat.')
+              : isService
+                  ? 'Paiement MTN MoMo ou Airtel Money. Le vendeur est payé après votre validation, ou ${PlatformConfig.serviceValidationDays} jours après la livraison.'
+                  : 'Paiement MTN MoMo ou Airtel Money. Accès immédiat ; le vendeur est payé ${PlatformConfig.digitalHoldDays} jours plus tard si vous ne signalez aucun problème.',
         ),
       ],
     );
@@ -804,7 +883,7 @@ class _BuyBar extends StatelessWidget {
             const SizedBox(width: 12),
             SizedBox(
               key: buyKey,
-              width: 148,
+              width: listing.priceXaf == 0 ? 196 : 148,
               child: SButton(
                 label: label,
                 variant: SButtonVariant.primary,

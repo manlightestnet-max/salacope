@@ -83,7 +83,8 @@ OrderPermissions permissionsFor({
 
   return OrderPermissions(
     accept: seller && isService && status == 'paid',
-    deliver: seller && isService && (status == 'paid' || status == 'in_progress'),
+    // A service is delivered once accepted: accepting comes first (it starts the clock and opens the discussion).
+    deliver: seller && isService && status == 'in_progress',
     cancel: (seller && (status == 'paid' || status == 'in_progress')) ||
         (buyer && isService && status == 'paid'),
     // A digital product is never confirmed by the buyer: the money stays held for Salacope's delay, then is paid out.
@@ -92,9 +93,31 @@ OrderPermissions permissionsFor({
     revise: buyer && isService && status == 'delivered' && revsLeft > 0,
     extend: seller && isService && status == 'in_progress' && !pendingExt,
     answerExtension: buyer && status == 'in_progress' && pendingExt,
-    message: perspective != null && status != 'cancelled',
+    // Until the seller has accepted a service order nobody writes: the discussion opens with the acceptance.
+    message: perspective != null && status != 'cancelled' && !(isService && status == 'paid'),
   );
 }
+
+/// [permissionsFor] read from the order itself.
+OrderPermissions orderPermissions(Order order, Perspective? perspective) => permissionsFor(
+      status: order.status,
+      kind: order.item.kind,
+      perspective: perspective,
+      revisions: order.item.revisions ?? 0,
+      revisionsUsed: order.revisionsUsed ?? 0,
+      extensionStatus: order.extension?.status,
+    );
+
+/// How the order was paid (the buyer picks on LightPay). Same words as the web (`paymentMethodLabel`).
+String paymentMethodLabel(OrderPayment payment) => switch (payment.channel) {
+      'MTN_MOMO_COG' => 'MTN MoMo',
+      'AIRTEL_COG' => 'Airtel Money',
+      _ => payment.via == 'free'
+          ? 'Offre gratuite'
+          : payment.via == 'wallet'
+              ? 'Wallet LightPay'
+              : 'Mobile Money via LightPay',
+    };
 
 enum OrderBadgeTone {
   neutral,
@@ -115,6 +138,7 @@ class OrderStatusInfo {
 OrderStatusInfo statusDisplay({
   required String status,
   required Perspective perspective,
+  String? kind,
   String? extensionStatus,
   bool isLate = false,
   bool isRevising = false,
@@ -137,6 +161,12 @@ OrderStatusInfo statusDisplay({
           ? const OrderStatusInfo(label: 'Retouche en cours', tone: OrderBadgeTone.info)
           : const OrderStatusInfo(label: 'En cours', tone: OrderBadgeTone.info);
     case 'delivered':
+      // A digital product is never validated by anyone: the file is there at once and the seller is paid by themselves at the end of the delay.
+      if (kind == 'digital') {
+        return perspective == Perspective.buyer
+            ? const OrderStatusInfo(label: 'Fichier disponible', tone: OrderBadgeTone.success)
+            : const OrderStatusInfo(label: 'Livré', tone: OrderBadgeTone.brand);
+      }
       return perspective == Perspective.buyer
           ? const OrderStatusInfo(label: 'À valider', tone: OrderBadgeTone.warning)
           : const OrderStatusInfo(label: 'Livrée', tone: OrderBadgeTone.brand);
@@ -215,16 +245,31 @@ bool isOrderRevising(String status, List<dynamic>? events) {
 bool orderNeedsAction({
   required String status,
   required Perspective perspective,
+  String? kind,
   String? extensionStatus,
 }) {
   if (perspective == Perspective.seller) {
     return status == 'paid' || status == 'in_progress' || status == 'disputed';
   }
-  return status == 'delivered' ||
+  return (status == 'delivered' && kind == 'service') ||
       (status == 'in_progress' && hasPendingExtension(extensionStatus));
 }
 
+/// Something waits for this party on the order (accept, deliver, validate…): the web's `needsAction`.
+bool needsAction(Order order, Perspective perspective) =>
+    orderNeedsAction(status: order.status, perspective: perspective, kind: order.item.kind, extensionStatus: order.extension?.status);
+
 extension OrderSellerHelpers on Order {
+  /// Status wording for this party, from the order itself.
+  OrderStatusInfo statusFor(Perspective perspective) => statusDisplay(
+        status: status,
+        perspective: perspective,
+        kind: item.kind,
+        extensionStatus: extension?.status,
+        isLate: isLate(),
+        isRevising: isRevising,
+      );
+
   bool isLate([DateTime? now]) => isOrderLate(status, dueAt, now);
 
   bool get isRevising =>
@@ -262,6 +307,7 @@ extension OrderSellerHelpers on Order {
         if (isRevising) return 'Retouche en cours';
         return 'En cours';
       case 'delivered':
+        if (item.kind == 'digital') return perspective == 'buyer' ? 'Fichier disponible' : 'Livré';
         return perspective == 'buyer' ? 'À valider' : 'Livrée';
       case 'completed':
         return 'Terminée';
@@ -274,3 +320,21 @@ extension OrderSellerHelpers on Order {
     }
   }
 }
+
+/// Same words as the web (`EVENT_LABEL` in src/features/orders/model.ts), for the server's event types.
+String orderEventLabel(String type) => switch (type) {
+      'paid' => 'Paiement reçu',
+      'accepted' => 'Commande acceptée',
+      'delivered' => 'Livraison effectuée',
+      'completed' => 'Réception confirmée',
+      'auto_completed' => 'Clôturée automatiquement',
+      'cancelled' => 'Commande annulée, client remboursé',
+      'funds_released' => 'Décision de Salacope : vendeur payé',
+      'funds_refunded' => 'Décision de Salacope : client remboursé',
+      'disputed' => 'Litige ouvert',
+      'revision_requested' => 'Retouche demandée',
+      'extension_requested' => 'Délai supplémentaire demandé',
+      'extension_accepted' => 'Délai supplémentaire accepté',
+      'extension_declined' => 'Délai supplémentaire refusé',
+      _ => 'Mise à jour de la commande',
+    };

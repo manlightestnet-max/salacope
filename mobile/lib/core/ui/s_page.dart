@@ -12,6 +12,9 @@ class SPage extends StatelessWidget {
   final Widget? child;
   final Future<void> Function()? onRefresh;
 
+  /// Inside another screen that has the bar already (a section of the seller's Boutique): only the scrolling content.
+  final bool embedded;
+
   const SPage({
     super.key,
     required this.title,
@@ -22,6 +25,7 @@ class SPage extends StatelessWidget {
     this.slivers,
     this.child,
     this.onRefresh,
+    this.embedded = false,
   }) : assert(slivers != null || child != null, 'Either slivers or child must be provided');
 
   @override
@@ -43,6 +47,8 @@ class SPage extends StatelessWidget {
         child: scrollView,
       );
     }
+
+    if (embedded) return scrollView;
 
     return Scaffold(
       backgroundColor: colors.canvas,

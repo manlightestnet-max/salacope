@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salacope/core/routing/links.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/lib/format.dart';
@@ -84,9 +85,8 @@ class NotificationsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(SalacopeTokens.radiusLg),
                             onTap: () {
                               notificationsApi.markNotificationRead(n.id);
-                              if (n.href.isNotEmpty) {
-                                context.go(n.href);
-                              }
+                              // On top of this list: back returns here (it never empties the app).
+                              if (n.href.isNotEmpty) links.open(n.href);
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(14),

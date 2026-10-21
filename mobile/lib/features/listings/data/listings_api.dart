@@ -28,6 +28,23 @@ class ListingsApi {
     );
   }
 
+  /// A draft opened by the first file sent: it keeps what is typed so far and holds the files from then on.
+  Future<Listing> createDraft({required String kind, required String category, required String title, required String summary}) async {
+    final res = await api.mutate(
+      'POST',
+      '/listings/draft',
+      body: {
+        'listing': {'kind': kind, 'category': category, 'title': title, 'summary': summary},
+      },
+    );
+    return Listing.fromJson(res['listing'] as Map<String, dynamic>? ?? {});
+  }
+
+  /// The files of a draft, saved as they are added, taken out or marked as samples.
+  Future<void> saveDraftFiles(String listingId, List<ListingFileItem> files) async {
+    await api.mutate('PUT', '/listings/${Uri.encodeComponent(listingId)}/files', body: {'files': files.map((f) => f.toJson()).toList()});
+  }
+
   Future<void> setListingStatus(String listingId, String status) async {
     await api.mutate(
       'POST',

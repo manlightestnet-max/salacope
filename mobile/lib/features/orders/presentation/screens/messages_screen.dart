@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/db/store.dart';
 import 'package:salacope/core/design/theme.dart';
-import 'package:salacope/core/design/tokens.dart';
-import 'package:salacope/core/design/typography.dart';
 import 'package:salacope/core/lib/format.dart';
-import 'package:salacope/core/ui/s_avatar.dart';
+import 'package:salacope/core/db/models/order.dart';
+import 'package:salacope/core/domain/orders.dart';
+import 'package:salacope/core/lib/remembered.dart';
+import 'package:salacope/core/ui/s_page.dart';
+import '../widgets/order_row.dart';
 import 'package:salacope/core/ui/s_empty_state.dart';
 import 'package:salacope/core/ui/s_segmented.dart';
 import '../../domain/chat.dart';
@@ -14,295 +16,105 @@ import '../../../disputes/data/disputes_api.dart';
 import '../../../disputes/presentation/dispute_list.dart';
 import 'package:salacope/core/ui/s_button.dart';
 
-class MessagesScreen extends StatefulWidget {
+/// Messages: one conversation per order (each with its offer's cover, so you see at once what it is about), services
+/// and products apart, then the disputes. The chosen segment is kept for the next visit.
+class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
-  @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
-}
-
-class _MessagesScreenState extends State<MessagesScreen> {
-  String _selectedKind = 'service'; // 'digital', 'service' or 'disputes'
+  static final Remembered _segment = Remembered('messages.segment', const ['service', 'digital', 'disputes'], 'service');
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
 
     return ListenableBuilder(
-      listenable: db,
+      listenable: Listenable.merge([db, _segment, disputesApi.mine]),
       builder: (context, _) {
         final state = db.state;
-        final currentUserId = state.sessionUserId ?? '';
-
-        final digitalConvs = buildConversations(
-          orders: state.orders,
-          userId: currentUserId,
-          kind: 'digital',
-        );
-        final serviceConvs = buildConversations(
-          orders: state.orders,
-          userId: currentUserId,
-          kind: 'service',
-        );
-
-        final unreadDigital = digitalConvs.fold<int>(0, (sum, c) => sum + c.unread);
-        final unreadServices = serviceConvs.fold<int>(0, (sum, c) => sum + c.unread);
-
-        final conversations =
-            _selectedKind == 'digital' ? digitalConvs : serviceConvs;
-        final openDisputes = (disputesApi.mine.value ?? const []).where((d) => d.open).length;
+        final me = state.sessionUserId ?? '';
         final signedOut = state.sessionUserId == null;
+        final segment = _segment.value;
 
-        return Scaffold(
-          backgroundColor: colors.canvas,
-          appBar: AppBar(
-            backgroundColor: colors.surface,
-            elevation: 0,
-            title: Text(
-              'Messages',
-              style: SalacopeTypography.title.copyWith(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: SSegmented<String>(
-                  value: _selectedKind,
-                  options: [
-                    SSegmentedOption(
-                      value: 'service',
-                      label: unreadServices > 0
-                          ? 'Services ($unreadServices)'
-                          : 'Services',
+        List<Order> of(String kind) => state.orders.where((o) => o.item.kind == kind && (o.buyerId == me || o.sellerId == me)).toList()
+          ..sort((a, b) => lastActivityAtOf(b).compareTo(lastActivityAtOf(a)));
+        final services = of('service');
+        final products = of('digital');
+        int unreadOf(List<Order> list) => list.fold<int>(0, (n, o) => n + orderUnreadCount(o, me));
+        final openDisputes = (disputesApi.mine.value ?? const []).where((d) => d.open).length;
+        final shown = segment == 'digital' ? products : services;
+
+        return SPage(
+          title: 'Messages',
+          toolbar: signedOut
+              ? null
+              : PreferredSize(
+                  preferredSize: const Size.fromHeight(56),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                    child: SSegmented<String>(
+                      expand: true,
+                      value: segment,
+                      onChanged: (v) => _segment.value = v,
+                      options: [
+                        SSegmentedOption(value: 'service', label: 'Services', count: unreadOf(services)),
+                        SSegmentedOption(value: 'digital', label: 'Produits', count: unreadOf(products)),
+                        SSegmentedOption(value: 'disputes', label: 'Litiges', count: openDisputes),
+                      ],
                     ),
-                    SSegmentedOption(
-                      value: 'digital',
-                      label: unreadDigital > 0
-                          ? 'Produits ($unreadDigital)'
-                          : 'Produits',
-                    ),
-                    SSegmentedOption(
-                      value: 'disputes',
-                      label: openDisputes > 0 ? 'Litiges ($openDisputes)' : 'Litiges',
-                    ),
-                  ],
-                  onChanged: (val) => setState(() => _selectedKind = val),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          body: signedOut
-              ? SEmptyState(
+          slivers: [
+            if (signedOut)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: SEmptyState(
                   icon: LucideIcons.messagesSquare,
                   title: 'Vos discussions',
-                  description: 'Chaque commande a sa discussion avec l’autre partie. Connectez-vous, ou achetez sans compte : elles apparaissent ici.',
+                  description: 'Chaque commande a sa discussion avec l’autre partie. Connectez-vous pour les retrouver.',
                   action: SButton(label: 'Se connecter', pill: true, onPressed: () => context.push('/connexion')),
-                )
-              : _selectedKind == 'disputes'
-              ? const DisputeList()
-              : conversations.isEmpty
-              ? SEmptyState(
+                ),
+              )
+            else if (segment == 'disputes')
+              const SliverFillRemaining(child: DisputeList())
+            else if (shown.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: SEmptyState(
                   icon: LucideIcons.messagesSquare,
                   title: 'Aucune discussion',
-                  description:
-                      'Chaque commande a sa discussion avec l’autre partie : elle apparaît ici dès le premier achat ou la première vente.',
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: conversations.length,
-                  separatorBuilder: (_, _) => Divider(
-                    height: 1,
-                    thickness: 0.8,
-                    indent: 72,
-                    color: colors.canvasBorder,
-                  ),
-                  itemBuilder: (context, index) {
-                    final conv = conversations[index];
-                    final counterpart = state.users
-                        .where((u) => u.id == conv.counterpartId)
-                        .firstOrNull;
-
-                    // As buyer or as seller
-                    final firstOrder = conv.orders.first;
-                    final asBuyer = firstOrder.buyerId == currentUserId;
-                    final name = asBuyer
-                        ? (counterpart?.merchant?.storeName ?? counterpart?.name ?? 'Vendeur')
-                        : firstOrder.buyer.name;
-                    final logo = asBuyer ? counterpart?.merchant?.logo : null;
-
-                    final isMine = conv.last?.authorId == currentUserId;
-                    final preview = conv.last != null
-                        ? '${isMine ? "Vous : " : ""}${messagePreviewOf(conv.last)}'
-                        : firstOrder.item.title;
-
-                    final isEphemeral = conv.orders.any((o) => o.chat.ephemeral);
-                    final isBlocked = conv.orders.any((o) => o.chat.blocked);
-
-                    return InkWell(
-                      onTap: () {
-                        if (conv.orders.length == 1) {
-                          context.push('/compte/messages/${conv.orders.first.id}');
-                        } else {
-                          // Show sheet to pick which order
-                          _showOrderPicker(context, conv, name);
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            SAvatar(
-                              name: name,
-                              src: logo,
-                              size: SAvatarSize.lg,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: SalacopeTypography.bodyStrong.copyWith(
-                                            color: colors.textPrimary,
-                                            fontWeight: conv.unread > 0
-                                                ? FontWeight.w700
-                                                : FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        formatRelative(conv.lastAt),
-                                        style: SalacopeTypography.caption.copyWith(
-                                          color: conv.unread > 0
-                                              ? colors.accent
-                                              : colors.textMuted,
-                                          fontSize: 11,
-                                          fontWeight: conv.unread > 0
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          preview,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: SalacopeTypography.caption.copyWith(
-                                            color: conv.unread > 0
-                                                ? colors.textPrimary
-                                                : colors.textSecondary,
-                                            fontWeight: conv.unread > 0
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                          ),
-                                        ),
-                                      ),
-                                      if (isEphemeral) ...[
-                                        const SizedBox(width: 4),
-                                        Icon(LucideIcons.timer, size: 12, color: colors.textMuted),
-                                      ],
-                                      if (isBlocked) ...[
-                                        const SizedBox(width: 4),
-                                        Icon(LucideIcons.ban, size: 12, color: colors.textMuted),
-                                      ],
-                                      if (conv.unread > 0) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: colors.accent,
-                                            borderRadius: BorderRadius.circular(SalacopeTokens.radiusFull),
-                                          ),
-                                          child: Text(
-                                            '${conv.unread}',
-                                            style: TextStyle(
-                                              color: colors.onAccent,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  if (conv.orders.length > 1)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        '${conv.orders.length} commandes',
-                                        style: SalacopeTypography.caption.copyWith(
-                                          color: colors.textMuted,
-                                          fontSize: 10.5,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  description: 'Chaque commande a sa discussion : elle apparaît ici dès le premier achat ou la première vente.',
                 ),
+              )
+            else
+              SliverList.separated(
+                itemCount: shown.length,
+                separatorBuilder: (_, _) => Divider(height: 1, thickness: 0.8, indent: 86, color: colors.canvasBorder),
+                itemBuilder: (context, i) => _row(context, shown[i], me),
+              ),
+          ],
         );
       },
     );
   }
 
-  void _showOrderPicker(BuildContext context, Conversation conv, String name) {
-    final colors = context.colors;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(SalacopeTokens.radiusXl)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Discussions avec $name',
-                style: SalacopeTypography.title.copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              ...conv.orders.map((o) {
-                return ListTile(
-                  title: Text(o.item.title, style: SalacopeTypography.bodyStrong),
-                  subtitle: Text('${o.number} · ${formatDate(o.createdAt)}'),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 16),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/compte/messages/${o.id}');
-                  },
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
+  Widget _row(BuildContext context, Order o, String me) {
+    final state = db.state;
+    final asBuyer = o.buyerId == me;
+    final other = state.users.where((u) => u.id == (asBuyer ? o.sellerId : o.buyerId)).firstOrNull;
+    final name = asBuyer ? (other?.merchant?.storeName ?? other?.name ?? 'Vendeur') : o.buyer.name;
+    final last = lastMessageOf(o);
+    final unread = orderUnreadCount(o, me);
+    final preview = last == null ? name : '${last.authorId == me ? 'Vous : ' : '$name : '}${messagePreviewOf(last)}';
+    return OrderRow(
+      order: o,
+      perspective: asBuyer ? Perspective.buyer : Perspective.seller,
+      subtitle: preview,
+      subtitleStrong: unread > 0,
+      corner: formatRelative(lastActivityAtOf(o)),
+      unread: unread,
+      // Something waits for this person on the order: accept, deliver, validate…
+      todo: needsAction(o, asBuyer ? Perspective.buyer : Perspective.seller),
+      onTap: () => context.push('/compte/messages/${o.id}'),
     );
   }
 }

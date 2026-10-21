@@ -6,7 +6,6 @@ import 'package:salacope/core/db/store.dart';
 import 'package:salacope/core/design/colors.dart';
 import 'package:salacope/core/design/tokens.dart';
 import 'package:salacope/core/design/typography.dart';
-import 'package:salacope/core/domain/orders.dart';
 import 'package:salacope/core/lib/format.dart';
 import 'package:salacope/core/ui/s_badge.dart';
 import 'package:salacope/core/ui/s_button.dart';
@@ -189,67 +188,13 @@ class _SellerListingsScreenState extends State<SellerListingsScreen> {
     final publishedCount = myListings.where((l) => l.status == 'published').length;
     final draftCount = myListings.where((l) => l.status == 'draft').length;
 
-    // Todo orders count for nav pill
-    final todoCount = allOrders
-        .where((o) => o.sellerId == user.id && sellerLanes.firstWhere((l) => l.lane == o.lane).todo)
-        .length;
-
     return SPage(
+      embedded: true,
       title: 'Offres',
-      leading: const BackButton(),
-      actions: [
-        SButton(
-          label: 'Nouvelle offre',
-          variant: SButtonVariant.primary,
-          size: SButtonSize.sm,
-          pill: true,
-          icon: const Icon(LucideIcons.plus, size: 14),
-          onPressed: () => context.push('/dashboard/offres/nouvelle'),
-        ),
-      ],
-      toolbar: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              _NavPill(
-                label: "Vue d'ensemble",
-                onTap: () => context.push('/dashboard'),
-              ),
-              _NavPill(
-                label: 'Ventes',
-                badge: todoCount > 0 ? '$todoCount' : null,
-                onTap: () => context.push('/dashboard/ventes'),
-              ),
-              _NavPill(
-                label: 'Offres',
-                active: true,
-                onTap: () {},
-              ),
-              _NavPill(
-                label: 'Clients',
-                onTap: () => context.push('/dashboard/clients'),
-              ),
-              _NavPill(
-                label: 'Paiements',
-                onTap: () => context.push('/dashboard/paiements'),
-              ),
-              if (user.merchant?.kycStatus != 'approved')
-                _NavPill(
-                  label: 'Vérification',
-                  badge: user.merchant?.kycStatus == 'pending' ? null : '!',
-                  onTap: () => context.push('/dashboard/verification'),
-                ),
-            ],
-          ),
-        ),
-      ),
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -361,7 +306,7 @@ class _SellerListingsScreenState extends State<SellerListingsScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            formatXaf(listing.priceXaf),
+                                            formatPrice(listing.priceXaf),
                                             style: SalacopeTypography.bodyStrong.copyWith(
                                               color: colors.textPrimary,
                                               fontSize: 13,
@@ -390,71 +335,3 @@ class _SellerListingsScreenState extends State<SellerListingsScreen> {
   }
 }
 
-class _NavPill extends StatelessWidget {
-  final String label;
-  final String? badge;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _NavPill({
-    required this.label,
-    this.badge,
-    this.active = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? colors.accent : colors.surface,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: active ? colors.accent : colors.canvasBorder,
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: active ? colors.onAccent : colors.textPrimary,
-                  fontSize: 12.5,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-              if (badge != null) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: active ? colors.surface : colors.accent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    badge!,
-                    style: TextStyle(
-                      color: active ? colors.textPrimary : colors.onAccent,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

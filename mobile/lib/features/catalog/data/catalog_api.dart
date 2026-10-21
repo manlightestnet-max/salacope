@@ -1,3 +1,4 @@
+import 'package:salacope/core/lib/files.dart';
 import '../domain/ranking.dart';
 import '../../../core/db/store.dart';
 import '../../../core/api/api_client.dart';
@@ -97,4 +98,16 @@ void trackListing(Listing listing, String type) {
   if (type == 'view' && !_viewedThisSession.add(listing.id)) return;
   Taste.noteListing(listing, type).ignore();
   api.request('POST', '/listings/${Uri.encodeComponent(listing.id)}/track', body: {'type': type}).ignore();
+}
+
+/// A visit of a store page, once per opening (the server counts one per visitor and per day, and never the seller).
+void trackStore(String sellerId) {
+  if (sellerId == db.state.sessionUserId) return;
+  api.request('POST', '/stores/${Uri.encodeComponent(sellerId)}/track', body: const <String, dynamic>{}).ignore();
+}
+
+/// A free sample of an offer: anyone can take it, without buying (an address that works for two minutes).
+Future<void> downloadSample(String listingId, String fileId) async {
+  final res = await api.request('GET', '/listings/${Uri.encodeComponent(listingId)}/preview?f=${Uri.encodeComponent(fileId)}') as Map<String, dynamic>;
+  await openRemoteFile(res['url'] as String?, res['name'] as String? ?? 'apercu');
 }

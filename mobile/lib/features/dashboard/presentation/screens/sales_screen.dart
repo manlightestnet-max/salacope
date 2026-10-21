@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:salacope/features/orders/presentation/widgets/order_row.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:salacope/core/db/models/order.dart';
 import 'package:salacope/core/db/store.dart';
 import 'package:salacope/core/design/colors.dart';
 import 'package:salacope/core/design/tokens.dart';
-import 'package:salacope/core/design/typography.dart';
 import 'package:salacope/core/domain/orders.dart';
 import 'package:salacope/core/lib/format.dart';
-import 'package:salacope/core/ui/s_badge.dart';
 import 'package:salacope/core/ui/s_empty_state.dart';
-import 'package:salacope/core/ui/s_image.dart';
 import 'package:salacope/core/ui/s_page.dart';
 import 'package:salacope/core/ui/s_panel.dart';
 import 'package:salacope/core/ui/s_segmented.dart';
@@ -125,58 +123,12 @@ class _SalesScreenState extends State<SalesScreen> {
     final allCount = countForView('all');
 
     return SPage(
+      embedded: true,
       title: 'Ventes',
-      leading: const BackButton(),
-      actions: [
-        IconButton(
-          icon: const Icon(LucideIcons.rotateCw, size: 18),
-          onPressed: () => setState(() {}),
-          tooltip: 'Actualiser',
-        ),
-      ],
-      toolbar: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              _NavPill(
-                label: "Vue d'ensemble",
-                onTap: () => context.push('/dashboard'),
-              ),
-              _NavPill(
-                label: 'Ventes',
-                badge: todoCount > 0 ? '$todoCount' : null,
-                active: true,
-                onTap: () {},
-              ),
-              _NavPill(
-                label: 'Offres',
-                onTap: () => context.push('/dashboard/offres'),
-              ),
-              _NavPill(
-                label: 'Clients',
-                onTap: () => context.push('/dashboard/clients'),
-              ),
-              _NavPill(
-                label: 'Paiements',
-                onTap: () => context.push('/dashboard/paiements'),
-              ),
-              if (user.merchant?.kycStatus != 'approved')
-                _NavPill(
-                  label: 'Vérification',
-                  badge: user.merchant?.kycStatus == 'pending' ? null : '!',
-                  onTap: () => context.push('/dashboard/verification'),
-                ),
-            ],
-          ),
-        ),
-      ),
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -399,160 +351,16 @@ class _OrderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final item = order.item;
-
-    return InkWell(
+    final late = order.dueAt != null && order.status == 'in_progress' && order.isLate();
+    return OrderRow(
+      order: order,
+      perspective: Perspective.seller,
+      subtitle: late ? 'En retard · ${order.buyer.name}' : '${order.buyer.name} · ${order.number}',
+      subtitleStrong: late,
+      corner: formatDate(order.createdAt),
+      showAmount: true,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       onTap: () => context.push('/orders/${order.id}'),
-      borderRadius: BorderRadius.circular(SalacopeTokens.radiusMd),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(SalacopeTokens.radiusMd),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: SImage(
-                  url: item.coverImage,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    style: SalacopeTypography.bodyStrong.copyWith(
-                      color: colors.textPrimary,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${order.number} · ${order.buyer.name}',
-                    style: SalacopeTypography.caption.copyWith(
-                      color: colors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  if (order.dueAt != null && order.status == 'in_progress') ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Échéance : ${formatDate(order.dueAt!)}',
-                      style: SalacopeTypography.caption.copyWith(
-                        color: order.isLate() ? colors.danger : colors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: order.isLate() ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatXaf(order.amounts.net),
-                  style: SalacopeTypography.bodyStrong.copyWith(
-                    color: colors.textPrimary,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SBadge(
-                  label: order.statusLabel('seller'),
-                  variant: order.status == 'completed'
-                      ? SBadgeVariant.success
-                      : order.status == 'disputed' || order.status == 'cancelled'
-                          ? SBadgeVariant.danger
-                          : order.status == 'delivered'
-                              ? SBadgeVariant.info
-                              : SBadgeVariant.neutral,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavPill extends StatelessWidget {
-  final String label;
-  final String? badge;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _NavPill({
-    required this.label,
-    this.badge,
-    this.active = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? colors.accent : colors.surface,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: active ? colors.accent : colors.canvasBorder,
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: active ? colors.onAccent : colors.textPrimary,
-                  fontSize: 12.5,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-              if (badge != null) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: active ? colors.surface : colors.accent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    badge!,
-                    style: TextStyle(
-                      color: active ? colors.textPrimary : colors.onAccent,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

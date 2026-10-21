@@ -18,6 +18,8 @@ Future<T?> showSSheet<T>({
 
   return showModalBottomSheet<T>(
     context: context,
+    // Over the whole app (bottom bar included), so closing it never closes the screen beneath.
+    useRootNavigator: true,
     isScrollControlled: true,
     isDismissible: isDismissible,
     enableDrag: isDismissible,
@@ -126,6 +128,7 @@ Future<bool?> showSConfirm({
   required String title,
   required String description,
   required String confirmLabel,
+  String cancelLabel = 'Retour',
   bool danger = false,
   required FutureOr<bool?> Function() onConfirm,
 }) {
@@ -164,7 +167,7 @@ Future<bool?> showSConfirm({
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SButton(
-                    label: 'Retour',
+                    label: cancelLabel,
                     variant: SButtonVariant.secondary,
                     size: SButtonSize.md,
                     onPressed: () => Navigator.of(ctx).pop(false),

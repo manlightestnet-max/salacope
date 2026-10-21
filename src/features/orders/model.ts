@@ -41,6 +41,8 @@ export const statusDisplay = (order: Order, perspective: Perspective): { label: 
       if (isLate(order)) return { label: 'En retard', tone: 'danger' };
       return isRevising(order) ? { label: 'Retouche en cours', tone: 'info' } : { label: 'En cours', tone: 'info' };
     case 'delivered':
+      // A digital product is never validated by anyone: the file is there at once and the seller is paid by themselves at the end of the delay.
+      if (order.item.kind === 'digital') return perspective === 'buyer' ? { label: 'Fichier disponible', tone: 'success' } : { label: 'Livré', tone: 'brand' };
       return perspective === 'buyer' ? { label: 'À valider', tone: 'warning' } : { label: 'Livrée', tone: 'brand' };
     case 'completed':
       return { label: 'Terminée', tone: 'success' };

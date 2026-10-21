@@ -6,7 +6,7 @@ import { useInfiniteList } from '@/shared/hooks';
 import { ROUTES } from '@/shared/config/routes';
 import { EVENT_LABEL } from '@/features/orders';
 import { AdminFundDetail, AdminTrackRecord, ReasonDialog, adminApi, useAdminResource } from '@/features/admin';
-import { FUND_STATE } from './AdminFundsPage';
+import { fundState } from './AdminFundsPage';
 
 const TICKET_TONE = { open: 'warning', answered: 'brand', resolved: 'neutral' } as const;
 type View = 'resume' | 'preuves' | 'conversation' | 'historique';
@@ -310,7 +310,7 @@ export const AdminFundPage: React.FC = () => {
   }
 
   const { order } = data;
-  const state = FUND_STATE[order.status];
+  const state = fundState(order.status, order.item.kind);
   const disputed = order.status === 'disputed';
 
   return (

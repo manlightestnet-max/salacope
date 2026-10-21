@@ -76,6 +76,7 @@ export const MESSAGE_DEFS: MessageDef[] = [
 
   // ------------------------------------------------------------ sales (seller)
   def('sale.new', 'Ventes', 'Nouvelle commande (argent bloqué)', ['commande', 'offre', 'montant'], 'Nouvelle commande {commande}', '{offre} · {montant} (bloqués jusqu’à validation)'),
+  def('sale.new_digital', 'Ventes', 'Vente d’un produit numérique (accès immédiat)', ['commande', 'offre', 'montant', 'jours'], 'Nouvelle vente {commande}', '{offre} · {montant} versés automatiquement dans {jours} si aucun litige'),
   def('sale.free', 'Ventes', 'Nouvelle commande gratuite', ['commande', 'offre'], 'Nouvelle commande gratuite {commande}', '{offre} · offre gratuite, aucun paiement.'),
   def('sale.released', 'Ventes', 'Le client valide : paiement versé', ['commande', 'montant'], 'Paiement libéré · {commande}', '+{montant} sur votre wallet LightPay'),
   def('sale.released_auto', 'Ventes', 'Paiement versé à la fin du délai', ['commande', 'montant'], 'Paiement libéré · {commande}', '+{montant} sur votre wallet LightPay (validation automatique)'),

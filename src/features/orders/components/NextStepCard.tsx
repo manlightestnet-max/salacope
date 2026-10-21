@@ -97,9 +97,9 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
       if (order.item.kind === 'digital') {
         // A digital product is never confirmed by the buyer: the money is held for Salacope's delay, then paid out.
         tone = 'waiting';
-        title = seller ? 'Fichier livré, paiement bloqué' : 'Votre fichier est disponible';
+        title = seller ? 'Fichier livré, paiement automatique' : 'Votre fichier est disponible';
         body = seller
-          ? `${money} vous seront versés le ${formatDate(order.releaseAt)} si aucun litige n’est ouvert d’ici là.`
+          ? `Accès immédiat pour le client. ${money} vous seront versés automatiquement le ${formatDate(order.releaseAt)}, sans validation de personne, si aucun litige n’est ouvert d’ici là.`
           : `Téléchargez-le quand vous voulez. Un problème ? Signalez-le avant le ${formatDate(order.releaseAt)}.`;
         break;
       }

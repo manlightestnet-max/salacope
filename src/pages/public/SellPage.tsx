@@ -10,7 +10,7 @@ const STEPS = [
   { title: 'Publiez vos offres', text: 'Fichiers livrés automatiquement, ou services livrés dans un délai fixé.' },
   {
     title: 'Encaissez',
-    text: `Chaque vente est payée dès que le client valide, ou automatiquement après la livraison (${releaseRule()}). Retrait sur MTN MoMo ou Airtel Money.`,
+    text: `Produit numérique : accès immédiat pour le client, vous êtes payé automatiquement à la fin du délai, sans validation de personne. Service : payé dès que le client valide, ou automatiquement après la livraison (${releaseRule()}). Retrait sur MTN MoMo ou Airtel Money.`,
   },
 ];
 

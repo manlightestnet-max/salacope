@@ -214,7 +214,7 @@ export const AdminOverviewPage: React.FC = () => {
             <Stat
               label="Fonds bloqués"
               value={formatXaf(o.held_total)}
-              help="Paiements gardés en séquestre sur LightPay jusqu’à la validation de la commande."
+              help="Paiements gardés en séquestre sur LightPay jusqu’à la validation de l’acheteur (service) ou la fin du délai (produit numérique, versement automatique)."
               hint={`${formatNumber(o.held)} commande${o.held > 1 ? 's' : ''}`}
             />
           </StatGrid>

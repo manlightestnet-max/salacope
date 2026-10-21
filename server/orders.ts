@@ -232,8 +232,8 @@ export async function insertOrder(q: Query, o: NewOrder): Promise<{ id: string; 
   await notify(q, [
     {
       userId: o.sellerId,
-      event: free ? 'sale.free' : 'sale.new',
-      vars: { commande: number, offre: d.item.title, ...(free ? {} : { montant: formatXaf(d.amounts.net) }) },
+      event: free ? 'sale.free' : digital ? 'sale.new_digital' : 'sale.new',
+      vars: { commande: number, offre: d.item.title, ...(free ? {} : { montant: formatXaf(d.amounts.net) }), ...(digital && !free ? { jours: `${PLATFORM.digitalHoldDays} jour${PLATFORM.digitalHoldDays > 1 ? 's' : ''}` } : {}) },
       href: orderHref(id, 'seller', d.item.kind),
     },
     // The buyer's receipt: a guest also gets it by e-mail, with the download link of a digital product.

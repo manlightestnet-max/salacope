@@ -126,6 +126,10 @@ export const Terms: React.FC = () => (
         l’acheteur n’a jamais à confirmer, à la fin du délai fixé par Salacope ; dans les deux cas, automatiquement sans
         litige ({releaseRule()}). Un litige gèle le paiement jusqu’à la décision de Salacope : remboursement de l’acheteur
         ou versement au vendeur.
+        {' '}<strong>Produits numériques :</strong> l’accès au fichier est immédiat dès que le paiement est confirmé. Aucune
+        autorisation de Salacope ni validation de l’acheteur n’est nécessaire : le vendeur est payé automatiquement à la fin du
+        délai de garantie de {PLATFORM.digitalHoldDays} jour{PLATFORM.digitalHoldDays > 1 ? 's' : ''} (fixé par Salacope), sauf litige ouvert avant. Ce délai est indiqué à
+        l’acheteur avant l’achat, sur la fiche de l’offre et sur la page de paiement.
         {' '}Une commission est alors retenue automatiquement sur chaque vente validée, au taux affiché au vendeur au moment de
         la vente. Ce taux peut être modifié selon les conditions de nos prestataires tiers ou notre politique interne ; le
         vendeur en est informé, et en acceptant les présentes conditions puis en continuant à vendre, il accepte le taux en
@@ -187,8 +191,10 @@ export const RefundPolicy: React.FC = () => (
     <section>
       <h2>Comment ?</h2>
       <p>
-        Le remboursement est intégral et versé sur le compte Mobile Money qui a payé, jamais sur un autre numéro, sous 48 h
-        ouvrées. Pour un litige, utilisez « Signaler un problème » sur la page de la commande.
+        Le remboursement est versé sur le compte Mobile Money qui a payé, jamais sur un autre numéro, après un court délai de
+        traitement. Les frais de retrait de l’opérateur et de LightPay sont déduits : ils font partie de la maintenance et des
+        opérations du réseau, et le montant exact est affiché avant le paiement. Une commande payée avec un wallet LightPay est
+        remboursée en totalité sur ce wallet. Pour un litige, utilisez « Signaler un problème » sur la page de la commande.
       </p>
     </section>
     <section>
@@ -309,7 +315,7 @@ export const AmlPolicy: React.FC = () => (
       <h2>Paiements encadrés</h2>
       <ul>
         <li>Paiement uniquement par MTN Mobile Money et Airtel Money, via un partenaire agréé : ni espèces, ni carte, ni cryptoactifs.</li>
-        <li>Chaque paiement reste bloqué jusqu’à la validation du service par l’acheteur, ou jusqu’à la fin du délai de garantie d’un produit numérique ; en cas de litige, jusqu’à la décision de Salacope.</li>
+        <li>Chaque paiement reste bloqué jusqu’à la validation du service par l’acheteur, ou jusqu’à la fin du délai de garantie d’un produit numérique (accès immédiat, versement automatique, rien à autoriser) ; en cas de litige, jusqu’à la décision de Salacope.</li>
         <li>Les remboursements repartent toujours vers le numéro qui a payé.</li>
         <li>Les ventes ne sont versées qu’au vendeur vérifié.</li>
         <li>Acheteur et vendeur échangent uniquement par la messagerie Salacope, qui bloque les coordonnées.</li>

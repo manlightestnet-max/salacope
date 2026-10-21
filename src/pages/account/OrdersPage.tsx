@@ -53,7 +53,7 @@ export const OrdersPage: React.FC = () => {
     <Page
       fill
       title="Mes achats"
-      help="Vos commandes et leur suivi. Tant que vous n’avez pas validé, votre argent reste bloqué chez LightPay : le vendeur n’est pas encore payé."
+      help="Vos commandes et leur suivi. Produit numérique : accès immédiat, le vendeur est payé automatiquement à la fin du délai si vous ne signalez rien. Service : votre argent reste bloqué chez LightPay jusqu’à votre validation."
       actions={orders.length > 0 && <Segmented label="Type d'achat" value={kind} options={KIND_FILTERS} onChange={setKind} />}
       toolbar={orders.length > 0 && <Tabs bare value={filter} items={tabs} onChange={setFilter} />}
     >
@@ -71,7 +71,7 @@ export const OrdersPage: React.FC = () => {
             <StatGrid columns={3}>
               <Stat label="Achats" value={visible.length} hint={`${formatXaf(spent)} dépensés`} />
               <Stat label="À valider" value={toValidate} help="Livraisons à vérifier, ou demandes de délai auxquelles répondre." />
-              <Stat label="Protégé par LightPay" value={formatXaf(held)} help="Montant de vos commandes en cours : bloqué jusqu’à votre validation, remboursé en cas d’annulation." />
+              <Stat label="Protégé par LightPay" value={formatXaf(held)} help="Montant de vos commandes en cours, gardé par LightPay : versé au vendeur à votre validation (service) ou à la fin du délai (produit numérique), remboursé en cas d’annulation." />
             </StatGrid>
           </Panel>
 

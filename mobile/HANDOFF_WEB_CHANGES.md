@@ -109,6 +109,15 @@ Un produit numérique peut livrer **plusieurs fichiers**. Le maximum est un rég
 - **E-mail d'un invité** : un lien par fichier (jusqu'à 5). Le lien `GET /orders/:id/download?e=&t=` accepte `&f=<fileId>`.
 - Les fichiers jamais rattachés à une offre sont supprimés au bout d'un jour (tâche quotidienne) : ne pas compter dessus pour garder un envoi en attente.
 
+## 11. Produit numérique : jamais « à valider » (priorité 3 ter)
+
+Un produit numérique (e-book…) est **instantané** : accès au fichier dès le paiement, **aucune validation de l'acheteur, aucune autorisation de Salacope**. La seule attente est le délai de garantie que l'admin règle (`PlatformSettings.digitalHoldDays`), au bout duquel le vendeur est payé **automatiquement** (sauf litige ouvert avant). À afficher ainsi :
+- badge d'une commande numérique livrée : acheteur « **Fichier disponible** » (succès), vendeur « **Livré** » (jamais « À valider ») ; `statusDisplay()` dans `src/features/orders/model.ts` ;
+- carte vendeur : « Fichier livré, paiement automatique » + « Accès immédiat pour le client. {montant} vous seront versés automatiquement le {date}, sans validation de personne, si aucun litige n'est ouvert d'ici là. » ;
+- notification vendeur d'une vente numérique : événement **`sale.new_digital`** (nouveau), variables `commande`, `offre`, `montant`, `jours` ;
+- le délai est dit **avant l'achat** (fiche : « Accès immédiat ; le vendeur est payé N jours plus tard si vous ne signalez aucun problème », page de paiement) et figure dans la politique (conditions § 4) ;
+- politique de remboursement : le remboursement mobile money est versé **moins les frais de retrait** (voir §2), intégral sur un wallet LightPay.
+
 ## Ordre de travail conseillé
 
 1. §1 (commandes dans la discussion) — c'est ce qui change le plus l'usage au quotidien.

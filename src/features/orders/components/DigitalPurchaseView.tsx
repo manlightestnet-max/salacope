@@ -104,7 +104,7 @@ export const DigitalPurchaseView: React.FC<{ view: OrderView; userId: string }> 
             <button type="button" onClick={report} className="font-medium text-primary-700 hover:underline underline-offset-2">
               Signalez-le
             </button>{' '}
-            avant le {formatDate(order.releaseAt)} : l’argent reste bloqué jusqu’à la décision de Salacope.
+            avant le {formatDate(order.releaseAt)} : l’argent reste alors bloqué jusqu’à la décision de Salacope. Sans signalement, le vendeur est payé automatiquement à cette date.
           </p>
         )}
       </section>

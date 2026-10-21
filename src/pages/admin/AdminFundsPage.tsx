@@ -15,6 +15,10 @@ export const FUND_STATE: Record<AdminFundRow['status'] | 'completed' | 'cancelle
   cancelled: { label: 'Annulée', tone: 'neutral' },
 };
 
+/** How a held order reads for the administration: a digital product is never waiting for anyone, it pays out by itself. */
+export const fundState = (status: keyof typeof FUND_STATE, kind?: string) =>
+  status === 'delivered' && kind === 'digital' ? { label: 'Livrée, versement automatique', tone: 'info' as const } : FUND_STATE[status];
+
 const FILTERS: FundFilter[] = ['disputed', 'waiting', 'all'];
 
 /** Every franc held in escrow: disputes first, then what waits for the buyer's validation. */
@@ -46,7 +50,7 @@ export const AdminFundsPage: React.FC = () => {
           value={filter}
           options={[
             { value: 'disputed', label: totals ? `Litiges (${totals.disputed})` : 'Litiges' },
-            { value: 'waiting', label: 'En attente de validation' },
+            { value: 'waiting', label: 'Avant versement' },
             { value: 'all', label: 'Tous' },
           ]}
           onChange={setFilter}
@@ -57,7 +61,7 @@ export const AdminFundsPage: React.FC = () => {
         <StatGrid columns={3}>
           <Stat label="Total bloqué" value={totals ? formatXaf(totals.held_total) : ''} hint={totals ? `${formatNumber(totals.held)} commande${totals.held > 1 ? 's' : ''}` : undefined} />
           <Stat label="En litige" value={totals ? formatXaf(totals.disputed_total) : ''} emphasis={Boolean(totals?.disputed)} hint={totals ? `${formatNumber(totals.disputed)} commande${totals.disputed > 1 ? 's' : ''}` : undefined} />
-          <Stat label="En attente de validation" value={totals ? formatXaf(totals.held_total - totals.disputed_total) : ''} hint="Libérés par l’acheteur ou automatiquement" />
+          <Stat label="Avant versement" value={totals ? formatXaf(totals.held_total - totals.disputed_total) : ''} hint="Services : validation de l’acheteur. Produits numériques : versement automatique, rien à autoriser." />
         </StatGrid>
         <Panel title="Commandes" flush>
           {error ? (
@@ -77,8 +81,8 @@ export const AdminFundsPage: React.FC = () => {
                   subtitle={`${f.number} · ${f.seller_name} ← ${f.buyer_name} · ${f.status === 'disputed' ? `litige ${formatRelative(f.updated_at)}` : f.release_at ? `libération auto le ${formatDate(f.release_at)}` : formatRelative(f.created_at)}`}
                   meta={
                     <span className="flex flex-wrap gap-1">
-                      <Badge tone={FUND_STATE[f.status].tone} dot>
-                        {FUND_STATE[f.status].label}
+                      <Badge tone={fundState(f.status, f.kind).tone} dot>
+                        {fundState(f.status, f.kind).label}
                       </Badge>
                       {f.open_tickets > 0 && <Badge tone="warning">Ticket ouvert</Badge>}
                     </span>

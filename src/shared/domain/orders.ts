@@ -35,7 +35,8 @@ export const permissionsFor = (order: OrderShape, perspective: Perspective | nul
   const { status } = order;
   return {
     accept: seller && isService && status === 'paid',
-    deliver: seller && isService && (status === 'paid' || status === 'in_progress'),
+    // A service is delivered once accepted: accepting comes first (it starts the clock and opens the discussion).
+    deliver: seller && isService && status === 'in_progress',
     cancel: (seller && (status === 'paid' || status === 'in_progress')) || (buyer && isService && status === 'paid'),
     // A digital product is never confirmed by the buyer: the money stays held for the administration's delay, then is paid out.
     confirm: buyer && isService && status === 'delivered',
@@ -43,7 +44,8 @@ export const permissionsFor = (order: OrderShape, perspective: Perspective | nul
     revise: buyer && isService && status === 'delivered' && revisionsLeft(order) > 0,
     extend: seller && isService && status === 'in_progress' && !hasPendingExtension(order),
     answerExtension: buyer && status === 'in_progress' && hasPendingExtension(order),
-    message: Boolean(perspective) && status !== 'cancelled',
+    // Until the seller has accepted a service order nobody writes: the discussion opens with the acceptance.
+    message: Boolean(perspective) && status !== 'cancelled' && !(isService && status === 'paid'),
   };
 };
 

@@ -62,8 +62,8 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
       tone = seller ? 'action' : 'waiting';
       title = seller ? 'Nouvelle commande à accepter' : "En attente d'acceptation";
       body = seller
-        ? `Acceptez pour démarrer : vous aurez ${order.item.deliveryDays ?? 3} jours pour livrer.`
-        : "Le vendeur doit accepter votre commande. Vous pouvez l'annuler d'ici là, vous serez remboursé.";
+        ? `Acceptez pour démarrer et ouvrir la discussion : vous aurez ${order.item.deliveryDays ?? 3} jours pour livrer.`
+        : "Le vendeur doit accepter votre commande ; la discussion s'ouvrira alors. Vous pouvez l'annuler d'ici là, vous serez remboursé.";
       break;
     case 'in_progress':
       if (hasPendingExtension(order)) {
@@ -190,7 +190,7 @@ export const NextStepCard: React.FC<{ order: Order; perspective: Perspective; us
               </Button>
             )}
             {can.deliver && (
-              <Button variant={order.status === 'in_progress' ? 'primary' : 'ghost'} onClick={() => setDialog('deliver')}>
+              <Button variant="primary" onClick={() => setDialog('deliver')}>
                 Livrer
               </Button>
             )}

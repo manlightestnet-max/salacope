@@ -181,7 +181,13 @@ export const OrderActivity: React.FC<{ order: Order; userId: string; users: Map<
         {order.messages.length === 0 && (
           <li className="flex flex-col items-center gap-2 py-4 text-center">
             <MessagesSquare className="w-5 h-5 text-gray-300" />
-            <span className="text-xs text-gray-500">Aucun message. Posez vos questions à {displayName(counterpart)} ici.</span>
+            <span className="text-xs text-gray-500">
+              {order.item.kind === 'service' && order.status === 'paid'
+                ? perspective === 'seller'
+                  ? 'La discussion s’ouvre quand vous acceptez la commande.'
+                  : 'La discussion s’ouvrira dès que le vendeur aura accepté votre commande.'
+                : `Aucun message. Posez vos questions à ${displayName(counterpart)} ici.`}
+            </span>
           </li>
         )}
         {entries.map((entry) =>

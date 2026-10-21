@@ -68,7 +68,10 @@ export async function authorize(q: Query, orderId: string, userId: string, actio
   const [row] = await q<OrderRow>('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [orderId]);
   const perspective = row ? perspectiveOf(shapeOf(row), userId) : null;
   if (!row || !perspective) throw new DomainError('Commande introuvable.', 404);
-  if (!permissionsFor(shapeOf(row), perspective)[action]) throw new DomainError("Cette action n'est plus possible sur cette commande.", 409);
+  if (!permissionsFor(shapeOf(row), perspective)[action]) {
+    if (action === 'message' && row.status === 'paid') throw new DomainError('La discussion s’ouvre dès que le vendeur a accepté la commande.', 409);
+    throw new DomainError("Cette action n'est plus possible sur cette commande.", 409);
+  }
   return { row, perspective };
 }
 
